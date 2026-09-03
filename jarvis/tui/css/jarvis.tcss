@@ -1,0 +1,342 @@
+/* JARVIS Theme - Inspired by Iron Man's JARVIS interface */
+
+$primary: #00d4ff;
+$secondary: #0099cc;
+$accent: #ff6b00;
+$background: #0a0e17;
+$surface: #121826;
+$surface-hover: #1a2234;
+$text-primary: #e8f4fd;
+$text-secondary: #8ab4d8;
+$text-muted: #5a7a9a;
+$success: #00ff88;
+$warning: #ffaa00;
+$error: #ff3366;
+$border: #1e2a3e;
+
+Screen {
+    background: $background;
+    color: $text-primary;
+}
+
+#app-container {
+    height: 1fr;
+}
+
+#sidebar {
+    width: 28;
+    background: $surface;
+    border-right: solid $border;
+    padding: 1;
+    height: 1fr;
+}
+
+#sidebar:hidden {
+    width: 0;
+    padding: 0;
+    border: none;
+}
+
+#content-area {
+    width: 1fr;
+    height: 1fr;
+}
+
+#main-content {
+    height: 1fr;
+    background: $background;
+}
+
+#logo {
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    font-size: 24;
+    margin-bottom: 0;
+}
+
+#tagline {
+    text-align: center;
+    color: $text-secondary;
+    font-size: 11;
+    margin-bottom: 2;
+}
+
+#setup-container {
+    align: center middle;
+    width: 80;
+    height: 30;
+    background: $surface;
+    border: solid $primary;
+    padding: 2;
+}
+
+#setup-logo {
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    font-size: 28;
+    margin-bottom: 0;
+}
+
+#setup-tagline {
+    text-align: center;
+    color: $text-secondary;
+    margin-bottom: 2;
+}
+
+#setup-progress {
+    margin: 1 0;
+}
+
+#setup-status {
+    text-align: center;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+#setup-detail {
+    text-align: center;
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+#chat-container {
+    height: 1fr;
+    background: $background;
+}
+
+#chat-messages {
+    height: 1fr;
+    background: $background;
+}
+
+#input-container {
+    height: 3;
+    background: $surface;
+    border-top: solid $border;
+    padding: 0 1;
+}
+
+#chat-input {
+    width: 1fr;
+    background: $background;
+    border: solid $border;
+    color: $text-primary;
+}
+
+#chat-input:focus {
+    border: solid $primary;
+}
+
+#send-btn {
+    margin-left: 1;
+}
+
+.chat-log {
+    background: $background;
+}
+
+.chat-log .user-message {
+    color: $primary;
+}
+
+.chat-log .assistant-message {
+    color: $success;
+}
+
+.chat-log .tool-message {
+    color: $warning;
+}
+
+.chat-log .error-message {
+    color: $error;
+}
+
+#skills-container, #tools-container, #memory-container, #settings-container, #voice-container {
+    height: 1fr;
+    padding: 1;
+    background: $background;
+}
+
+.section-title {
+    text-style: bold;
+    color: $primary;
+    margin: 1 0;
+}
+
+.skill-item, .tool-item, .memory-item {
+    height: 3;
+    background: $surface;
+    border: solid $border;
+    margin: 0 0 1 0;
+}
+
+.skill-item:hover, .tool-item:hover, .memory-item:hover {
+    background: $surface-hover;
+    border: solid $primary;
+}
+
+.skill-name, .tool-name, .memory-content {
+    width: 1fr;
+    color: $text-primary;
+}
+
+.skill-desc, .tool-desc, .memory-time {
+    color: $text-secondary;
+}
+
+.status-indicator {
+    color: $success;
+}
+
+.status-indicator.listening {
+    color: $accent;
+    text-style: bold;
+}
+
+#palette-container {
+    align: center middle;
+    width: 80;
+    height: 40;
+    background: $surface;
+    border: solid $primary;
+    padding: 1;
+}
+
+#palette-title {
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+#palette-input {
+    background: $background;
+    border: solid $border;
+    color: $text-primary;
+    margin-bottom: 1;
+}
+
+#palette-input:focus {
+    border: solid $primary;
+}
+
+.cmd-name {
+    color: $primary;
+    text-style: bold;
+}
+
+.cmd-desc {
+    color: $text-secondary;
+}
+
+StatusBar {
+    dock: bottom;
+    height: 1;
+    background: $surface;
+    border-top: solid $border;
+    color: $text-secondary;
+}
+
+#status-left {
+    width: 20;
+    padding-left: 1;
+}
+
+#status-center {
+    width: 1fr;
+    text-align: center;
+}
+
+#status-right {
+    width: 20;
+    text-align: right;
+    padding-right: 1;
+}
+
+Button {
+    background: $surface;
+    border: solid $border;
+    color: $text-primary;
+}
+
+Button:hover {
+    background: $surface-hover;
+    border: solid $primary;
+}
+
+Button:focus {
+    border: solid $primary;
+}
+
+Button.-primary {
+    background: $primary;
+    color: $background;
+}
+
+Button.-primary:hover {
+    background: $secondary;
+}
+
+Button.-error {
+    background: $error;
+    color: $text-primary;
+}
+
+Input {
+    background: $background;
+    border: solid $border;
+    color: $text-primary;
+}
+
+Input:focus {
+    border: solid $primary;
+}
+
+Select {
+    background: $surface;
+    border: solid $border;
+    color: $text-primary;
+}
+
+Select:focus {
+    border: solid $primary;
+}
+
+Switch {
+    background: $surface;
+    border: solid $border;
+}
+
+Switch.-on {
+    background: $primary;
+}
+
+RichLog {
+    background: $background;
+    color: $text-primary;
+}
+
+ProgressBar {
+    background: $surface;
+    border: solid $border;
+}
+
+ProgressBar > .bar {
+    background: $primary;
+}
+
+ListView {
+    background: $background;
+    border: solid $border;
+}
+
+ListView > .list-view--highlighted {
+    background: $surface-hover;
+    border: solid $primary;
+}
+
+Container#chat-scroll {
+    height: 1fr;
+}
