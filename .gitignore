@@ -51,3 +51,12 @@ Thumbs.db
 # Distribution
 *.tar.gz
 *.whl
+
+# Embedded git repos (submodules)
+ai-marketing-skills/
+ai-memory-vault/
+ai-visualizer/
+backtalk/
+barehands/
+fullstack-agent/
+prompts/
