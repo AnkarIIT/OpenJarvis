@@ -20,9 +20,16 @@ from rich.progress import (
     TransferSpeedColumn,
 )
 from rich.prompt import Confirm, Prompt
+from rich.table import Table
 
 from jarvis.config.settings import Settings, load_settings, save_settings
-from jarvis.utils.detectors import check_ollama, check_python_version
+from jarvis.utils.detectors import (
+    check_python_version,
+    detect_all_local_ai,
+    get_available_models,
+    get_system_info,
+    format_bytes,
+)
 from jarvis.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -30,7 +37,6 @@ console = Console()
 
 
 class Installer:
-    DEFAULT_MODEL = "llama3.1:8b"
     VOICE_MODELS = {
         "piper": {
             "en_US-lessac-medium": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx",
@@ -43,15 +49,16 @@ class Installer:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or load_settings()
         self.config_dir = self.settings.config_dir
-        self.ollama_installed = False
+        self.selected_provider = None
+        self.selected_model = None
 
     async def run(self) -> bool:
-        console.print("\n[bold cyan]🤖 JARVIS Terminal Agent - Automated Setup[/bold cyan]\n")
+        console.print("\n[bold cyan]JARVIS Terminal Agent - Setup[/bold cyan]\n")
 
         if not await self._check_prerequisites():
             return False
 
-        if not await self._detect_and_install_ai():
+        if not await self._detect_and_select_ai():
             return False
 
         await self._download_voice_models()
@@ -67,36 +74,152 @@ class Installer:
         console.print("[cyan]Checking prerequisites...[/cyan]")
 
         if not check_python_version():
-            console.print("[red]❌ Python 3.10+ required[/red]")
+            console.print("[red]ERROR: Python 3.10+ required[/red]")
             return False
 
-        console.print("[green]✓ Python version OK[/green]")
+        sys_info = get_system_info()
+        ram_gb = sys_info["memory_total"] / (1024**3)
+        console.print(f"[green]OK Python OK | RAM: {ram_gb:.1f}GB | CPU: {sys_info['cpu_count']} cores[/green]")
+
+        if ram_gb < 4:
+            console.print("[yellow]WARNING: Less than 4GB RAM - only small models will work[/yellow]")
+        elif ram_gb < 8:
+            console.print("[yellow]WARNING: 4-8GB RAM - recommend models under 4GB[/yellow]")
+
         return True
 
-    async def _detect_and_install_ai(self) -> bool:
-        console.print("\n[cyan]Detecting local AI...[/cyan]")
+    async def _detect_and_select_ai(self) -> bool:
+        console.print("\n[cyan]Detecting local AI installations...[/cyan]")
 
-        ollama_status = check_ollama()
+        all_ai = detect_all_local_ai()
+        available_models = get_available_models()
 
-        if ollama_status["available"]:
-            console.print(f"[green]✓ Ollama found: {ollama_status['version']}[/green]")
-            self.ollama_installed = True
+        local_models = [m for m in available_models if m["source"] == "local"]
+        downloadable = [m for m in available_models if m["source"] == "download"]
+
+        self._display_detection_results(all_ai, local_models)
+
+        if local_models:
+            console.print("\n[green]Found existing local models:[/green]")
+            return await self._select_from_existing(local_models)
         else:
-            console.print("[yellow]⚠ Ollama not found[/yellow]")
-            if Confirm.ask("Install Ollama automatically?", default=True):
-                if await self._install_ollama():
-                    console.print("[green]✓ Ollama installed[/green]")
-                    self.ollama_installed = True
+            console.print("\n[yellow]No local models found.[/yellow]")
+            return await self._recommend_and_install(downloadable)
+
+    def _display_detection_results(self, all_ai: dict, local_models: list) -> None:
+        table = Table(title="Local AI Detection Results")
+        table.add_column("Provider", style="cyan")
+        table.add_column("Status", style="green")
+        table.add_column("Version", style="yellow")
+        table.add_column("Models Found", style="white")
+
+        for provider, info in all_ai.items():
+            status = "[green]OK Available[/green]" if info["available"] else "[red]ERROR Not installed[/red]"
+            version = info.get("version", "N/A")
+            models = ", ".join(info.get("models", [])) if info.get("models") else "None"
+            if len(models) > 50:
+                models = models[:47] + "..."
+            table.add_row(provider.replace("_", " ").title(), status, version, models)
+
+        console.print(table)
+
+    async def _select_from_existing(self, local_models: list) -> bool:
+        console.print("\n[bold]Select a model to use:[/bold]")
+
+        for i, model in enumerate(local_models, 1):
+            console.print(f"  [{i}] {model['display']}")
+
+        console.print(f"  [{len(local_models) + 1}] Install a different model instead")
+
+        while True:
+            choice = Prompt.ask("Enter choice", default="1")
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < len(local_models):
+                    self.selected_provider = local_models[idx]["provider"]
+                    self.selected_model = local_models[idx]["model"]
+                    break
+                elif idx == len(local_models):
+                    return await self._recommend_and_install(
+                        [m for m in get_available_models() if m["source"] == "download"]
+                    )
                 else:
-                    console.print("[red]❌ Failed to install Ollama[/red]")
-                    return False
-            else:
-                console.print("[yellow]Skipping Ollama installation[/yellow]")
+                    console.print("[red]Invalid choice[/red]")
+            except ValueError:
+                console.print("[red]Enter a number[/red]")
+
+        console.print(f"\n[green]OK Using {self.selected_provider}: {self.selected_model}[/green]")
+        self.settings.llm.provider = self.selected_provider
+        self.settings.llm.model = self.selected_model
+        return True
+
+    async def _recommend_and_install(self, downloadable: list) -> bool:
+        console.print("\n[bold]Recommended models to install:[/bold]")
+
+        table = Table()
+        table.add_column("#", style="cyan", width=3)
+        table.add_column("Model", style="white")
+        table.add_column("Size", style="yellow")
+        table.add_column("RAM Needed", style="red")
+
+        sys_info = get_system_info()
+        ram_gb = sys_info["memory_total"] / (1024**3)
+
+        for i, model in enumerate(downloadable, 1):
+            if model.get("recommended"):
+                size = model["display"].split("(")[-1].split(")")[0] if "(" in model["display"] else "Unknown"
+                ram_needed = f"{model.get('ram_gb', '?')}GB"
+                recommended = " [*]" if model.get("ram_gb", 99) <= ram_gb else " [!]"
+                table.add_row(str(i), model["display"].split(" - ")[0] + recommended, size, ram_needed)
+
+        console.print(table)
+        console.print("[dim][*] = fits your RAM | [!] = may be slow[/dim]")
+
+        console.print(f"\n  [{len(downloadable) + 1}] Install Ollama only (choose model later)")
+        console.print(f"  [{len(downloadable) + 2}] Skip - configure manually later")
+
+        while True:
+            choice = Prompt.ask("Enter choice", default="1")
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < len(downloadable):
+                    self.selected_provider = downloadable[idx]["provider"]
+                    self.selected_model = downloadable[idx]["model"]
+                    break
+                elif idx == len(downloadable):
+                    self.selected_provider = "ollama"
+                    self.selected_model = None
+                    break
+                elif idx == len(downloadable) + 1:
+                    console.print("[yellow]Skipping AI setup[/yellow]")
+                    return True
+                else:
+                    console.print("[red]Invalid choice[/red]")
+            except ValueError:
+                console.print("[red]Enter a number[/red]")
+
+        if self.selected_provider == "ollama":
+            return await self._install_ollama_and_model()
+
+        return True
+
+    async def _install_ollama_and_model(self) -> bool:
+        ollama_status = detect_all_local_ai()["ollama"]
+
+        if not ollama_status["available"]:
+            console.print("\n[cyan]Installing Ollama...[/cyan]")
+            if not await self._install_ollama():
+                console.print("[red]ERROR Failed to install Ollama[/red]")
+                return False
+            console.print("[green]OK Ollama installed[/green]")
+
+        if self.selected_model:
+            console.print(f"\n[cyan]Pulling model: {self.selected_model}[/cyan]")
+            if not await self._pull_model(self.selected_model):
                 return False
 
-        if self.ollama_installed:
-            await self._pull_model()
-
+        self.settings.llm.provider = "ollama"
+        self.settings.llm.model = self.selected_model or "llama3.1:8b"
         return True
 
     async def _install_ollama(self) -> bool:
@@ -150,11 +273,9 @@ class Installer:
         if total_size > 0:
             progress.update(task, total=total_size, completed=block_num * block_size)
 
-    async def _pull_model(self) -> None:
-        console.print(f"\n[cyan]Pulling model: {self.DEFAULT_MODEL}[/cyan]")
-
+    async def _pull_model(self, model: str) -> bool:
         process = await asyncio.create_subprocess_exec(
-            "ollama", "pull", self.DEFAULT_MODEL,
+            "ollama", "pull", model,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
@@ -167,10 +288,11 @@ class Installer:
         await process.wait()
 
         if process.returncode == 0:
-            console.print(f"[green]✓ Model {self.DEFAULT_MODEL} ready[/green]")
-            self.settings.llm.model = self.DEFAULT_MODEL
+            console.print(f"[green]OK Model {model} ready[/green]")
+            return True
         else:
-            console.print(f"[red]❌ Failed to pull model[/red]")
+            console.print(f"[red]ERROR Failed to pull model[/red]")
+            return False
 
     async def _download_voice_models(self) -> None:
         if not self.settings.voice.enabled:
@@ -184,17 +306,17 @@ class Installer:
             for model_name, url in models.items():
                 model_path = voice_dir / model_name
                 if model_path.exists():
-                    console.print(f"[green]✓ {model_name} already exists[/green]")
+                    console.print(f"[green]OK {model_name} already exists[/green]")
                     continue
 
                 console.print(f"Downloading {model_name}...")
                 try:
                     urllib.request.urlretrieve(url, voice_dir / f"{model_name}.tmp")
                     (voice_dir / f"{model_name}.tmp").rename(model_path)
-                    console.print(f"[green]✓ {model_name} downloaded[/green]")
+                    console.print(f"[green]OK {model_name} downloaded[/green]")
                 except Exception as e:
                     logger.error(f"Failed to download {model_name}: {e}")
-                    console.print(f"[yellow]⚠ Failed to download {model_name}[/yellow]")
+                    console.print(f"[yellow]WARNING: Failed to download {model_name}[/yellow]")
 
     async def _setup_mcp_servers(self) -> None:
         console.print("\n[cyan]Setting up MCP servers...[/cyan]")
@@ -218,21 +340,19 @@ class Installer:
         }
 
         self.settings.mcp.servers = default_servers
-        console.print("[green]✓ MCP servers configured[/green]")
+        console.print("[green]OK MCP servers configured[/green]")
 
     def _create_config(self) -> None:
         console.print("\n[cyan]Creating configuration...[/cyan]")
         save_settings(self.settings)
-        console.print(f"[green]✓ Config saved to {self.settings.config_file}[/green]")
+        console.print(f"[green]OK Config saved to {self.settings.config_file}[/green]")
 
     def _add_to_path(self) -> None:
         console.print("\n[cyan]Adding to PATH...[/cyan]")
 
         if platform.system() == "Windows":
-            user_path = os.environ.get("PATH", "")
             jarvis_path = str(Path(sys.executable).parent / "Scripts")
-            if jarvis_path not in user_path:
-                console.print(f"[yellow]Add to PATH manually: {jarvis_path}[/yellow]")
+            console.print(f"[yellow]Add to PATH manually: {jarvis_path}[/yellow]")
         else:
             shell_rc = Path.home() / ".bashrc"
             if not shell_rc.exists():
@@ -246,7 +366,7 @@ class Installer:
                 if export_line not in content:
                     with open(shell_rc, "a") as f:
                         f.write(f"\n{export_line}\n")
-                    console.print(f"[green]✓ Added to {shell_rc}[/green]")
+                    console.print(f"[green]OK Added to {shell_rc}[/green]")
             else:
                 console.print(f"[yellow]Add to PATH manually: {jarvis_bin}[/yellow]")
 

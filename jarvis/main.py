@@ -44,7 +44,17 @@ def main(
         import logging
         logging.getLogger().setLevel(logging.DEBUG)
 
-    console.print("[bold cyan]🤖 JARVIS[/bold cyan] - Starting...")
+    # Check if first run (no config or no model configured)
+    if not settings.config_file.exists() or not settings.llm.model:
+        console.print("[yellow]First run detected. Starting setup...[/yellow]\n")
+        success = asyncio.run(install())
+        if not success:
+            console.print("[red]Setup failed. Run 'jarvis --install' to retry.[/red]")
+            sys.exit(1)
+        # Reload settings after install
+        settings = load_settings()
+
+    console.print("[bold cyan]JARVIS[/bold cyan] - Starting...")
     console.print(f"Model: {settings.llm.model} ({settings.llm.provider})")
     console.print(f"Voice: {'Enabled' if settings.voice.enabled else 'Disabled'}")
     console.print(f"Memory: {'Enabled' if settings.memory.enabled else 'Disabled'}")
@@ -79,12 +89,17 @@ def doctor():
     table.add_column("Provider", style="cyan")
     table.add_column("Status", style="green")
     table.add_column("Version", style="yellow")
+    table.add_column("Models", style="white")
 
     for provider, status in ai_status.items():
+        models = ", ".join(status.get("models", [])) if status.get("models") else "None"
+        if len(models) > 40:
+            models = models[:37] + "..."
         table.add_row(
-            provider.title(),
-            "✓ Available" if status["available"] else "✗ Not found",
+            provider.replace("_", " ").title(),
+            "OK Available" if status["available"] else "ERROR Not found",
             status.get("version", "N/A"),
+            models,
         )
     console.print(table)
 

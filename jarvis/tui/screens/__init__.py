@@ -1,4 +1,3 @@
-from jarvis.tui.screens.setup import SetupScreen
 from jarvis.tui.screens.chat import ChatScreen
 from jarvis.tui.screens.skills import SkillsScreen
 from jarvis.tui.screens.tools import ToolsScreen
@@ -7,7 +6,6 @@ from jarvis.tui.screens.settings_screen import SettingsScreen
 from jarvis.tui.screens.voice import VoiceScreen
 
 __all__ = [
-    "SetupScreen",
     "ChatScreen",
     "SkillsScreen",
     "ToolsScreen",

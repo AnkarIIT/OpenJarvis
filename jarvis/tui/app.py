@@ -4,10 +4,8 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Header, Footer, Static
-from textual.screen import Screen
 
 from jarvis.config.settings import Settings, load_settings
-from jarvis.tui.screens.setup import SetupScreen
 from jarvis.tui.screens.chat import ChatScreen
 from jarvis.tui.screens.skills import SkillsScreen
 from jarvis.tui.screens.tools import ToolsScreen
@@ -75,12 +73,6 @@ class JarvisApp(App):
     async def on_mount(self) -> None:
         self.status_bar = self.query_one("#status-bar", StatusBar)
         self.command_palette = self.query_one("#command-palette", CommandPalette)
-
-        if self.settings.llm.provider == "ollama":
-            from jarvis.utils.detectors import check_ollama
-            if not check_ollama()["available"]:
-                self.push_screen(SetupScreen())
-                return
 
         await self.switch_screen("chat")
 

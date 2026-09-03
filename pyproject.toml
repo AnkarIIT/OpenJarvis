@@ -22,7 +22,6 @@ classifiers = [
 dependencies = [
     "textual>=0.52",
     "ollama>=0.3",
-    "llama-cpp-python>=0.2",
     "mcp>=1.0",
     "chromadb>=0.5",
     "sentence-transformers>=3.0",
@@ -41,8 +40,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+llama_cpp = ["llama-cpp-python>=0.2"]
 voice = ["pvporcupine>=3.0"]
 dev = ["pytest", "pytest-asyncio", "textual-dev", "ruff", "mypy"]
+all = ["llama-cpp-python>=0.2", "pvporcupine>=3.0"]
 
 [project.scripts]
 jarvis = "jarvis.main:main"
