@@ -6,6 +6,7 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Header, Footer, Static
 
 from jarvis.config.settings import Settings, load_settings
+from jarvis.skills.registry import SkillRegistry
 from jarvis.tui.screens.chat import ChatScreen
 from jarvis.tui.screens.skills import SkillsScreen
 from jarvis.tui.screens.tools import ToolsScreen
@@ -43,8 +44,13 @@ class JarvisApp(App):
     def __init__(self, settings: Settings | None = None):
         super().__init__()
         self.settings = settings or load_settings()
-        self.agent_loop = AgentLoop(self.settings)
+        self.skill_registry = SkillRegistry(self.settings)
+        self.agent_loop = AgentLoop(self.settings, skill_registry=self.skill_registry)
         self.voice_pipeline = VoicePipeline(self.settings, self.agent_loop) if self.settings.voice.enabled else None
+        if self.voice_pipeline and hasattr(self.skill_registry, "skill_instances"):
+            voice_skill = self.skill_registry.skill_instances.get("voice_control")
+            if voice_skill and hasattr(voice_skill, "set_voice_pipeline"):
+                voice_skill.set_voice_pipeline(self.voice_pipeline)
         self.current_screen = "chat"
         self.chat_panel: ChatPanel | None = None
         self.status_bar: StatusBar | None = None
@@ -85,9 +91,9 @@ class JarvisApp(App):
 
         screen_map = {
             "chat": ChatScreen(self.agent_loop, self.settings),
-            "skills": SkillsScreen(self.settings),
+            "skills": SkillsScreen(self.settings, self.skill_registry),
             "memory": MemoryScreen(self.settings),
-            "tools": ToolsScreen(self.settings),
+            "tools": ToolsScreen(self.settings, mcp_client=self.agent_loop.mcp),
             "settings": SettingsScreen(self.settings),
             "voice": VoiceScreen(self.voice_pipeline, self.settings) if self.voice_pipeline else None,
         }
@@ -124,6 +130,14 @@ class JarvisApp(App):
     async def on_unmount(self) -> None:
         if self.voice_pipeline:
             await self.voice_pipeline.stop()
+
+        # Clean up any external skill subprocesses started during the session.
+        for skill in self.skill_registry.skill_instances.values():
+            if hasattr(skill, "_stop") and callable(skill._stop):
+                try:
+                    await skill._stop()
+                except Exception as e:
+                    print(f"Failed to stop skill {getattr(skill, 'name', 'unknown')}: {e}")
 
 
 def main() -> None:

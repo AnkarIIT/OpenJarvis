@@ -8,7 +8,12 @@ from typing import Any
 
 import chromadb
 from chromadb.config import Settings as ChromaSettings
-from sentence_transformers import SentenceTransformer
+try:
+    from sentence_transformers import SentenceTransformer
+
+    HAS_SENTENCE_TRANSFORMERS = True
+except Exception:  # pragma: no cover - optional dependency
+    HAS_SENTENCE_TRANSFORMERS = False
 
 from jarvis.config.settings import Settings
 from jarvis.utils.logger import get_logger
@@ -39,7 +44,12 @@ class VectorStore:
                 metadata={"hnsw:space": "cosine"},
             )
 
-            self.embedding_model = SentenceTransformer(self.settings.memory.embedding_model)
+            if HAS_SENTENCE_TRANSFORMERS:
+                self.embedding_model = SentenceTransformer(self.settings.memory.embedding_model)
+                logger.info("Embedding model loaded: %s", self.settings.memory.embedding_model)
+            else:
+                logger.warning("sentence-transformers not available; semantic search disabled")
+
             self._initialized = True
             logger.info("Vector store initialized")
         except Exception as e:
@@ -53,6 +63,9 @@ class VectorStore:
             raise RuntimeError("Vector store not initialized")
 
         memory_id = str(uuid.uuid4())
+        if self.embedding_model is None:
+            raise RuntimeError("Embedding model unavailable; cannot add memory")
+
         embedding = self.embedding_model.encode(content).tolist()
 
         meta = {
@@ -74,6 +87,10 @@ class VectorStore:
             await self.initialize()
 
         if not self._initialized:
+            return []
+
+        if self.embedding_model is None:
+            logger.warning("Search skipped: embedding model unavailable")
             return []
 
         query_embedding = self.embedding_model.encode(query).tolist()

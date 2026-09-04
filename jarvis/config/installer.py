@@ -324,7 +324,7 @@ class Installer:
         default_servers = {
             "filesystem": {
                 "command": "jarvis-mcp-filesystem",
-                "args": ["--root", str(Path.home())],
+                "args": ["--root", str(self.settings.project_root / "jarvis-fs")],
             },
             "terminal": {
                 "command": "jarvis-mcp-terminal",

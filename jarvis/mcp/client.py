@@ -77,10 +77,17 @@ class MCPClient:
                 if session:
                     try:
                         result = await session.call_tool(tool_name, arguments)
-                        return result.content
                     except Exception as e:
                         logger.error(f"Tool call failed: {e}")
                         return {"error": str(e)}
+
+                    # MCP tool results may expose content as an attribute or dict key.
+                    content = getattr(result, "content", None)
+                    if content is None and isinstance(result, dict):
+                        content = result.get("content")
+                    if content is None:
+                        content = result
+                    return content
         return {"error": f"Tool not found: {tool_name}"}
 
     async def list_all_tools(self) -> list[MCPTool]:

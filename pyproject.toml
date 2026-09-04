@@ -37,6 +37,7 @@ dependencies = [
     "rich>=13.7",
     "httpx>=0.27",
     "python-dotenv>=1.0",
+    "duckduckgo-search>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -47,6 +48,11 @@ all = ["llama-cpp-python>=0.2", "pvporcupine>=3.0"]
 
 [project.scripts]
 jarvis = "jarvis.main:main"
+jarvis-mcp-filesystem = "jarvis.mcp.servers.filesystem:main"
+jarvis-mcp-terminal = "jarvis.mcp.servers.terminal:main"
+jarvis-mcp-git = "jarvis.mcp.servers.git:main"
+jarvis-mcp-memory = "jarvis.mcp.servers.memory:main"
+jarvis-mcp-web-search = "jarvis.mcp.servers.web_search:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]

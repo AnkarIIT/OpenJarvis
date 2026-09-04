@@ -16,10 +16,10 @@ class ToolsScreen(Screen):
         ("r", "refresh", "Refresh"),
     ]
 
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, mcp_client: MCPClient | None = None):
         super().__init__()
         self.settings = settings
-        self.mcp_client = MCPClient(settings)
+        self.mcp_client = mcp_client or MCPClient(settings)
         self.tools = []
 
     def compose(self) -> ComposeResult:

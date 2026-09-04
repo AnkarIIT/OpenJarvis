@@ -1,3 +1,5 @@
-from jarvis.mcp.client import MCPClient, MCPTool
+# jarvis/mcp/__init__.py
+# Intentionally minimal to avoid circular imports during package loading.
+# Import directly from jarvis.mcp.client when needed.
 
-__all__ = ["MCPClient", "MCPTool"]
+__all__: list[str] = []

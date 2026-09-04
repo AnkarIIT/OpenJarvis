@@ -65,12 +65,30 @@ class SkillsSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="JARVIS_SKILLS_")
 
     enabled: list[str] = Field(default_factory=lambda: [
-        "system_monitor", "code_assistant", "memory", "voice_control"
+        "system_monitor", "code_assistant", "memory", "voice_control", "marketing", "visualizer", "memory_vault", "barehands", "backtalk", "fullstack_agent"
     ])
     paths: list[str] = Field(default_factory=lambda: [
         "~/.jarvis/skills",
-        "./.jarvis/skills"
+        "./.jarvis/skills",
+        "jarvis/skills/external"
     ])
+
+
+class ExternalSkillsSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="JARVIS_EXT_")
+
+    visualizer_path: str = "./ai-visualizer"
+    visualizer_bus_dir: str = "~/.jarvis/visualizer_bus"
+    visualizer_port: int = 8790
+    visualizer_default_face: str = "board"
+    memory_vault_path: str = "~/MyVault"
+    barehands_path: str = "./barehands"
+    barehands_state_dir: str = ""
+    barehands_port: int = 8794
+    backtalk_path: str = "./backtalk"
+    backtalk_state_dir: str = ""
+    backtalk_port: int = 8794
+    fullstack_agent_path: str = "./fullstack-agent"
 
 
 class Settings(BaseSettings):
@@ -87,6 +105,7 @@ class Settings(BaseSettings):
     memory: MemorySettings = Field(default_factory=MemorySettings)
     ui: UISettings = Field(default_factory=UISettings)
     skills: SkillsSettings = Field(default_factory=SkillsSettings)
+    external: ExternalSkillsSettings = Field(default_factory=ExternalSkillsSettings)
 
     @field_validator("llm", "mcp", "voice", "memory", "ui", "skills", mode="before")
     @classmethod
@@ -109,7 +128,93 @@ class Settings(BaseSettings):
 
     @property
     def skills_paths(self) -> list[Path]:
-        return [Path(os.path.expanduser(p)) for p in self.skills.paths]
+        paths: list[Path] = []
+        for p in self.skills.paths:
+            path = Path(os.path.expanduser(p))
+            if not path.is_absolute():
+                # Resolve relative paths against the project root when possible,
+                # falling back to CWD so existing behavior is preserved.
+                candidate = Path(__file__).resolve().parent.parent.parent / p
+                if candidate.exists():
+                    path = candidate.resolve()
+                else:
+                    path = Path.cwd() / p
+            paths.append(path)
+        return paths
+
+    @property
+    def external_visualizer_dir(self) -> Path:
+        p = Path(os.path.expanduser(self.external.visualizer_path))
+        if not p.is_absolute():
+            candidate = Path(__file__).resolve().parent.parent.parent / self.external.visualizer_path
+            if candidate.exists():
+                return candidate.resolve()
+            return Path.cwd() / self.external.visualizer_path
+        return p
+
+    @property
+    def external_visualizer_bus_dir(self) -> Path:
+        return Path(os.path.expanduser(self.external.visualizer_bus_dir))
+
+    @property
+    def external_memory_vault_dir(self) -> Path:
+        return Path(os.path.expanduser(self.external.memory_vault_path))
+
+    @property
+    def external_barehands_dir(self) -> Path:
+        p = Path(os.path.expanduser(self.external.barehands_path))
+        if not p.is_absolute():
+            candidate = Path(__file__).resolve().parent.parent.parent / self.external.barehands_path
+            if candidate.exists():
+                return candidate.resolve()
+            return Path.cwd() / self.external.barehands_path
+        return p
+
+    @property
+    def external_barehands_state_dir(self) -> Path:
+        raw = self.external.barehands_state_dir
+        if raw:
+            return Path(os.path.expanduser(raw))
+        return self.external_barehands_dir / "state"
+
+    @property
+    def external_backtalk_dir(self) -> Path:
+        p = Path(os.path.expanduser(self.external.backtalk_path))
+        if not p.is_absolute():
+            candidate = Path(__file__).resolve().parent.parent.parent / self.external.backtalk_path
+            if candidate.exists():
+                return candidate.resolve()
+            return Path.cwd() / self.external.backtalk_path
+        return p
+
+    @property
+    def external_backtalk_state_dir(self) -> Path:
+        raw = self.external.backtalk_state_dir
+        if raw:
+            return Path(os.path.expanduser(raw))
+        return self.external_backtalk_dir / "state"
+
+    @property
+    def external_fullstack_agent_dir(self) -> Path:
+        p = Path(os.path.expanduser(self.external.fullstack_agent_path))
+        if not p.is_absolute():
+            candidate = Path(__file__).resolve().parent.parent.parent / self.external.fullstack_agent_path
+            if candidate.exists():
+                return candidate.resolve()
+            return Path.cwd() / self.external.fullstack_agent_path
+        return p
+
+    @property
+    def project_root(self) -> Path:
+        """Best-effort project root relative to this settings file.
+
+        Falls back to CWD when the package is installed and the source tree
+        is not available.
+        """
+        candidate = Path(__file__).resolve().parent.parent.parent
+        if (candidate / "pyproject.toml").exists() or (candidate / "setup.py").exists():
+            return candidate
+        return Path.cwd()
 
     def model_dump_json(self, **kwargs: Any) -> str:
         return super().model_dump_json(**kwargs)
