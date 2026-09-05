@@ -167,10 +167,11 @@ class Installer:
 
         for i, model in enumerate(downloadable, 1):
             if model.get("recommended"):
-                size = model["display"].split("(")[-1].split(")")[0] if "(" in model["display"] else "Unknown"
+                size = model.get("size_gb", "?")
+                size_str = f"{size}GB" if size != "?" else "Unknown"
                 ram_needed = f"{model.get('ram_gb', '?')}GB"
                 recommended = " [*]" if model.get("ram_gb", 99) <= ram_gb else " [!]"
-                table.add_row(str(i), model["display"].split(" - ")[0] + recommended, size, ram_needed)
+                table.add_row(str(i), model["display"].split(" - ")[0] + recommended, size_str, ram_needed)
 
         console.print(table)
         console.print("[dim][*] = fits your RAM | [!] = may be slow[/dim]")
@@ -200,6 +201,15 @@ class Installer:
 
         if self.selected_provider == "ollama":
             return await self._install_ollama_and_model()
+        elif self.selected_provider == "llama_cpp":
+            return await self._download_gguf_model()
+        elif self.selected_provider in ("lm_studio", "localai"):
+            # These are managed externally via their GUI/desktop apps
+            console.print(f"[yellow]{self.selected_provider} is managed via its desktop app. Configure the server URL in JARVIS settings.[/yellow]")
+            self.settings.llm.provider = self.selected_provider
+            self.settings.llm.base_url = "http://127.0.0.1:1234/v1" if self.selected_provider == "lm_studio" else "http://127.0.0.1:8080/v1"
+            self.settings.llm.model = self.selected_model or "llama3.1"
+            return True
 
         return True
 
@@ -294,6 +304,51 @@ class Installer:
             console.print(f"[red]ERROR Failed to pull model[/red]")
             return False
 
+    async def _download_gguf_model(self) -> bool:
+        """Download a GGUF model directly (no Ollama needed)."""
+        model_url = self.selected_model
+        if not model_url or not model_url.startswith("http"):
+            yield_skip = True
+            return False
+
+        model_dir = Path.home() / ".jarvis" / "models"
+        model_dir.mkdir(parents=True, exist_ok=True)
+        model_filename = model_url.split("/")[-1]
+        model_path = model_dir / model_filename
+
+        if model_path.exists():
+            console.print(f"[green]OK {model_filename} already exists[/green]")
+        else:
+            console.print(f"\n[cyan]Downloading GGUF model: {model_filename}[/cyan]")
+            with Progress(
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                DownloadColumn(),
+                TransferSpeedColumn(),
+                TimeRemainingColumn(),
+            ) as progress:
+                task = progress.add_task("Downloading...", total=None)
+                try:
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(
+                        None,
+                        lambda: urllib.request.urlretrieve(
+                            model_url, str(model_path),
+                            reporthook=lambda *args: self._download_hook(progress, task, *args)
+                        ),
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to download GGUF model: {e}")
+                    console.print(f"[red]ERROR Download failed: {e}[/red]")
+                    return False
+
+            console.print(f"[green]OK Model downloaded to {model_path}[/green]")
+
+        self.settings.llm.provider = "llama_cpp"
+        self.settings.llm.model_path = str(model_path)
+        self.settings.llm.model = model_filename
+        return True
+
     async def _download_voice_models(self) -> None:
         if not self.settings.voice.enabled:
             return
@@ -304,19 +359,84 @@ class Installer:
 
         for engine, models in self.VOICE_MODELS.items():
             for model_name, url in models.items():
-                model_path = voice_dir / model_name
-                if model_path.exists():
-                    console.print(f"[green]OK {model_name} already exists[/green]")
+                # Determine file path based on engine type
+                if engine == "piper":
+                    model_path = voice_dir / f"{model_name}.onnx"
+                    if model_path.exists() or (voice_dir / f"{model_name}.onnx").exists():
+                        console.print(f"[green]OK Piper {model_name} already exists[/green]")
+                        continue
+                    download_path = voice_dir / f"{model_name}.onnx.tmp"
+                elif engine == "openwakeword":
+                    model_path = voice_dir / f"{model_name}.tflite"
+                    if model_path.exists():
+                        continue
+                    download_path = voice_dir / f"{model_name}.tflite.tmp"
+                elif engine == "vosk":
+                    model_path = voice_dir / model_name
+                    if model_path.exists() or model_path.with_suffix(".zip").exists():
+                        console.print(f"[green]OK Vosk {model_name} already exists[/green]")
+                        continue
+                    download_path = voice_dir / f"{model_name}.zip.tmp"
+                elif engine == "whisper":
+                    model_path = voice_dir / "whisper" / f"ggml-{model_name}.bin"
+                    model_path.parent.mkdir(parents=True, exist_ok=True)
+                    if model_path.exists():
+                        console.print(f"[green]OK Whisper {model_name} already exists[/green]")
+                        continue
+                    download_path = model_path.with_suffix(".bin.tmp")
+                elif engine == "porcupine":
+                    # Skip - porcupine needs system-specific ppn files
                     continue
+                else:
+                    model_path = voice_dir / model_name
+                    download_path = voice_dir / f"{model_name}.tmp"
 
-                console.print(f"Downloading {model_name}...")
+                console.print(f"Downloading {model_name} ({engine})...")
+
+                # Use async download with progress
                 try:
-                    urllib.request.urlretrieve(url, voice_dir / f"{model_name}.tmp")
-                    (voice_dir / f"{model_name}.tmp").rename(model_path)
+                    loop = asyncio.get_event_loop()
+                    await self._download_file(url, download_path, progress_desc=f"{model_name}")
+
+                    download_path.rename(model_path)
                     console.print(f"[green]OK {model_name} downloaded[/green]")
+
+                    # Handle zip extraction for Vosk
+                    if engine == "vosk" and str(model_path).endswith(".zip"):
+                        await self._extract_zip(model_path, voice_dir)
                 except Exception as e:
                     logger.error(f"Failed to download {model_name}: {e}")
                     console.print(f"[yellow]WARNING: Failed to download {model_name}[/yellow]")
+
+    async def _download_file(self, url: str, dest: Path, progress_desc: str = "") -> None:
+        """Download a file with progress display."""
+        import httpx
+
+        async with httpx.AsyncClient(timeout=300) as http:
+            async with http.stream("GET", url) as resp:
+                if resp.status_code != 200:
+                    raise Exception(f"HTTP {resp.status_code} from {url}")
+                with Progress(
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    DownloadColumn(),
+                    TransferSpeedColumn(),
+                    TimeRemainingColumn(),
+                ) as progress:
+                    task = progress.add_task(progress_desc or "Downloading...", total=None)
+                    with open(dest, "wb") as f:
+                        async for chunk in resp.aiter_bytes(8192):
+                            f.write(chunk)
+                            progress.advance(task, len(chunk))
+
+    async def _extract_zip(self, zip_path: Path, dest_dir: Path) -> None:
+        """Extract a zip file."""
+        import zipfile
+        console.print(f"  Extracting {zip_path.name}...")
+        with zipfile.ZipFile(zip_path, "r") as z:
+            z.extractall(dest_dir)
+        # Optionally remove the zip
+        console.print(f"  [green]OK Extraction complete[/green]")
 
     async def _setup_mcp_servers(self) -> None:
         console.print("\n[cyan]Setting up MCP servers...[/cyan]")
@@ -336,6 +456,9 @@ class Installer:
             "memory": {
                 "command": "jarvis-mcp-memory",
                 "args": ["--path", str(self.settings.memory_path)],
+            },
+            "web_search": {
+                "command": "jarvis-mcp-web-search",
             },
         }
 

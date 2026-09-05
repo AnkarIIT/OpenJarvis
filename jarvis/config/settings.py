@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class LLMSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="JARVIS_LLM_")
 
-    provider: Literal["ollama", "llama_cpp", "openai", "anthropic"] = "ollama"
+    provider: Literal["auto", "ollama", "llama_cpp", "lm_studio", "localai", "openai", "anthropic"] = "auto"
     model: str = "llama3.1:8b"
     model_path: str | None = None  # Path to GGUF model for llama_cpp provider
     base_url: str = "http://localhost:11434"
@@ -19,6 +19,7 @@ class LLMSettings(BaseSettings):
     temperature: float = 0.7
     max_tokens: int = 4096
     timeout: int = 120
+    auto_detect: bool = True  # When provider is "auto", probe available providers in priority order
 
 
 class MCPSettings(BaseSettings):

@@ -149,16 +149,27 @@ class BacktalkSkill:
         if running:
             lines.append(f"PID: {self.server_process.pid}")
 
+        # Try HTTP API first, fall back to file-based state
+        if running:
+            try:
+                req = Request(f"http://127.0.0.1:{self.port}/state")
+                with urlopen(req, timeout=2) as r:
+                    data = json.loads(r.read().decode())
+                lines.append(f"Ring state: {data.get('state', 'unknown')}")
+                lines.append(f"Mood: {data.get('mood', 'unknown')}")
+            except Exception:
+                pass
+
         try:
             s = (self.state_dir / "state").read_text(encoding="utf-8").strip().lower()
             if s in STATES:
-                lines.append(f"Ring state: {s}")
+                lines.append(f"Ring state (file): {s}")
         except Exception:
             lines.append("Ring state: unavailable")
 
         try:
             m = json.loads((self.state_dir / "mood.json").read_text())
-            lines.append(f"Mood: {m.get('mood', 'unknown')}")
+            lines.append(f"Mood (file): {m.get('mood', 'unknown')}")
         except Exception:
             lines.append("Mood: unavailable")
 
@@ -170,6 +181,22 @@ class BacktalkSkill:
         if state not in STATES:
             return f"Invalid state: {state}. Use one of: {', '.join(sorted(STATES))}"
 
+        # Try HTTP API first (if server is running), fall back to file-based
+        if self._is_running():
+            try:
+                req = Request(
+                    f"http://127.0.0.1:{self.port}/state",
+                    data=json.dumps({"state": state}).encode(),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urlopen(req, timeout=2) as r:
+                    if r.status == 200:
+                        return f"backtalk state set to {state} (via HTTP)."
+            except Exception:
+                pass
+
+        # Fall back to file-based state
         try:
             (self.state_dir / "state").write_text(state, encoding="utf-8")
             return f"backtalk state set to {state}."
@@ -184,6 +211,23 @@ class BacktalkSkill:
             return f"Invalid mood: {mood}. Use one of: green, amber, red"
 
         payload = {"mood": mood, "ts": asyncio.get_event_loop().time()}
+
+        # Try HTTP API first
+        if self._is_running():
+            try:
+                req = Request(
+                    f"http://127.0.0.1:{self.port}/mood",
+                    data=json.dumps(payload).encode(),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urlopen(req, timeout=2) as r:
+                    if r.status == 200:
+                        return f"backtalk mood set to {mood} (via HTTP)."
+            except Exception:
+                pass
+
+        # Fall back to file-based state
         try:
             (self.state_dir / "mood.json").write_text(
                 json.dumps(payload), encoding="utf-8"

@@ -6,15 +6,16 @@ A terminal-based AI assistant inspired by Iron Man's JARVIS from the Marvel Cine
 
 ## Features
 
-- **Local AI First**: Runs entirely offline with Ollama (Llama 3.1, Qwen, etc.) or llama-cpp-python (direct GGUF inference)
+- **Local AI First**: Runs entirely offline with Ollama (Llama 3.1, Qwen, etc.) or llama-cpp-python (direct GGUF inference). Also supports LM Studio, LocalAI, OpenAI, and Anthropic
+- **Auto-Detection**: Probes all available providers on startup — Ollama → LM Studio → LocalAI → llama-cpp-python → OpenAI → Anthropic
 - **Terminal UI**: Beautiful TUI built with Textual framework
 - **Voice Support**: Offline STT (Vosk with auto-download / Whisper.cpp) + TTS (Piper with auto-download) + Sarvam AI cloud TTS/STT with language auto-detection
 - **Wake Word**: Fully offline open-source wake word detection (openWakeWord — no API key needed) or Porcupine (auto-downloads .ppn)
 - **MCP Tools**: 5 auto-discovered MCP servers (filesystem, terminal, git, memory, web_search)
 - **Skills System**: 10 modular skills (4 builtin + 6 external) with 47 total commands
 - **Long-term Memory**: Vector-based memory with ChromaDB + sentence-transformers
-- **External Integration**: Wraps 6 external AI projects as native JARVIS skills
-- **Automated Setup**: One-command installation with auto-detection
+- **External Integration**: Wraps 6 external AI projects as native JARVIS skills with HTTP client communication
+- **Automated Setup**: One-command installation with auto-detection + auto-download of all models
 
 ## Quick Start
 
@@ -27,12 +28,15 @@ git clone https://github.com/AnkarIIT/OpenJarvis.git
 cd OpenJarvis
 pip install -e .
 
-# Run installer (auto-detects and installs Ollama + models)
+# One-command setup — auto-detects AI providers + downloads all voice models
 jarvis --install
 
 # Start JARVIS
 jarvis
 ```
+
+The installer auto-detects available AI providers (Ollama, LM Studio, LocalAI, llama-cpp-python) and
+downloads all voice models (Piper TTS, Vosk/Whisper STT, openWakeWord wake word) on first run.
 
 ## Current Capabilities — What JARVIS Can Do
 
@@ -43,10 +47,12 @@ jarvis
 | **TUI Interface** | ✅ Functional | Textual-based terminal with chat, skills, tools, memory, settings, voice screens |
 | **Skills System** | ✅ 47 commands | 4 builtin (system_monitor, code_assistant, memory, voice_control) + 6 external |
 | **LLM: Ollama** | ✅ Streaming | Local models with tool-call support & exponential backoff retry |
-| **LLM: llama-cpp-python** | ✅ Direct GGUF | Load `.gguf` models directly without Ollama (requires `llama-cpp-python`) |
+| **LLM: Llama-cpp-python** | ✅ Streaming | Load `llama-cpp-python` GGUF models directly (no Ollama). Hermes 2 Pro, DeepSeek Coder supported |
+| **LLM: LM Studio** | ✅ Auto-detected | Probes port 1234, auto-selects models via OpenAI-compatible API |
+| **LLM: LocalAI** | ✅ Auto-detected | Probes port 8080/41523, OpenAI-compatible API |
 | **MCP Client** | ✅ Auto-connect | Connects to all configured + auto-discovered servers; tools shared with AgentLoop |
 | **MCP Servers** | ✅ 5 built-in | filesystem, terminal, git, memory, web_search — auto-started as stdio subprocesses |
-| **External Skills** | ✅ 10 skills | marketing, visualizer, memory_vault, barehands, backtalk, fullstack_agent |
+| **External Skills** | ✅ 10 skills | marketing, visualizer, memory_vault, barehands, backtalk, fullstack_agent — all with HTTP client integration |
 | **Long-term Memory** | ✅ ChromaDB | Vector store with cosine similarity; embeddings lazy-loaded |
 | **Voice: Wake Word** | ✅ Offline | openWakeWord (no API key!) or Porcupine with auto-download of `.ppn` |
 | **Voice: TTS** | ✅ Auto-download | piper-tts Python package with HuggingFace voice auto-download; Sarvam cloud fallback |
@@ -60,21 +66,16 @@ jarvis
 
 | Area | Issue | Impact |
 |------|-------|--------|
-| **LLM: OpenAI/Anthropic** | `_chat_fallback` returns stub message | Install `openai`/`anthropic` packages and implement provider; only `ollama` and `llama_cpp` are implemented |
-| **Backtalk HTTP client** | Skill launches server but cannot send messages to it | Need to add HTTP client to call backtalk server endpoints |
-| **Visualizer HTTP client** | Skill launches server but cannot send prompts to it | Need to add HTTP client to call visualizer server endpoints |
-| **Barehands HTTP client** | Skill launches server but no HTTP client to talk to it | Need to add HTTP client to call barehands endpoints |
-| **Sarvam AI: Rate limits** | No rate-limit handling in API calls | May fail on burst usage; add retry middleware |
+| **LLM: OpenAI/Anthropic** | Requires `openai`/`anthropic` pip packages + API key | Set `JARVIS_LLM_PROVIDER=openai` with `JARVIS_LLM_API_KEY`; LM Studio/LocalAI are better free options |
 | **Voice: Hardware testing** | Requires real mic + speakers | Not tested with physical hardware |
+| **Sarvam AI: Rate limits** | No rate-limit handling in API calls | May fail on burst usage |
 
 ### 🚧 In Development (Planned)
 
-- OpenAI/Anthropic API integration
 - Real-time audio streaming for STT
-- Wake word model auto-download (Porcupine still needs access key)
 - Voice activity detection (VAD)
 - Multi-modal capabilities (image input)
-- HTTP clients for backtalk/visualizer/barehands external skills
+- Full OpenAI/Anthropic API integration (LM Studio/LocalAI are ready now)
 
 ## Requirements
 
@@ -121,7 +122,7 @@ All models auto-download on first run:
 
 | Component | Offline Tech | Auto-Download | External Dep |
 |-----------|-------------|---------------|--------------|
-| **LLM** | Ollama or llama-cpp-python | Ollama: yes / GGUF: manual | None / GGUF file |
+| **LLM** | Ollama / llama-cpp-python / LM Studio / LocalAI | Ollama: yes / GGUF: yes (auto-download from HF) / LM Studio,LocalAI: external GUI | llama-cpp-python pip package |
 | **TTS** | piper-tts Python package | ✅ Yes (HuggingFace) | piper-tts pip package |
 | **STT** | Vosk or Whisper.cpp | ✅ Yes | vosk or pywhispercpp |
 | **Wake Word** | openWakeWord | ✅ Yes | openwakeword pip package |
@@ -179,14 +180,6 @@ jarvis-mcp-terminal --allow ls,cat,git
 jarvis-mcp-git --repo /path/to/repo
 jarvis-mcp-memory --path ~/.jarvis/memory
 ```
-
-## MCP Servers
-
-- **filesystem** - File operations (sandboxed)
-- **terminal** - Safe command execution
-- **git** - Git operations
-- **memory** - Vector memory access
-- **web_search** - DuckDuckGo / API search
 
 ## Configuration
 

@@ -320,6 +320,7 @@ async def _collect_chat(client, messages, tools=None, stream=False):
 
 def test_llm_client_retryable_error_is_retried(monkeypatch: pytest.MonkeyPatch):
     settings = Settings()
+    settings.llm.provider = "ollama"
     client = LLMClient(settings)
     calls = {"count": 0}
 
@@ -339,6 +340,7 @@ def test_llm_client_retryable_error_is_retried(monkeypatch: pytest.MonkeyPatch):
 
 def test_llm_client_non_retryable_error_raises(monkeypatch: pytest.MonkeyPatch):
     settings = Settings()
+    settings.llm.provider = "ollama"
     client = LLMClient(settings)
 
     async def fake_chat(*args, **kwargs):
