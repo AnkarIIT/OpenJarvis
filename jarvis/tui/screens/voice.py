@@ -43,13 +43,18 @@ class VoiceScreen(Screen):
                 ),
                 Horizontal(
                     Label("TTS Engine:"),
-                    Label("Piper", id="tts-engine"),
+                    Label(self.settings.voice.tts_engine, id="tts-engine"),
                     id="tts-row",
                 ),
                 Horizontal(
                     Label("STT Engine:"),
-                    Label("Vosk", id="stt-engine"),
+                    Label(self.settings.voice.stt_engine, id="stt-engine"),
                     id="stt-row",
+                ),
+                Horizontal(
+                    Label("Language:"),
+                    Label(self.settings.voice.language, id="voice-language"),
+                    id="language-row",
                 ),
                 ProgressBar(total=100, show_eta=False, id="voice-level"),
                 Horizontal(

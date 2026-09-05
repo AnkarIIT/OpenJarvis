@@ -100,11 +100,13 @@ class AgentLoop:
         return messages
 
     def _merge_tools(self, mcp_tools: list[Any], skill_commands: list[Any]) -> list[Any]:
-        # Keep MCP tools first; append skill commands with a simple namespace
-        # to avoid collisions if an MCP tool has the same name.
+        # Keep MCP tools first; append skill commands that don't collide with MCP tool names.
         merged = list(mcp_tools)
         mcp_names = {t.name for t in merged}
         for cmd in skill_commands:
+            if cmd.name in mcp_names:
+                logger.warning(f"Skill command '{cmd.name}' skipped (collides with MCP tool)")
+                continue
             merged.append(cmd)
         return merged
 
@@ -190,17 +192,21 @@ class AgentLoop:
 
     async def _execute_tool(self, tool_name: str, arguments: dict[str, Any] | None = None) -> Any:
         arguments = arguments or {}
-        # Try MCP first
-        mcp_result = await self.mcp.call_tool(tool_name, arguments)
-        if "error" not in mcp_result:
-            return mcp_result
-        # Fall back to skill command
-        try:
-            return await self.skill_registry.execute_command(tool_name, **arguments)
-        except TypeError:
-            return await self.skill_registry.execute_command(tool_name)
-        except ValueError:
-            return {"error": f"Tool or skill not found: {tool_name}"}
+        # Check which tool source has this tool name first (avoids MCP timeout for local skills)
+        mcp_tool = next((t for t in self.mcp.tools if t.name == tool_name), None)
+        skill_cmd = next((c for c in self.skill_registry.list_commands() if c.name == tool_name), None)
+
+        if mcp_tool:
+            result = await self.mcp.call_tool(tool_name, arguments)
+            if "error" in result:
+                return {"error": result["error"]}
+            return result
+        elif skill_cmd:
+            try:
+                return await self.skill_registry.execute_command(tool_name, **arguments)
+            except TypeError:
+                return await self.skill_registry.execute_command(tool_name)
+        return {"error": f"Tool or skill not found: {tool_name}"}
 
     async def _add_user_message(self, content: str) -> None:
         self.conversation_history.append({"role": "user", "content": content})

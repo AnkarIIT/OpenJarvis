@@ -81,7 +81,7 @@ class SarvamTTS:
         self.model = settings.voice.sarvam_tts_model
         self.speaker = settings.voice.sarvam_tts_speaker
         self.pace = settings.voice.sarvam_tts_pace
-        self.temperature = settings.voice.sarvam_tts_temperature if hasattr(settings.voice, "sarvin_tts_temperature") else 0.6
+        self.temperature = settings.voice.sarvam_tts_temperature if hasattr(settings.voice, "sarvam_tts_temperature") else 0.6
         self.language_code = settings.voice.language
         self.sample_rate = settings.voice.sample_rate
         self._process: Optional[asyncio.subprocess.Process] = None
@@ -94,7 +94,6 @@ class SarvamTTS:
         import aiohttp
         import base64
         import io
-        import wave
 
         try:
             url = "https://api.sarvam.ai/text-to-speech"
@@ -139,15 +138,16 @@ class SarvamTTS:
         """Play WAV audio data using sounddevice."""
         import sounddevice as sd
         import numpy as np
-        import wave as wave_module
+        
         import io as io_module
 
         try:
-            with wave_module.WaveReader(file=io_module.BytesIO(wav_data)) as wf:
-                frames = wf.read_frames(-1)
+            import wave as wave_module
+            with wave_module.open(file=io_module.BytesIO(wav_data), mode='rb') as wf:
+                frames = wf.readframes(-1)
                 rate = wf.getframerate()
                 channels = wf.getnchannels()
-                sample_width = wf.get_sample_width()
+                sample_width = wf.getsampwidth()
 
             dtype = None
             if sample_width == 1:

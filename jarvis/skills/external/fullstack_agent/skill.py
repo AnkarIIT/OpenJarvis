@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 from pathlib import Path
@@ -37,8 +38,18 @@ class FullstackAgentSkill:
             candidate = Path(__file__).resolve().parent.parent.parent.parent / p
             if candidate.exists():
                 return candidate.resolve()
+            # Also try resolving against settings.project_root
+            if (self.settings and (self.settings.project_root / p).exists()):
+                return (self.settings.project_root / p).resolve()
             return Path.cwd() / p
         return p
+
+    @property
+    def _project_root(self) -> Path:
+        """Best-effort PROJECT_ROOT for launcher scripts and status checks."""
+        if self.settings is not None:
+            return self.settings.project_root
+        return Path(__file__).resolve().parent.parent.parent.parent.parent
 
     def get_commands(self) -> list[SkillCommand]:
         return [
@@ -77,11 +88,12 @@ class FullstackAgentSkill:
         if not self.fullstack_dir.exists():
             return f"fullstack-agent not found at: {self.fullstack_dir}"
 
+        root = self._project_root
         pieces = {
-            "ai-memory-vault": PROJECT_ROOT / "ai-memory-vault",
-            "backtalk": PROJECT_ROOT / "backtalk",
-            "ai-visualizer": PROJECT_ROOT / "ai-visualizer",
-            "barehands": PROJECT_ROOT / "barehands",
+            "ai-memory-vault": root / "ai-memory-vault",
+            "backtalk": root / "backtalk",
+            "ai-visualizer": root / "ai-visualizer",
+            "barehands": root / "barehands",
         }
         lines = [f"Toolbox: {self.fullstack_dir}"]
         for name, path in pieces.items():
@@ -137,7 +149,7 @@ class FullstackAgentSkill:
 
         created = [str(p) for p in launchers if p]
         if created:
-            return f"Created launchers:\n" + "\n".join(created)
+            return "Created launchers:\n" + "\n".join(created)
         return "No launchers created."
 
     async def _setup(self) -> str:
@@ -155,7 +167,7 @@ class FullstackAgentSkill:
         try:
             launcher.write_text(
                 "#!/bin/bash\n"
-                f'cd "{PROJECT_ROOT}" || exit 1\n'
+                f'cd "{self._project_root}" || exit 1\n'
                 f'echo Starting {mode} with {agent_name}...\n',
                 encoding="utf-8",
             )
@@ -168,7 +180,7 @@ class FullstackAgentSkill:
         launcher = desktop / f"{mode} with {agent_name}.bat"
         try:
             launcher.write_text(
-                f'@echo off\ncd /d "{PROJECT_ROOT}"\n'
+                f'@echo off\ncd /d "{self._project_root}"\n'
                 f'echo Starting {mode} with {agent_name}...\n',
                 encoding="utf-8",
             )
@@ -176,6 +188,3 @@ class FullstackAgentSkill:
         except Exception as e:
             logger.error("Failed to write launcher %s: %s", launcher, e)
             return None
-
-
-import asyncio

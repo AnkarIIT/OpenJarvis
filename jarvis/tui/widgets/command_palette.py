@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.containers import Container, Vertical
+from textual.containers import Container, Vertical, Horizontal
 from textual.screen import ModalScreen
 from textual.widgets import Static, Input, ListView, ListItem, Label
 from textual.reactive import reactive
@@ -110,7 +110,8 @@ class CommandPalette(ModalScreen):
         elif cmd == "/clear":
             self.app.action_clear_chat()
         elif cmd == "/model":
-            self.app.action_command_palette()
+            self.app.switch_screen("settings")
+            self.app.notify("Switch model in Settings screen", title="Model")
         elif cmd == "/skills":
             self.app.switch_screen("skills")
         elif cmd == "/tools":
@@ -123,6 +124,10 @@ class CommandPalette(ModalScreen):
             self.app.switch_screen("voice")
         elif cmd == "/status":
             self.app.notify("System status: OK")
+        elif cmd == "/install":
+            import asyncio
+            asyncio.run(self.app.agent_loop.skill_registry.initialize())
+            self.app.notify("Skills initialized", title="Install")
         elif cmd == "/exit":
             self.app.exit()
 

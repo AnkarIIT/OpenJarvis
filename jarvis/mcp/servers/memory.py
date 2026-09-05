@@ -133,8 +133,12 @@ class MemoryMCPServer:
 
 
 async def main():
-    import sys
-    path = sys.argv[1] if len(sys.argv) > 1 else "~/.jarvis/memory"
+    import argparse
+    parser = argparse.ArgumentParser(description='Memory MCP Server')
+    parser.add_argument('--path', default='~/.jarvis/memory', help='Path to memory storage')
+    parser.add_argument('path_pos', nargs='?', default=None, help='Memory path (positional, for backward compat)')
+    args = parser.parse_args()
+    path = args.path_pos if args.path_pos else args.path
     server = MemoryMCPServer(path)
     await server.run()
 

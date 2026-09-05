@@ -47,10 +47,6 @@ class JarvisApp(App):
         self.skill_registry = SkillRegistry(self.settings)
         self.agent_loop = AgentLoop(self.settings, skill_registry=self.skill_registry)
         self.voice_pipeline = VoicePipeline(self.settings, self.agent_loop) if self.settings.voice.enabled else None
-        if self.voice_pipeline and hasattr(self.skill_registry, "skill_instances"):
-            voice_skill = self.skill_registry.skill_instances.get("voice_control")
-            if voice_skill and hasattr(voice_skill, "set_voice_pipeline"):
-                voice_skill.set_voice_pipeline(self.voice_pipeline)
         self.current_screen = "chat"
         self.chat_panel: ChatPanel | None = None
         self.status_bar: StatusBar | None = None
@@ -80,6 +76,15 @@ class JarvisApp(App):
         self.status_bar = self.query_one("#status-bar", StatusBar)
         self.command_palette = self.query_one("#command-palette", CommandPalette)
 
+        # Initialize agent loop (connects MCP servers, vector store, loads skills)
+        await self.agent_loop.initialize()
+
+        # Wire voice pipeline into voice_control skill (now that skills are loaded)
+        if self.voice_pipeline and hasattr(self.skill_registry, "skill_instances"):
+            voice_skill = self.skill_registry.skill_instances.get("voice_control")
+            if voice_skill and hasattr(voice_skill, "set_voice_pipeline"):
+                voice_skill.set_voice_pipeline(self.voice_pipeline)
+
         await self.switch_screen("chat")
 
         if self.voice_pipeline and self.settings.voice.wake_word_enabled:
@@ -99,10 +104,15 @@ class JarvisApp(App):
         }
 
         screen = screen_map.get(screen_name)
+        if screen is None and screen_name == "voice":
+            self.app.notify("Voice is not enabled in settings", title="JARVIS")
+            return
         if screen:
             self.current_screen = screen_name
             await main_content.mount(screen)
             self.status_bar.update_screen(screen_name)
+            if screen_name == "chat":
+                self.chat_panel = self.query_one(ChatPanel, ChatPanel) if self.query_one("#chat-messages", Container) else None
 
     def action_switch_tab(self, screen_name: str) -> None:
         self.run_worker(self.switch_screen(screen_name))

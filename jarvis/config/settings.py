@@ -95,7 +95,7 @@ class ExternalSkillsSettings(BaseSettings):
     barehands_port: int = 8794
     backtalk_path: str = "./backtalk"
     backtalk_state_dir: str = ""
-    backtalk_port: int = 8794
+    backtalk_port: int = 8795
     fullstack_agent_path: str = "./fullstack-agent"
 
 
@@ -115,7 +115,7 @@ class Settings(BaseSettings):
     skills: SkillsSettings = Field(default_factory=SkillsSettings)
     external: ExternalSkillsSettings = Field(default_factory=ExternalSkillsSettings)
 
-    @field_validator("llm", "mcp", "voice", "memory", "ui", "skills", mode="before")
+    @field_validator("llm", "mcp", "voice", "memory", "ui", "skills", "external", mode="before")
     @classmethod
     def parse_nested(cls, v: Any) -> Any:
         if isinstance(v, dict):

@@ -179,7 +179,7 @@ class BarehandsSkill:
             lines.append(f"Ring state: {ring.get('state', 'unknown')}")
             lines.append(f"Ring mood: {ring.get('mood', 'unknown')}")
         else:
-            lines.append("Open Chrome to http://127.0.0.1:{self.port}/stage.html to use the board.")
+            lines.append(f"Open Chrome to http://127.0.0.1:{self.port}/stage.html to use the board.")
 
         return "\n".join(lines)
 

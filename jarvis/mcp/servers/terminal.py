@@ -150,8 +150,17 @@ class TerminalMCPServer:
 
 
 async def main():
-    import sys
-    allowed = sys.argv[1:] if len(sys.argv) > 1 else None
+    import argparse
+    parser = argparse.ArgumentParser(description='Terminal MCP Server')
+    parser.add_argument('--allow', default='', help='Comma-separated list of allowed commands')
+    parser.add_argument('allowed', nargs='*', default=None, help='Allowed commands (positional, for backward compat)')
+    args = parser.parse_args()
+    if args.allow:
+        allowed = [c.strip() for c in args.allow.split(',') if c.strip()]
+    elif args.allowed:
+        allowed = list(args.allowed)
+    else:
+        allowed = None
     server = TerminalMCPServer(allowed)
     await server.run()
 

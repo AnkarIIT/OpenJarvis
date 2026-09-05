@@ -163,8 +163,12 @@ class GitMCPServer:
 
 
 async def main():
-    import sys
-    repo = sys.argv[1] if len(sys.argv) > 1 else "."
+    import argparse
+    parser = argparse.ArgumentParser(description='Git MCP Server')
+    parser.add_argument('--repo', default='.', help='Repository root path')
+    parser.add_argument('repo_pos', nargs='?', default=None, help='Repository path (positional, for backward compat)')
+    args = parser.parse_args()
+    repo = args.repo_pos if args.repo_pos else args.repo
     server = GitMCPServer(repo)
     await server.run()
 
