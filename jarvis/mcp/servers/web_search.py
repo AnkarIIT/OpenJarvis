@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from mcp.server import Server
+from mcp.server import Server, InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import Tool, TextContent, ServerCapabilities
 
 from jarvis.utils.logger import get_logger
 
@@ -114,8 +114,13 @@ def create_server() -> Server:
 
 async def main() -> None:
     server = create_server()
+    options = InitializationOptions(
+        server_name="web-search",
+        server_version="1.0.0",
+        capabilities=ServerCapabilities(tools={}),
+    )
     async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream)
+        await server.run(read_stream, write_stream, options)
 
 
 if __name__ == "__main__":

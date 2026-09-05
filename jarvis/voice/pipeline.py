@@ -69,6 +69,13 @@ class VoicePipeline:
     async def speak(self, text: str) -> bool:
         return await self.tts.speak(text)
 
+    def set_language(self, language_code: str) -> None:
+        """Set the response language for both TTS and STT."""
+        self.settings.voice.language = language_code
+        if hasattr(self.tts, "language_code"):
+            self.tts.language_code = language_code
+        logger.info(f"JARVIS language set to: {language_code}")
+
     async def listen_once(self) -> str:
         return await self.stt.listen_once()
 

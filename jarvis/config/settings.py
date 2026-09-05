@@ -30,14 +30,22 @@ class VoiceSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="JARVIS_VOICE_")
 
     enabled: bool = True
-    tts_engine: Literal["piper"] = "piper"
-    stt_engine: Literal["vosk"] = "vosk"
+    tts_engine: Literal["piper", "sarvam"] = "piper"
+    stt_engine: Literal["vosk", "sarvam"] = "vosk"
     wake_word_enabled: bool = True
     wake_word: str = "hey_jarvis"
     tts_voice_model: str = "en_US-lessac-medium"
     stt_model: str = "vosk-model-en-us-0.22"
     sample_rate: int = 16000
     push_to_talk_key: str = "ctrl+space"
+    sarvam_api_key: str = "sk_8l5pqftf_JYOeeOD9sIiwIrFAnKk0iP4n"
+    sarvam_tts_model: Literal["bulbul:v3", "bulbul:v2"] = "bulbul:v3"
+    sarvam_stt_model: Literal["saaras:v3", "saaras:v4"] = "saaras:v3"
+    sarvam_tts_speaker: str = "shubh"
+    sarvam_tts_pace: float = 1.0
+    sarvam_tts_temperature: float = 0.6
+    language: str = "en-IN"  # BCP-47 language code for both TTS and STT output
+    language_detection: bool = True  # Auto-detect spoken language for response
 
 
 class MemorySettings(BaseSettings):

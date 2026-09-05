@@ -45,6 +45,12 @@ class VoiceControlSkill:
                 handler=self._voice_test,
                 skill_name=self.name,
             ),
+            SkillCommand(
+                name="language",
+                description="Set the language JARVIS responds in (BCP-47 code, e.g. en-IN, hi-IN, ta-IN). Use 'auto' for auto-detection.",
+                handler=self._set_language,
+                skill_name=self.name,
+            ),
         ]
 
     async def _voice_on(self) -> str:
@@ -96,3 +102,22 @@ class VoiceControlSkill:
         except Exception as e:
             logger.error(f"TTS test failed: {e}")
             return f"Voice test failed: {e}"
+
+    async def _set_language(self, language_code: str = "en-IN") -> str:
+        if not self.settings:
+            return "Language settings not available."
+
+        # Map "auto" to unknown for auto-detection
+        if language_code.lower() == "auto":
+            language_code = "unknown"
+            self.settings.voice.language_detection = True
+        else:
+            self.settings.voice.language = language_code
+            self.settings.voice.language_detection = False
+
+        if self._voice_pipeline is not None and hasattr(self._voice_pipeline, "set_language"):
+            self._voice_pipeline.set_language(language_code)
+
+        if language_code == "unknown":
+            return "Language set to auto-detect. JARVIS will respond in the detected language."
+        return f"Language set to: {language_code}. JARVIS will respond in this language."

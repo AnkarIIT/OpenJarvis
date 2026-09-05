@@ -51,6 +51,43 @@ class SettingsScreen(Screen):
                 ),
                 Static("Voice Configuration", classes="section-title"),
                 Horizontal(
+                    Label("TTS Engine:"),
+                    Select(
+                        [("Piper", "piper"), ("Sarvam AI", "sarvam")],
+                        value=self.settings.voice.tts_engine,
+                        id="tts-engine",
+                    ),
+                    id="tts-engine-row",
+                ),
+                Horizontal(
+                    Label("STT Engine:"),
+                    Select(
+                        [("Vosk", "vosk"), ("Sarvam AI", "sarvam")],
+                        value=self.settings.voice.stt_engine,
+                        id="stt-engine",
+                    ),
+                    id="stt-engine-row",
+                ),
+                Horizontal(
+                    Label("Sarvam API Key:"),
+                    Input(value=self.settings.voice.sarvam_api_key or "", id="sarvam-api-key", password=True),
+                    id="sarvam-api-key-row",
+                ),
+                Horizontal(
+                    Label("Response Language:"),
+                    Select(
+                        [("English (en-IN)", "en-IN"), ("Hindi (hi-IN)", "hi-IN"), ("Tamil (ta-IN)", "ta-IN"), ("Telugu (te-IN)", "te-IN"), ("Bengali (bn-IN)", "bn-IN"), ("Marathi (mr-IN)", "mr-IN"), ("Gujarati (gu-IN)", "gu-IN"), ("Malayalam (ml-IN)", "ml-IN"), ("Punjabi (pa-IN)", "pa-IN"), ("Kannada (kn-IN)", "kn-IN"), ("Urdu (ur-IN)", "ur-IN"), ("Auto-Detect", "unknown")],
+                        value=self.settings.voice.language,
+                        id="voice-language",
+                    ),
+                    id="voice-language-row",
+                ),
+                Horizontal(
+                    Label("Auto-Detect Language:"),
+                    Switch(value=self.settings.voice.language_detection, id="lang-detection"),
+                    id="lang-detection-row",
+                ),
+                Horizontal(
                     Label("Enabled:"),
                     Switch(value=self.settings.voice.enabled, id="voice-enabled"),
                     id="voice-enabled-row",
@@ -100,6 +137,11 @@ class SettingsScreen(Screen):
         self.settings.llm.model = self.query_one("#llm-model", Input).value
         self.settings.llm.base_url = self.query_one("#llm-base-url", Input).value
         self.settings.llm.temperature = float(self.query_one("#llm-temperature", Input).value or 0.7)
+        self.settings.voice.tts_engine = self.query_one("#tts-engine", Select).value
+        self.settings.voice.stt_engine = self.query_one("#stt-engine", Select).value
+        self.settings.voice.sarvam_api_key = self.query_one("#sarvam-api-key", Input).value
+        self.settings.voice.language = self.query_one("#voice-language", Select).value
+        self.settings.voice.language_detection = self.query_one("#lang-detection", Switch).value
         self.settings.voice.enabled = self.query_one("#voice-enabled", Switch).value
         self.settings.voice.wake_word_enabled = self.query_one("#wake-word-enabled", Switch).value
         self.settings.ui.theme = self.query_one("#ui-theme", Select).value
@@ -113,6 +155,11 @@ class SettingsScreen(Screen):
         self.query_one("#llm-model", Input).value = self.original_settings.llm.model
         self.query_one("#llm-base-url", Input).value = self.original_settings.llm.base_url
         self.query_one("#llm-temperature", Input).value = str(self.original_settings.llm.temperature)
+        self.query_one("#tts-engine", Select).value = self.original_settings.voice.tts_engine
+        self.query_one("#stt-engine", Select).value = self.original_settings.voice.stt_engine
+        self.query_one("#sarvam-api-key", Input).value = self.original_settings.voice.sarvam_api_key or ""
+        self.query_one("#voice-language", Select).value = self.original_settings.voice.language
+        self.query_one("#lang-detection", Switch).value = self.original_settings.voice.language_detection
         self.query_one("#voice-enabled", Switch).value = self.original_settings.voice.enabled
         self.query_one("#wake-word-enabled", Switch).value = self.original_settings.voice.wake_word_enabled
         self.query_one("#ui-theme", Select).value = self.original_settings.ui.theme
