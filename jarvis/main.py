@@ -25,10 +25,47 @@ app = typer.Typer(
 @app.command()
 def main(
     install_mode: bool = typer.Option(False, "--install", "-i", help="Run installer"),
+    list_models: bool = typer.Option(False, "--models", "-m", help="List available LLM models from all providers"),
+    pull_model: str = typer.Option(None, "--pull", "-p", help="Pull/download a specific model (Ollama name or GGUF URL)"),
     config_path: str = typer.Option(None, "--config", "-c", help="Custom config path"),
     debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode"),
 ):
     """JARVIS Terminal Agent"""
+    if list_models:
+        from jarvis.utils.detectors import detect_all_local_ai, get_available_models
+
+        all_ai = detect_all_local_ai()
+        available = get_available_models()
+
+        console.print("\n[bold cyan]Local AI Detection Results[/bold cyan]\n")
+        for provider, info in all_ai.items():
+            status = "[green]OK[/green]" if info["available"] else "[red]Not found[/red]"
+            version = info.get("version", "N/A")
+            models = info.get("models", [])
+            model_list = ", ".join(models) if models else "None"
+            if len(model_list) > 60:
+                model_list = model_list[:57] + "..."
+            console.print(f"  {provider:16} {status:20} {version:20} Models: {model_list}")
+
+        console.print(f"\n[bold cyan]Available Models to Install[/bold cyan]\n")
+        for m in available:
+            if m.get("recommended"):
+                tag = "[bold green][*][/bold green]" if m.get("ram_gb", 99) <= 8 else "[yellow][!][/yellow]"
+                console.print(f"  {tag} {m['display']}")
+        console.print("\n  Use 'jarvis --pull <model>' to download one.\n")
+        return
+
+    if pull_model:
+        from jarvis.agent.llm_client import LLMClient
+        client = LLMClient(settings)
+        try:
+            client.pull_model(pull_model)
+            console.print(f"[green]OK Model '{pull_model}' ready[/green]")
+        except Exception as e:
+            console.print(f"[red]ERROR Failed to pull model: {e}[/red]")
+            sys.exit(1)
+        return
+
     if install_mode:
         asyncio.run(install())
         return

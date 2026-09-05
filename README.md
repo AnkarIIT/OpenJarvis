@@ -82,7 +82,7 @@ downloads all voice models (Piper TTS, Vosk/Whisper STT, openWakeWord wake word)
 - Python 3.10+
 - 8GB+ RAM (for Llama 3.1 8B) or GPU (for faster inference)
 - Ollama (for LLM) — auto-installed by `jarvis --install`
-- Optional: Local LLM model (GGUF for `--no-ollama` mode)
+- Optional: Local LLM model (GGUF for `llama_cpp` provider mode)
 
 ### Full Offline Mode
 
