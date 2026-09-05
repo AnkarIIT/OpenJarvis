@@ -34,11 +34,68 @@ jarvis --install
 jarvis
 ```
 
+## Current Capabilities — What JARVIS Can Do
+
+### ✅ Working Now
+
+| Area | Status | Details |
+|------|--------|---------|
+| **TUI Interface** | ✅ Fully functional | Textual-based terminal interface with chat, skills, tools, memory, settings, and voice screens |
+| **Skills System** | ✅ 47 commands, 10 skills | 4 builtin (system_monitor, code_assistant, memory, voice_control) + 6 external (marketing, visualizer, memory_vault, barehands, backtalk, fullstack_agent) |
+| **LLM** | ✅ Ollama only | Streams responses from local Ollama models (Llama 3.1, Qwen, etc.) with tool-call support |
+| **LLM Retry** | ✅ Exponential backoff | 3 retries with backoff on transient errors (connection/timeout/503) |
+| **Builtin Skill: System Monitor** | ✅ 6 commands | CPU, memory, disk, GPU, network, processes |
+| **Builtin Skill: Code Assistant** | ✅ 3 commands | Analyze files, list functions, find TODOs via AST parsing |
+| **Builtin Skill: Memory** | ✅ 3 commands | Remember/recall/forget using ChromaDB vector store |
+| **Builtin Skill: Voice Control** | ✅ 4 commands | On/off, test, set language (`/language hi-IN`) |
+| **External Skill: Marketing** | ✅ 3 commands | Content creation, campaign ideas, brand voice (file-based, wraps ai-marketing-skills) |
+| **External Skill: Fullstack Agent** | ✅ 4 commands | Check toolbox status, run updates, create launchers, setup guide |
+| **External Skill: Memory Vault** | ✅ 6 commands | Save/recall/list vault entries, list categories |
+| **External Skill: Barehands** | ⚠️ Partial | 6 commands — server launches + HTTP control, but requires barehands server.py installed |
+| **External Skill: Backtalk** | ⚠️ Partial | 6 commands — server launches via subprocess, but no HTTP client implemented for talking to the server |
+| **External Skill: Visualizer** | ⚠️ Partial | 6 commands — server launches via subprocess, but no HTTP client implemented |
+| **MCP Servers** | ✅ All 5 migrated to mcp 2.1.1 | filesystem, terminal, git, memory, web_search |
+| **MCP Client** | ✅ Connected | Shared MCPClient between AgentLoop and ToolsScreen; auto-connects on startup |
+| **Long-term Memory** | ✅ Vector-based | ChromaDB with cosine similarity; embedding model lazy-loads on first search |
+| **Voice: Wake Word** | ✅ Supported | Porcupine (`pvporcupine`) for "Hey JARVIS" hotword detection; MockWakeWord fallback |
+| **Voice: TTS** | ✅ Piper + Sarvam | Piper (offline, requires `piper` binary + `.onnx` model); Sarvam AI cloud (requires API key) |
+| **Voice: STT** | ✅ Vosk + Sarvam | Vosk (offline, requires model file at `~/.jarvis/voice/`); Sarvam AI cloud (requires API key) |
+| **Voice: Language** | ✅ BCP-47 support | Set response language to `en-IN`, `hi-IN`, `ta-IN`, `te-IN`, `bn-IN`, etc. via `/language` command |
+
+### ❌ Not Yet Implemented
+
+| Area | Issue | Impact |
+|------|-------|--------|
+| **LLM: OpenAI/Anthropic** | `_chat_fallback` returns stub message | Only Ollama works as LLM provider; OpenAI/Anthropic/Llama.cpp settings are accepted but not used |
+| **piper-tts binary** | Requires separate `piper` install via `apt`/pip | Piper TTS won't work unless `piper` is on PATH |
+| **Vosk model** | Requires manual download of model file | STT won't work until `vosk-model-small-en-us` is at `~/.jarvis/voice/` |
+| **Porcupine access** | Requires Picoville AccessKey + `.ppn` keyword file | Wake word won't work until `PORCUPINE_ACCESS_KEY` env var is set and `.ppn` exists |
+| **Backtalk HTTP client** | Skill launches server but cannot send messages to it | `backtalk` skill starts server but doesn't communicate via HTTP — commands will return server-not-found |
+| **Visualizer HTTP client** | Skill launches server but cannot send prompts to it | Same issue as backtalk |
+| **Voice: Hardware testing** | Requires real mic + speakers | Voice pipeline tested only with mock providers, not real hardware |
+| **Sarvam AI: Rate limits** | No rate-limit handling in API calls | May fail on burst usage without retry logic |
+| **MCP servers as standalone** | Console scripts defined but not verified | `jarvis-mcp-*` scripts should work as stdio servers but need manual testing |
+
+### 🚧 In Development (Planned)
+
+- Llama.cpp support via `llama-cpp-python`
+- OpenAI API integration
+- Anthropic Claude API integration
+- Real-time audio streaming for STT
+- Wake word model auto-download
+- Voice activity detection (VAD)
+- Multi-modal capabilities (image input)
+
 ## Requirements
 
 - Python 3.10+
 - 8GB+ RAM (for Llama 3.1 8B)
 - Microphone & speakers (for voice features)
+- Ollama (for LLM) — auto-installed by `jarvis --install`
+- Optional: `piper` binary (for offline TTS)
+- Optional: Vosk model file (for offline STT)
+- Optional: Picoville access key (for wake word)
+- Optional: Sarvam AI API key (for cloud TTS/STT)
 
 ## Architecture
 
