@@ -6,13 +6,14 @@ A terminal-based AI assistant inspired by Iron Man's JARVIS from the Marvel Cine
 
 ## Features
 
-- **Local AI First**: Runs entirely offline with Ollama (Llama 3.1, Qwen, etc.)
+- **Local AI First**: Runs entirely offline with Ollama (Llama 3.1, Qwen, etc.) or cloud providers (OpenAI, Anthropic)
 - **Terminal UI**: Beautiful TUI built with Textual framework
-- **Voice Support**: Offline speech-to-text (Vosk) and text-to-speech (Piper)
+- **Voice Support**: Offline STT (Vosk) + TTS (Piper), plus Sarvam AI cloud TTS/STT with language auto-detection
 - **Wake Word**: "Hey JARVIS" activation (Porcupine)
-- **MCP Tools**: Extensible tools via Model Context Protocol
-- **Skills System**: Modular skills for system monitoring, code assistance, memory, and more
-- **Long-term Memory**: Vector-based memory with ChromaDB
+- **MCP Tools**: 5 extensible tools via Model Context Protocol (filesystem, terminal, git, memory, web_search)
+- **Skills System**: 10 modular skills (4 builtin + 6 external) with 47 total commands
+- **Long-term Memory**: Vector-based memory with ChromaDB + sentence-transformers
+- **External Integration**: Wraps 6 external AI projects as native JARVIS skills
 - **Automated Setup**: One-command installation with auto-detection
 
 ## Quick Start
@@ -55,12 +56,41 @@ jarvis/
 
 ## Built-in Skills
 
-| Skill | Description |
-|-------|-------------|
-| `system_monitor` | CPU, memory, disk, GPU, processes |
-| `code_assistant` | Code analysis, TODOs, functions |
-| `memory` | Remember, recall, forget |
-| `voice_control` | Voice on/off, test |
+| Skill | Commands | Description |
+|-------|----------|-------------|
+| `system_monitor` | 6 | CPU, memory, disk, GPU, processes, network |
+| `code_assistant` | 3 | Analyze code, list functions, find TODOs |
+| `memory` | 3 | Remember, recall, forget memories |
+| `voice_control` | 4 | Voice on/off, test, language setting |
+
+## External Skills
+
+| Skill | Commands | Wrapped Project | Mode |
+|-------|----------|----------------|------|
+| `marketing` | 3 | ai-marketing-skills | File I/O |
+| `visualizer` | 6 | ai-visualizer | Subprocess + HTTP |
+| `memory_vault` | 6 | ai-memory-vault | File I/O |
+| `barehands` | 6 | barehands | Subprocess + HTTP |
+| `backtalk` | 6 | backtalk | Subprocess + HTTP |
+| `fullstack_agent` | 4 | fullstack-agent | File I/O + subprocess |
+
+## MCP Servers
+
+- **filesystem** (`jarvis-mcp-filesystem`) - File operations (sandboxed to project root)
+- **terminal** (`jarvis-mcp-terminal`) - Safe command execution (whitelisted)
+- **git** (`jarvis-mcp-git`) - Git operations (repo-aware)
+- **memory** (`jarvis-mcp-memory`) - Persistent key-value storage
+- **web_search** (`jarvis-mcp-web-search`) - Web search via DuckDuckGo
+
+### MCP Server CLI
+
+All MCP servers accept flags via argparse:
+```bash
+jarvis-mcp-filesystem --root /path/to/project
+jarvis-mcp-terminal --allow ls,cat,git
+jarvis-mcp-git --repo /path/to/repo
+jarvis-mcp-memory --path ~/.jarvis/memory
+```
 
 ## MCP Servers
 
