@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Complete offline-on-machine stack** — JARVIS can now run fully offline with zero external services:
+  - **LLM: `llama-cpp-python`** provider for direct GGUF model inference (no Ollama needed)
+    - New `_chat_llama_cpp()` async generator for streaming GGUF inference
+    - Lazy model loading + caching via `settings.llm._llama_instance`
+    - Set `JARVIS_LLM_PROVIDER=llama_cpp` and `JARVIS_LLM_MODEL_PATH=./model.gguf`
+  - **TTS: `piper-tts` Python package** — rewritten `PiperTTS` class uses `PiperVoice` Python API directly (no CLI binary needed)
+    - Auto-downloads voice models from HuggingFace on first run to `~/.jarvis/voice/`
+    - Falls back to `PiperCLITTS` (legacy CLI binary) if Python package unavailable
+    - Lazy voice loading in `speak()` via `_ensure_voice()`
+  - **STT: `WhisperSTT`** using `pywhispercpp` (whisper.cpp Python bindings)
+    - Fully offline, auto-downloads `base.en` whisper model on first use
+    - Set `JARVIS_VOICE_STT_ENGINE=whisper`
+  - **STT: Vosk auto-download** — `_ensure_vosk_model()` downloads model from alphacephei.com if not present
+  - **Wake Word: `OpenWakeWordDetector`** — fully open-source, no Picoville access key needed
+    - Uses `dscripka/openwakeword` with auto-downloaded models
+    - Set `JARVIS_VOICE_WAKE_WORD_ENGINE=openwakeword`
+    - `wake_word_engine: "auto"` tries openWakeWord first, then Porcupine, then Mock
+  - **Porcupine auto-download** — `_ensure_porcupine_model()` downloads `.ppn` from HuggingFace
+  - **MCP auto-discovery** — 5 built-in MCP servers auto-started as stdio subprocesses
+    - `_BUILTIN_MCP_SERVERS` dict in `jarvis/mcp/client.py`
+    - `mcp.auto_discover: True` setting auto-connects all built-in servers
+- **`offline` optional dependency group** — `pip install -e ".[offline]"` installs all offline packages at once
+  - llama-cpp-python, openwakeword, piper-tts, pywhispercpp, vosk, pvporcupine
+- **Offline stack documentation** in README with requirements, auto-download locations, and install commands
+
+### Added (existing)
 - **Sarvam AI provider**: New TTS/STT provider using Sarvam AI REST APIs
   - `SarvamTTS` class with Bulbul v3/v2 voice models
   - `SarvamSTT` class with Saaras v3/v4 speech recognition
