@@ -74,6 +74,34 @@ class SettingsScreen(Screen):
                     id="sarvam-api-key-row",
                 ),
                 Horizontal(
+                    Label("TTS Speaker:"),
+                    Select(
+                        [("meera (female)", "meera"), ("pramod (male)", "pramod"), ("shubh (male)", "shubh"), ("shubhangi (female)", "shubhangi")],
+                        value=self.settings.voice.sarvam_tts_speaker,
+                        id="sarvam-tts-speaker",
+                    ),
+                    id="sarvam-tts-speaker-row",
+                ),
+                Horizontal(
+                    Label("TTS Pace:"),
+                    Input(value=str(self.settings.voice.sarvam_tts_pace), id="sarvam-tts-pace"),
+                    id="sarvam-tts-pace-row",
+                ),
+                Horizontal(
+                    Label("TTS Temperature:"),
+                    Input(value=str(self.settings.voice.sarvam_tts_temperature), id="sarvam-tts-temperature"),
+                    id="sarvam-tts-temperature-row",
+                ),
+                Horizontal(
+                    Label("STT Model:"),
+                    Select(
+                        [("Saaras v3", "saaras:v3"), ("Saaras v4", "saaras:v4")],
+                        value=self.settings.voice.sarvam_stt_model,
+                        id="sarvam-stt-model",
+                    ),
+                    id="sarvam-stt-model-row",
+                ),
+                Horizontal(
                     Label("Response Language:"),
                     Select(
                         [("English (en-IN)", "en-IN"), ("Hindi (hi-IN)", "hi-IN"), ("Tamil (ta-IN)", "ta-IN"), ("Telugu (te-IN)", "te-IN"), ("Bengali (bn-IN)", "bn-IN"), ("Marathi (mr-IN)", "mr-IN"), ("Gujarati (gu-IN)", "gu-IN"), ("Malayalam (ml-IN)", "ml-IN"), ("Punjabi (pa-IN)", "pa-IN"), ("Kannada (kn-IN)", "kn-IN"), ("Urdu (ur-IN)", "ur-IN"), ("Auto-Detect", "unknown")],
@@ -118,19 +146,19 @@ class SettingsScreen(Screen):
             )
         )
 
-    def action_back(self) -> None:
-        self.app.switch_screen("chat")
+    async def action_back(self) -> None:
+        await self.app.switch_screen("chat")
 
     def action_save(self) -> None:
         self._save_settings()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "save-btn":
             self._save_settings()
         elif event.button.id == "reset-btn":
             self._reset_settings()
         elif event.button.id == "cancel-btn":
-            self.action_back()
+            await self.action_back()
 
     def _save_settings(self) -> None:
         self.settings.llm.provider = self.query_one("#llm-provider", Select).value
@@ -144,6 +172,10 @@ class SettingsScreen(Screen):
         self.settings.voice.language_detection = self.query_one("#lang-detection", Switch).value
         self.settings.voice.enabled = self.query_one("#voice-enabled", Switch).value
         self.settings.voice.wake_word_enabled = self.query_one("#wake-word-enabled", Switch).value
+        self.settings.voice.sarvam_tts_speaker = self.query_one("#sarvam-tts-speaker", Select).value
+        self.settings.voice.sarvam_tts_pace = float(self.query_one("#sarvam-tts-pace", Input).value or 1.0)
+        self.settings.voice.sarvam_tts_temperature = float(self.query_one("#sarvam-tts-temperature", Input).value or 0.6)
+        self.settings.voice.sarvam_stt_model = self.query_one("#sarvam-stt-model", Select).value
         self.settings.ui.theme = self.query_one("#ui-theme", Select).value
         self.settings.ui.stream = self.query_one("#ui-stream", Switch).value
 
@@ -162,5 +194,9 @@ class SettingsScreen(Screen):
         self.query_one("#lang-detection", Switch).value = self.original_settings.voice.language_detection
         self.query_one("#voice-enabled", Switch).value = self.original_settings.voice.enabled
         self.query_one("#wake-word-enabled", Switch).value = self.original_settings.voice.wake_word_enabled
+        self.query_one("#sarvam-tts-speaker", Select).value = self.original_settings.voice.sarvam_tts_speaker
+        self.query_one("#sarvam-tts-pace", Input).value = str(self.original_settings.voice.sarvam_tts_pace)
+        self.query_one("#sarvam-tts-temperature", Input).value = str(self.original_settings.voice.sarvam_tts_temperature)
+        self.query_one("#sarvam-stt-model", Select).value = self.original_settings.voice.sarvam_stt_model
         self.query_one("#ui-theme", Select).value = self.original_settings.ui.theme
         self.query_one("#ui-stream", Switch).value = self.original_settings.ui.stream

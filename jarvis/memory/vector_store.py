@@ -44,16 +44,27 @@ class VectorStore:
                 metadata={"hnsw:space": "cosine"},
             )
 
-            if HAS_SENTENCE_TRANSFORMERS:
-                self.embedding_model = SentenceTransformer(self.settings.memory.embedding_model)
-                logger.info("Embedding model loaded: %s", self.settings.memory.embedding_model)
-            else:
-                logger.warning("sentence-transformers not available; semantic search disabled")
-
+            # Don't load the embedding model here — lazy-load it on first use
+            # to reduce startup time (model loading takes 20-30s).
             self._initialized = True
-            logger.info("Vector store initialized")
+            logger.info("Vector store initialized (embedding model will lazy-load on first search)")
         except Exception as e:
             logger.error(f"Failed to initialize vector store: {e}")
+
+    async def _ensure_embedding_model(self) -> bool:
+        """Lazy-load the sentence-transformers embedding model on first use."""
+        if self.embedding_model is not None:
+            return True
+        if not HAS_SENTENCE_TRANSFORMERS:
+            logger.warning("sentence-transformers not available; semantic search disabled")
+            return False
+        try:
+            self.embedding_model = SentenceTransformer(self.settings.memory.embedding_model)
+            logger.info("Embedding model loaded: %s", self.settings.memory.embedding_model)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to load embedding model: {e}")
+            return False
 
     async def add_memory(self, content: str, metadata: dict[str, Any] | None = None) -> str:
         if not self._initialized:
@@ -63,7 +74,7 @@ class VectorStore:
             raise RuntimeError("Vector store not initialized")
 
         memory_id = str(uuid.uuid4())
-        if self.embedding_model is None:
+        if not await self._ensure_embedding_model():
             raise RuntimeError("Embedding model unavailable; cannot add memory")
 
         embedding = self.embedding_model.encode(content).tolist()
@@ -89,7 +100,7 @@ class VectorStore:
         if not self._initialized:
             return []
 
-        if self.embedding_model is None:
+        if not await self._ensure_embedding_model():
             logger.warning("Search skipped: embedding model unavailable")
             return []
 

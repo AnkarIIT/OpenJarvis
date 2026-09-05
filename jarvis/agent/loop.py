@@ -26,6 +26,11 @@ class AgentLoop:
         self.conversation_history: list[dict[str, Any]] = []
         self.max_history = 20
 
+    @property
+    def vector_store(self) -> VectorStore | None:
+        """Convenience alias for self.memory (VectorStore)."""
+        return self.memory
+
     async def initialize(self) -> None:
         await self.mcp.connect_all()
         if self.memory:

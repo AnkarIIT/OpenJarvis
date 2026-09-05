@@ -67,10 +67,10 @@ class VoiceScreen(Screen):
             )
         )
 
-    def action_back(self) -> None:
-        self.app.switch_screen("chat")
+    async def action_back(self) -> None:
+        await self.app.switch_screen("chat")
 
-    def action_toggle_listening(self) -> None:
+    async def action_toggle_listening(self) -> None:
         if self.voice_pipeline:
             self.voice_pipeline.toggle_listening()
             self.is_listening = self.voice_pipeline.is_listening

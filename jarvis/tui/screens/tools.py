@@ -39,6 +39,12 @@ class ToolsScreen(Screen):
     async def on_mount(self) -> None:
         await self._load_tools()
 
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "refresh-btn":
+            await self._load_tools()
+        elif event.button.id == "add-btn":
+            self.app.notify("Add Server feature coming soon. Configure MCP servers in settings.json", title="Add Server")
+
     async def _load_tools(self) -> None:
         await self.mcp_client.connect_all()
         self.tools = await self.mcp_client.list_all_tools()
@@ -57,8 +63,8 @@ class ToolsScreen(Screen):
             )
             await list_view.append(item)
 
-    def action_back(self) -> None:
-        self.app.switch_screen("chat")
+    async def action_back(self) -> None:
+        await self.app.switch_screen("chat")
 
-    def action_refresh(self) -> None:
-        self.run_worker(self._load_tools)
+    async def action_refresh(self) -> None:
+        await self._load_tools()

@@ -4,6 +4,8 @@ from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal
 from textual.screen import Screen
 from textual.widgets import Static, Button, Label, ListView, ListItem
+import sys
+from pathlib import Path
 from textual.reactive import reactive
 
 from jarvis.config.settings import Settings
@@ -39,6 +41,21 @@ class SkillsScreen(Screen):
 
     async def on_mount(self) -> None:
         await self._load_skills()
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "refresh-btn":
+            await self._load_skills()
+        elif event.button.id == "install-btn":
+            # Open directory picker / notify for install action
+            import subprocess
+            import os
+            if os.name == "nt":
+                os.startfile(str(Path.home()))
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(Path.home())])
+            else:
+                subprocess.Popen(["xdg-open", str(Path.home())])
+            self.app.notify("Opening project folder to install a new skill. See docs/skills/external/", title="Install Skill")
 
     async def _load_skills(self) -> None:
         self.skills = await self.skill_registry.loader.discover_skills()
@@ -86,5 +103,5 @@ class SkillsScreen(Screen):
 
         self.run_worker(_toggle())
 
-    def action_back(self) -> None:
-        self.app.switch_screen("chat")
+    async def action_back(self) -> None:
+        await self.app.switch_screen("chat")

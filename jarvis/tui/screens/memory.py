@@ -41,6 +41,31 @@ class MemoryScreen(Screen):
         if self.vector_store:
             await self._load_memories()
 
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "refresh-btn":
+            await self._load_memories()
+        elif event.button.id == "add-btn":
+            await self._add_memory_dialog()
+
+    async def _add_memory_dialog(self) -> None:
+        """Open a simple prompt to add a memory entry."""
+        from textual import work
+        # Show an input modal for adding memory
+        prompt = self.query_one("#memory-search", Input)
+        content = prompt.value.strip()
+        if not content:
+            self.app.notify("Enter text in the search box, then click 'Add Memory'", title="Add Memory")
+            return
+        if not self.vector_store:
+            self.app.notify("Vector store not available", title="Error")
+            return
+        try:
+            await self.vector_store.add_memory(content)
+            await self._load_memories()
+            self.app.notify(f"Memory added: {content[:40]}...", title="Success")
+        except Exception as e:
+            self.app.notify(f"Failed to add memory: {e}", title="Error")
+
     async def _load_memories(self) -> None:
         self.memories = await self.vector_store.list_memories()
 
@@ -75,8 +100,8 @@ class MemoryScreen(Screen):
                 )
                 await list_view.append(item)
 
-    def action_back(self) -> None:
-        self.app.switch_screen("chat")
+    async def action_back(self) -> None:
+        await self.app.switch_screen("chat")
 
-    def action_search(self) -> None:
+    async def action_search(self) -> None:
         self.query_one("#memory-search", Input).focus()
