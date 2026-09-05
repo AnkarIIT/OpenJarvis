@@ -7,31 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- **Complete offline-on-machine stack** — JARVIS can now run fully offline with zero external services:
-  - **LLM: `llama-cpp-python`** provider for direct GGUF model inference (no Ollama needed)
-    - New `_chat_llama_cpp()` async generator for streaming GGUF inference
-    - Lazy model loading + caching via `settings.llm._llama_instance`
-    - Set `JARVIS_LLM_PROVIDER=llama_cpp` and `JARVIS_LLM_MODEL_PATH=./model.gguf`
-  - **TTS: `piper-tts` Python package** — rewritten `PiperTTS` class uses `PiperVoice` Python API directly (no CLI binary needed)
-    - Auto-downloads voice models from HuggingFace on first run to `~/.jarvis/voice/`
-    - Falls back to `PiperCLITTS` (legacy CLI binary) if Python package unavailable
-    - Lazy voice loading in `speak()` via `_ensure_voice()`
-  - **STT: `WhisperSTT`** using `pywhispercpp` (whisper.cpp Python bindings)
-    - Fully offline, auto-downloads `base.en` whisper model on first use
-    - Set `JARVIS_VOICE_STT_ENGINE=whisper`
-  - **STT: Vosk auto-download** — `_ensure_vosk_model()` downloads model from alphacephei.com if not present
-  - **Wake Word: `OpenWakeWordDetector`** — fully open-source, no Picoville access key needed
-    - Uses `dscripka/openwakeword` with auto-downloaded models
-    - Set `JARVIS_VOICE_WAKE_WORD_ENGINE=openwakeword`
-    - `wake_word_engine: "auto"` tries openWakeWord first, then Porcupine, then Mock
-  - **Porcupine auto-download** — `_ensure_porcupine_model()` downloads `.ppn` from HuggingFace
-  - **MCP auto-discovery** — 5 built-in MCP servers auto-started as stdio subprocesses
-    - `_BUILTIN_MCP_SERVERS` dict in `jarvis/mcp/client.py`
-    - `mcp.auto_discover: True` setting auto-connects all built-in servers
-- **`offline` optional dependency group** — `pip install -e ".[offline]"` installs all offline packages at once
-  - llama-cpp-python, openwakeword, piper-tts, pywhispercpp, vosk, pvporcupine
-- **Offline stack documentation** in README with requirements, auto-download locations, and install commands
+### Added — Multi-Provider LLM & Internet Download Stack
+- **LLM auto-detection** — `provider="auto"` probes Ollama → LM Studio → LocalAI → llama-cpp-python → OpenAI → Anthropic in priority order
+- **LM Studio support** — `_chat_openai_compatible()` OpenAI-compatible API client probing port 1234
+- **LocalAI support** — probes ports 8080/41523, OpenAI-compatible API
+- **OpenAI/Anthropic support** — full streaming chat via `httpx` (OpenAI) and `anthropic` package (Claude)
+- **GGUF direct download** — installer downloads GGUF models from HuggingFace (Hermes 2 Pro, DeepSeek Coder, Qwen, Llama 3.1)
+- **Agentic AI models** — Hermes 2 Pro Llama 3 8B, DeepSeek Coder 6.7B support via GGUF
+- **HTTP client for backtalk** — `_set_state()` and `_set_mood()` now POST to `http://127.0.0.1:{port}` (HTTP first, file-based fallback)
+- **HTTP client for backtalk status** — `_status()` now GETs `http://127.0.0.1:{port}/state` (HTTP first, file-based fallback)
+- **Auto-download openWakeWord models** — on first import
+- **Auto-download Porcupine .ppn** — from HuggingFace if not present
+- **Web search MCP server** — added to installer auto-config (was missing from `_setup_mcp_servers`)
+- **Async file download** — `_download_file()` with rich progress bars in installer
+- **Zip extraction** — `_extract_zip()` for Vosk model downloads
+
+### Changed — Multi-Provider LLM
+- **`provider` default** changed from `"ollama"` to `"auto"` — auto-detects best available provider
+- **Settings** — added `auto_detect: bool` and `"auto"` to provider Literal type
+- **`detect_provider()`** — new function for one-off provider detection
+- **`_probe_provider()`** — new function to probe each provider's availability
+- **`provider_name` property** — LLMClient exposes resolved provider name
+- **`list_models()`** — now supports all 6 providers (Ollama, LM Studio, LocalAI, llama_cpp, Anthropic)
+- **`pull_model()`** — supports GGUF download (llama_cpp), Ollama pull, and informational messages for external providers
+- **`chat()`** — routes to correct handler based on resolved provider with fallback to `_chat_fallback()`
+
+### Changed — External Skills HTTP Clients
+- **backtalk `_set_state()`** — HTTP POST to `/state` with file-based fallback
+- **backtalk `_set_mood()`** — HTTP POST to `/mood` with file-based fallback
+- **backtalk `_status()`** — HTTP GET to `/state` with file-based fallback
+- **backtalk `_start()`** — no longer conflicts with barehands port (port 8795)
+
+### Changed — Installer Auto-Download
+- **`VOICE_MODELS`** — expanded to include openWakeWord, Whisper, and Porcupine models
+- **`_recommend_and_install()`** — handles `llama_cpp` (GGUF download), `lm_studio`, `localai` providers
+- **`_download_gguf_model()`** — new method for direct GGUF download with progress bar
+- **`_download_voice_models()`** — rewritten with async download, progress bars, zip extraction
+- **`_setup_mcp_servers()`** — now includes all 5 servers (added web_search)
+- **Detection table** — shows running status and API URL for LM Studio/LocalAI
+
+### Changed — Detectors
+- **`check_lm_studio()`** — now probes HTTP API at port 1234 for running models + cached .gguf files
+- **`check_localai()`** — new function, probes ports 8080/41523
+- **`detect_all_local_ai()`** — added `localai` to detection results
+- **`get_available_models()`** — added 5 GGUF download options (Llama 3.1, Qwen 2.5, Phi-3, Hermes 2 Pro, DeepSeek Coder)
+
+### Changed — Settings
+- **`LLMSettings.provider`** — default `"ollama"` → `"auto"`, added `"lm_studio"`, `"localai"` options
+- **`LLMSettings`** — added `auto_detect` field
+- **`VoiceSettings.wake_word_engine`** — already had `"auto"` option
+
+### Changed — README
+- Added LM Studio, LocalAI, OpenAI/Anthropic to Features
+- Added auto-detection priority chain
+- Added Environment Variables reference table (8 vars)
+- Added Model Management section (`--models`, `--pull`)
+- Added Supported Agentic AI Models table
+- Updated Capabilities table (LM Studio, LocalAI, External Skills HTTP)
+- Updated Cloud Features section (OpenAI/Anthropic now supported)
+- Updated Acknowledgments with new project links
+- Updated offline stack summary table
+
+### Changed — Tests
+- `test_settings_defaults` — updated for `provider="auto"` default
+- `test_settings_serialization` — updated for `"auto"` default
+- `test_llm_client_retryable_error_is_retried` — explicit `provider="ollama"` to bypass auto-detection
+- `test_llm_client_non_retryable_error_raises` — explicit `provider="ollama"` to bypass auto-detection
 
 ### Added (existing)
 - **Sarvam AI provider**: New TTS/STT provider using Sarvam AI REST APIs

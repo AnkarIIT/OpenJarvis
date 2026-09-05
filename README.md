@@ -116,7 +116,8 @@ All models auto-download on first run:
 
 - Sarvam AI API key (for Hindi/Indian language cloud TTS/STT)
 - Picoville access key (for Porcupine wake word — or use openWakeWord instead)
-- OpenAI/Anthropic API key (not yet implemented)
+- OpenAI API key (`JARVIS_LLM_API_KEY` with `provider=openai`) — for GPT-4o, o1, etc.
+- Anthropic API key (`JARVIS_LLM_API_KEY` with `provider=anthropic`) — for Claude 3.5 Sonnet
 
 ### Offline Stack Summary
 
@@ -187,12 +188,57 @@ Config stored at `~/.jarvis/config.json`:
 
 ```json
 {
-  "llm": {"provider": "ollama", "model": "llama3.1:8b"},
+  "llm": {"provider": "auto", "model": "llama3.1:8b"},
   "voice": {"enabled": true, "wake_word_enabled": true},
   "memory": {"enabled": true},
   "ui": {"theme": "jarvis"}
 }
 ```
+
+### Environment Variables
+
+All settings can be configured via environment variables (prefix `JARVIS_`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JARVIS_LLM_PROVIDER` | `auto` | `auto`, `ollama`, `llama_cpp`, `lm_studio`, `localai`, `openai`, `anthropic` |
+| `JARVIS_LLM_MODEL` | `llama3.1:8b` | Model name or HF repo ID |
+| `JARVIS_LLM_MODEL_PATH` | — | Path to `.gguf` file (for `llama_cpp` provider) |
+| `JARVIS_LLM_BASE_URL` | `http://localhost:11434` | API base URL for Ollama/LM Studio/LocalAI/OpenAI |
+| `JARVIS_LLM_API_KEY` | — | API key for OpenAI/Anthropic (or leave blank for local) |
+| `JARVIS_VOICE_STT_ENGINE` | `vosk` | `vosk`, `whisper`, or `sarvam` |
+| `JARVIS_VOICE_TTS_ENGINE` | `piper` | `piper` or `sarvam` |
+| `JARVIS_VOICE_WAKE_WORD_ENGINE` | `auto` | `auto`, `openwakeword`, or `porcupine` |
+
+### Model Management
+
+```bash
+jarvis --install          # Auto-detect providers + download all models
+jarvis --models           # List available models from all providers
+jarvis --pull MODEL       # Download a specific model
+```
+
+### Auto-Detection Priority
+
+When `provider="auto"`, JARVIS probes providers in this order:
+1. **Ollama** (localhost:11434) — preferred for chat + tool use
+2. **LM Studio** (localhost:1234) — OpenAI-compatible desktop app
+3. **LocalAI** (localhost:8080/41523) — self-hosted OpenAI replacement
+4. **llama-cpp-python** (local .gguf files) — no server needed
+5. **OpenAI API** (requires API key)
+6. **Anthropic API** (requires API key)
+
+### Supported Agentic AI Models
+
+JARVIS supports agentic AI models via direct GGUF download or Ollama:
+
+| Model | Provider | Use Case |
+|-------|----------|----------|
+| Hermes 2 Pro Llama 3 8B | GGUF download | Agentic reasoning, tool use |
+| DeepSeek Coder 6.7B | GGUF / Ollama | Code analysis, programming |
+| Llama 3.1 8B Instruct | Ollama / GGUF | General chat, Q&A |
+| Qwen 2.5 7B Instruct | Ollama / GGUF | Multilingual, coding |
+| Phi-3 Mini | Ollama / GGUF | Low-RAM setups (2.3GB) |
 
 ## Keyboard Shortcuts
 
@@ -235,6 +281,6 @@ MIT License - See LICENSE file for details.
 
 - Inspired by JARVIS from Marvel Cinematic Universe
 - Built with [Textual](https://textual.textualize.io/)
-- Local AI via [Ollama](https://ollama.com/)
-- Voice via [Piper](https://github.com/rhasspy/piper) & [Vosk](https://alphacephei.com/vosk/)
+- Local AI via [Ollama](https://ollama.com/) / [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) / LM Studio / LocalAI
+- Voice via [Piper](https://github.com/rhasspy/piper) & [Vosk](https://alphacephei.com/vosk/) & [openWakeWord](https://github.com/dscripka/openwakeword)
 - MCP via [Model Context Protocol](https://modelcontextprotocol.io/)
