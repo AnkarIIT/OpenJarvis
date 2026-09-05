@@ -13,6 +13,7 @@ class LLMSettings(BaseSettings):
 
     provider: Literal["ollama", "llama_cpp", "openai", "anthropic"] = "ollama"
     model: str = "llama3.1:8b"
+    model_path: str | None = None  # Path to GGUF model for llama_cpp provider
     base_url: str = "http://localhost:11434"
     api_key: str | None = None
     temperature: float = 0.7
@@ -24,6 +25,7 @@ class MCPSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="JARVIS_MCP_")
 
     servers: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    auto_discover: bool = True  # Auto-discover MCP servers from built-in implementations
 
 
 class VoiceSettings(BaseSettings):
@@ -31,11 +33,12 @@ class VoiceSettings(BaseSettings):
 
     enabled: bool = True
     tts_engine: Literal["piper", "sarvam"] = "piper"
-    stt_engine: Literal["vosk", "sarvam"] = "vosk"
+    stt_engine: Literal["vosk", "sarvam", "whisper"] = "vosk"
     wake_word_enabled: bool = True
     wake_word: str = "hey_jarvis"
+    wake_word_engine: Literal["auto", "openwakeword", "porcupine"] = "auto"
     tts_voice_model: str = "en_US-lessac-medium"
-    stt_model: str = "vosk-model-en-us-0.22"
+    stt_model: str = "vosk-model-small-en-us-0.15"
     sample_rate: int = 16000
     push_to_talk_key: str = "ctrl+space"
     sarvam_api_key: str = "sk_8l5pqftf_JYOeeOD9sIiwIrFAnKk0iP4n"

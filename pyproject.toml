@@ -26,7 +26,6 @@ dependencies = [
     "chromadb>=0.5",
     "sentence-transformers>=3.0",
 
-    "vosk>=0.3",
     "sounddevice>=0.4",
     "numpy>=1.26",
     "psutil>=5.9",
@@ -43,10 +42,25 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+offline = [
+    "llama-cpp-python>=0.2",
+    "openwakeword>=0.6",
+    "piper-tts>=1.2",
+    "pywhispercpp>=0.6",
+    "vosk>=0.3",
+    "pvporcupine>=3.0",
+]
 llama_cpp = ["llama-cpp-python>=0.2"]
-voice = ["pvporcupine>=3.0", "piper-tts>=1.2"]
+voice = ["pvporcupine>=3.0", "piper-tts>=1.2", "openwakeword>=0.6", "pywhispercpp>=0.6", "vosk>=0.3"]
 dev = ["pytest", "pytest-asyncio", "textual-dev", "ruff", "mypy"]
-all = ["llama-cpp-python>=0.2", "pvporcupine>=3.0"]
+all = [
+    "llama-cpp-python>=0.2",
+    "pvporcupine>=3.0",
+    "openwakeword>=0.6",
+    "piper-tts>=1.2",
+    "pywhispercpp>=0.6",
+    "vosk>=0.3",
+]
 
 [project.scripts]
 jarvis = "jarvis.main:main"

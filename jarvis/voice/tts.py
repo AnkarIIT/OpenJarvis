@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import os
+import urllib.request
+import zipfile
 from pathlib import Path
 from typing import Optional
 
@@ -10,8 +12,146 @@ from jarvis.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Known Piper voice models for auto-download
+_PIPER_VOICES = {
+    "en_US-lessac-medium": "en_US-lessac-medium.onnx",
+    "en_US-amy-low": "en_US-amy-low.onnx",
+    "en_US-libritts-high": "en_US-libritts-high.onnx",
+    "hi_IN-ins-kitu-medium": "hi_IN-ins-kitu-medium.onnx",
+}
+
+# Piper model download base URLs (hosted on GitHub releases)
+_PIPER_BASE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
+
+
+async def _ensure_piper_model(voice_name: str, onnx_path: Path, config_path: Path) -> bool:
+    """Auto-download a Piper voice model if not present."""
+    if onnx_path.exists() and config_path.exists():
+        return True
+
+    if voice_name not in _PIPER_VOICES:
+        logger.error(f"Unknown Piper voice: {voice_name}. Available: {list(_PIPER_VOICES.keys())}")
+        return False
+
+    onnx_filename = _PIPER_VOICES[voice_name]
+    config_filename = os.path.basename(onnx_filename).replace(".onnx", ".onnx.json")
+
+    # Try downloading from HuggingFace mirror
+    urls = [
+        f"{_PIPER_BASE_URL}/en/US/lessac/medium/{onnx_filename}",
+        f"https://github.com/rhasspy/piper/releases/download/v2021.258/{onnx_filename}",
+    ]
+
+    for url in urls:
+        try:
+            logger.info(f"Downloading Piper voice model from {url}...")
+            onnx_path.parent.mkdir(parents=True, exist_ok=True)
+            urllib.request.urlretrieve(url, str(onnx_path))
+
+            # Download config JSON
+            config_url = url.replace(".onnx", ".onnx.json")
+            urllib.request.urlretrieve(config_url, str(config_path))
+            logger.info(f"Downloaded Piper voice: {onnx_path}")
+            return True
+        except Exception as e:
+            logger.warning(f"Download failed from {url}: {e}")
+            continue
+
+    logger.error(f"Could not auto-download Piper voice: {voice_name}")
+    return False
+
 
 class PiperTTS:
+    """TTS using the piper-tts Python package (no CLI binary required)."""
+
+    def __init__(self, settings: Settings):
+        self.settings = settings
+        self.voice_model = settings.voice.tts_voice_model
+        self.voice_path = self._get_voice_path()
+        self.config_path = self.voice_path.with_suffix(".onnx.json")
+        self._piper_voice = None
+        self._voice_loaded = False
+
+    def _get_voice_path(self) -> Path:
+        config_dir = Path(os.path.expanduser("~/.jarvis/voice"))
+        return config_dir / f"{self.voice_model}.onnx"
+
+    async def _ensure_voice(self) -> bool:
+        """Lazy-load the Piper voice, downloading if necessary."""
+        if self._voice_loaded:
+            return self._piper_voice is not None
+
+        try:
+            from piper.voice import PiperVoice
+        except ImportError:
+            logger.warning(
+                "piper-tts package not installed. "
+                "Install with: pip install piper-tts"
+            )
+            self._voice_loaded = True
+            return False
+
+        if not self.voice_path.exists() or not self.config_path.exists():
+            logger.info(f"Piper voice not found at {self.voice_path}, attempting auto-download...")
+            await _ensure_piper_model(self.voice_model, self.voice_path, self.config_path)
+
+        if not self.voice_path.exists():
+            logger.warning(f"Piper voice model not available: {self.voice_path}")
+            self._voice_loaded = True
+            return False
+
+        try:
+            self._piper_voice = PiperVoice.load(
+                str(self.voice_path),
+                str(self.config_path) if self.config_path.exists() else None,
+            )
+            logger.info(f"Piper TTS loaded: {self.voice_model}")
+        except Exception as e:
+            logger.error(f"Piper voice init error: {e}")
+
+        self._voice_loaded = True
+        return self._piper_voice is not None
+
+    async def speak(self, text: str) -> bool:
+        if not await self._ensure_voice():
+            logger.warning("Piper voice not initialized")
+            return False
+
+        try:
+            import numpy as np
+            import sounddevice as sd
+
+            # Generate audio synchronously (piper is CPU-bound but fast)
+            audio_data = bytearray()
+
+            def _generate():
+                for chunk in self._piper_voice.synthesize(text, self._piper_voice):
+                    audio_data.extend(chunk)
+
+            await asyncio.get_event_loop().run_in_executor(None, _generate)
+
+            if not audio_data:
+                logger.error("Piper TTS: no audio generated")
+                return False
+
+            # Play via sounddevice
+            audio_array = np.frombuffer(bytes(audio_data), dtype=np.int16)
+            sample_rate = self._piper_voice.config.sample_rate
+            sd.play(audio_array, samplerate=sample_rate)
+            sd.wait()
+            return True
+
+        except Exception as e:
+            logger.error(f"Piper TTS error: {e}")
+            return False
+
+    async def stop(self) -> None:
+        pass
+
+
+class PiperCLITTS:
+    """TTS using the `piper` CLI binary (requires piper installed via pip/apt)."""
+
     def __init__(self, settings: Settings):
         self.settings = settings
         self.voice_model = settings.voice.tts_voice_model
@@ -138,7 +278,7 @@ class SarvamTTS:
         """Play WAV audio data using sounddevice."""
         import sounddevice as sd
         import numpy as np
-        
+
         import io as io_module
 
         try:
@@ -169,9 +309,6 @@ class SarvamTTS:
         except Exception as e:
             logger.error(f"Sarvam audio playback error: {e}")
 
-    async def stop(self) -> None:
-        pass
-
 
 class MockTTS:
     def __init__(self, settings: Settings):
@@ -186,13 +323,41 @@ class MockTTS:
 
 
 def create_tts(settings: Settings):
+    """Factory — tries engines in order of offline capability."""
     engine = settings.voice.tts_engine
+
     if engine == "sarvam":
         return SarvamTTS(settings)
+
+    if engine == "piper":
+        # Try the Python package first (no CLI binary needed), then fall back to CLI
+        try:
+            from piper.voice import PiperVoice  # noqa: F401
+            return PiperTTS(settings)
+        except ImportError:
+            logger.warning("piper-tts Python package not installed, trying CLI...")
+            try:
+                import shutil
+                if shutil.which("piper"):
+                    return PiperCLITTS(settings)
+            except Exception:
+                pass
+            logger.warning("Piper (both Python package and CLI) not available, using mock TTS")
+            return MockTTS(settings)
+
+    # Default: auto-detect best offline option
     try:
-        import piper
+        from piper.voice import PiperVoice  # noqa: F401
         return PiperTTS(settings)
     except ImportError:
-        if engine == "piper":
-            logger.warning("Piper not available, using mock TTS")
-        return MockTTS(settings)
+        pass
+
+    try:
+        import shutil
+        if shutil.which("piper"):
+            return PiperCLITTS(settings)
+    except Exception:
+        pass
+
+    logger.warning("No offline TTS engine available (install piper-tts), using mock TTS")
+    return MockTTS(settings)

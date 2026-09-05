@@ -327,9 +327,9 @@ def test_llm_client_retryable_error_is_retried(monkeypatch: pytest.MonkeyPatch):
         calls["count"] += 1
         if calls["count"] < 3:
             raise Exception("connection temporarily unavailable")
-        return ["ok"]
+        yield "ok"
 
-    monkeypatch.setattr(client, "_chat_ollama", fake_chat)
+    monkeypatch.setattr("jarvis.agent.llm_client._chat_ollama", fake_chat)
 
     import asyncio
     chunks = asyncio.run(_collect_chat(client, [{"role": "user", "content": "hi"}], stream=False))
@@ -342,9 +342,10 @@ def test_llm_client_non_retryable_error_raises(monkeypatch: pytest.MonkeyPatch):
     client = LLMClient(settings)
 
     async def fake_chat(*args, **kwargs):
+        yield "[noop]"  # Make it an async generator
         raise ValueError("invalid prompt")
 
-    monkeypatch.setattr(client, "_chat_ollama", fake_chat)
+    monkeypatch.setattr("jarvis.agent.llm_client._chat_ollama", fake_chat)
 
     import asyncio
     with pytest.raises(ValueError, match="invalid prompt"):

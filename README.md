@@ -6,11 +6,11 @@ A terminal-based AI assistant inspired by Iron Man's JARVIS from the Marvel Cine
 
 ## Features
 
-- **Local AI First**: Runs entirely offline with Ollama (Llama 3.1, Qwen, etc.) or cloud providers (OpenAI, Anthropic)
+- **Local AI First**: Runs entirely offline with Ollama (Llama 3.1, Qwen, etc.) or llama-cpp-python (direct GGUF inference)
 - **Terminal UI**: Beautiful TUI built with Textual framework
-- **Voice Support**: Offline STT (Vosk) + TTS (Piper), plus Sarvam AI cloud TTS/STT with language auto-detection
-- **Wake Word**: "Hey JARVIS" activation (Porcupine)
-- **MCP Tools**: 5 extensible tools via Model Context Protocol (filesystem, terminal, git, memory, web_search)
+- **Voice Support**: Offline STT (Vosk with auto-download / Whisper.cpp) + TTS (Piper with auto-download) + Sarvam AI cloud TTS/STT with language auto-detection
+- **Wake Word**: Fully offline open-source wake word detection (openWakeWord — no API key needed) or Porcupine (auto-downloads .ppn)
+- **MCP Tools**: 5 auto-discovered MCP servers (filesystem, terminal, git, memory, web_search)
 - **Skills System**: 10 modular skills (4 builtin + 6 external) with 47 total commands
 - **Long-term Memory**: Vector-based memory with ChromaDB + sentence-transformers
 - **External Integration**: Wraps 6 external AI projects as native JARVIS skills
@@ -36,66 +36,97 @@ jarvis
 
 ## Current Capabilities — What JARVIS Can Do
 
-### ✅ Working Now
+### ✅ Fully Working
 
 | Area | Status | Details |
 |------|--------|---------|
-| **TUI Interface** | ✅ Fully functional | Textual-based terminal interface with chat, skills, tools, memory, settings, and voice screens |
-| **Skills System** | ✅ 47 commands, 10 skills | 4 builtin (system_monitor, code_assistant, memory, voice_control) + 6 external (marketing, visualizer, memory_vault, barehands, backtalk, fullstack_agent) |
-| **LLM** | ✅ Ollama only | Streams responses from local Ollama models (Llama 3.1, Qwen, etc.) with tool-call support |
-| **LLM Retry** | ✅ Exponential backoff | 3 retries with backoff on transient errors (connection/timeout/503) |
-| **Builtin Skill: System Monitor** | ✅ 6 commands | CPU, memory, disk, GPU, network, processes |
-| **Builtin Skill: Code Assistant** | ✅ 3 commands | Analyze files, list functions, find TODOs via AST parsing |
-| **Builtin Skill: Memory** | ✅ 3 commands | Remember/recall/forget using ChromaDB vector store |
-| **Builtin Skill: Voice Control** | ✅ 4 commands | On/off, test, set language (`/language hi-IN`) |
-| **External Skill: Marketing** | ✅ 3 commands | Content creation, campaign ideas, brand voice (file-based, wraps ai-marketing-skills) |
-| **External Skill: Fullstack Agent** | ✅ 4 commands | Check toolbox status, run updates, create launchers, setup guide |
-| **External Skill: Memory Vault** | ✅ 6 commands | Save/recall/list vault entries, list categories |
-| **External Skill: Barehands** | ⚠️ Partial | 6 commands — server launches + HTTP control, but requires barehands server.py installed |
-| **External Skill: Backtalk** | ⚠️ Partial | 6 commands — server launches via subprocess, but no HTTP client implemented for talking to the server |
-| **External Skill: Visualizer** | ⚠️ Partial | 6 commands — server launches via subprocess, but no HTTP client implemented |
-| **MCP Servers** | ✅ All 5 migrated to mcp 2.1.1 | filesystem, terminal, git, memory, web_search |
-| **MCP Client** | ✅ Connected | Shared MCPClient between AgentLoop and ToolsScreen; auto-connects on startup |
-| **Long-term Memory** | ✅ Vector-based | ChromaDB with cosine similarity; embedding model lazy-loads on first search |
-| **Voice: Wake Word** | ✅ Supported | Porcupine (`pvporcupine`) for "Hey JARVIS" hotword detection; MockWakeWord fallback |
-| **Voice: TTS** | ✅ Piper + Sarvam | Piper (offline, requires `piper` binary + `.onnx` model); Sarvam AI cloud (requires API key) |
-| **Voice: STT** | ✅ Vosk + Sarvam | Vosk (offline, requires model file at `~/.jarvis/voice/`); Sarvam AI cloud (requires API key) |
-| **Voice: Language** | ✅ BCP-47 support | Set response language to `en-IN`, `hi-IN`, `ta-IN`, `te-IN`, `bn-IN`, etc. via `/language` command |
+| **TUI Interface** | ✅ Functional | Textual-based terminal with chat, skills, tools, memory, settings, voice screens |
+| **Skills System** | ✅ 47 commands | 4 builtin (system_monitor, code_assistant, memory, voice_control) + 6 external |
+| **LLM: Ollama** | ✅ Streaming | Local models with tool-call support & exponential backoff retry |
+| **LLM: llama-cpp-python** | ✅ Direct GGUF | Load `.gguf` models directly without Ollama (requires `llama-cpp-python`) |
+| **MCP Client** | ✅ Auto-connect | Connects to all configured + auto-discovered servers; tools shared with AgentLoop |
+| **MCP Servers** | ✅ 5 built-in | filesystem, terminal, git, memory, web_search — auto-started as stdio subprocesses |
+| **External Skills** | ✅ 10 skills | marketing, visualizer, memory_vault, barehands, backtalk, fullstack_agent |
+| **Long-term Memory** | ✅ ChromaDB | Vector store with cosine similarity; embeddings lazy-loaded |
+| **Voice: Wake Word** | ✅ Offline | openWakeWord (no API key!) or Porcupine with auto-download of `.ppn` |
+| **Voice: TTS** | ✅ Auto-download | piper-tts Python package with HuggingFace voice auto-download; Sarvam cloud fallback |
+| **Voice: STT** | ✅ Auto-download | Vosk (auto-downloads model) or Whisper.cpp (`pywhispercpp`, auto-downloads model) |
+| **Builtin: System Monitor** | ✅ 6 commands | CPU, memory, disk, GPU, network, processes |
+| **Builtin: Code Assistant** | ✅ 3 commands | AST analysis: read functions, find TODOs, file structure |
+| **Builtin: Memory** | ✅ 3 commands | remember/recall/forget via ChromaDB |
+| **Builtin: Voice Control** | ✅ 4 commands | Toggle on/off, test, set language (`/language hi-IN`) |
 
-### ❌ Not Yet Implemented
+### ❌ Cannot Do
 
 | Area | Issue | Impact |
 |------|-------|--------|
-| **LLM: OpenAI/Anthropic** | `_chat_fallback` returns stub message | Only Ollama works as LLM provider; OpenAI/Anthropic/Llama.cpp settings are accepted but not used |
-| **piper-tts binary** | Requires separate `piper` install via `apt`/pip | Piper TTS won't work unless `piper` is on PATH |
-| **Vosk model** | Requires manual download of model file | STT won't work until `vosk-model-small-en-us` is at `~/.jarvis/voice/` |
-| **Porcupine access** | Requires Picoville AccessKey + `.ppn` keyword file | Wake word won't work until `PORCUPINE_ACCESS_KEY` env var is set and `.ppn` exists |
-| **Backtalk HTTP client** | Skill launches server but cannot send messages to it | `backtalk` skill starts server but doesn't communicate via HTTP — commands will return server-not-found |
-| **Visualizer HTTP client** | Skill launches server but cannot send prompts to it | Same issue as backtalk |
-| **Voice: Hardware testing** | Requires real mic + speakers | Voice pipeline tested only with mock providers, not real hardware |
-| **Sarvam AI: Rate limits** | No rate-limit handling in API calls | May fail on burst usage without retry logic |
-| **MCP servers as standalone** | Console scripts defined but not verified | `jarvis-mcp-*` scripts should work as stdio servers but need manual testing |
+| **LLM: OpenAI/Anthropic** | `_chat_fallback` returns stub message | Install `openai`/`anthropic` packages and implement provider; only `ollama` and `llama_cpp` are implemented |
+| **Backtalk HTTP client** | Skill launches server but cannot send messages to it | Need to add HTTP client to call backtalk server endpoints |
+| **Visualizer HTTP client** | Skill launches server but cannot send prompts to it | Need to add HTTP client to call visualizer server endpoints |
+| **Barehands HTTP client** | Skill launches server but no HTTP client to talk to it | Need to add HTTP client to call barehands endpoints |
+| **Sarvam AI: Rate limits** | No rate-limit handling in API calls | May fail on burst usage; add retry middleware |
+| **Voice: Hardware testing** | Requires real mic + speakers | Not tested with physical hardware |
 
 ### 🚧 In Development (Planned)
 
-- Llama.cpp support via `llama-cpp-python`
-- OpenAI API integration
-- Anthropic Claude API integration
+- OpenAI/Anthropic API integration
 - Real-time audio streaming for STT
-- Wake word model auto-download
+- Wake word model auto-download (Porcupine still needs access key)
 - Voice activity detection (VAD)
 - Multi-modal capabilities (image input)
+- HTTP clients for backtalk/visualizer/barehands external skills
 
 ## Requirements
 
 - Python 3.10+
-- 8GB+ RAM (for Llama 3.1 8B)
-- Microphone & speakers (for voice features)
+- 8GB+ RAM (for Llama 3.1 8B) or GPU (for faster inference)
 - Ollama (for LLM) — auto-installed by `jarvis --install`
-- Optional: `piper` binary (for offline TTS)
-- Optional: Vosk model file (for offline STT)
-- Optional: Picoville access key (for wake word)
-- Optional: Sarvam AI API key (for cloud TTS/STT)
+- Optional: Local LLM model (GGUF for `--no-ollama` mode)
+
+### Full Offline Mode
+
+For completely offline voice + LLM:
+```bash
+pip install -e ".[offline]"
+# Downloads:
+# - llama-cpp-python (GGUF model support)
+# - openwakeword (no API key needed!)
+# - piper-tts (Python package, no CLI binary)
+# - pywhispercpp (whisper.cpp Python bindings)
+# - vosk (offline STT)
+# - pvporcupine (optional, needs access key)
+```
+
+Then set `llama.cpp` as LLM provider:
+```bash
+export JARVIS_LLM_PROVIDER=llama_cpp
+export JARVIS_LLM_MODEL_PATH=./models/llama-3.1-8b-instruct.Q4_K_M.gguf
+export JARVIS_VOICE_STT_ENGINE=whisper  # or keep 'vosk'
+```
+
+All models auto-download on first run:
+- **Piper voices**: Downloaded to `~/.jarvis/voice/` via HuggingFace
+- **Vosk STT models**: Downloaded to `~/.jarvis/voice/`
+- **Whisper models**: Downloaded to `~/.local/share/pywhispercpp/`
+- **openWakeWord models**: Downloaded on first import
+- **Porcupine .ppn**: Downloaded from HuggingFace (access key still required)
+
+### Cloud Features (Optional)
+
+- Sarvam AI API key (for Hindi/Indian language cloud TTS/STT)
+- Picoville access key (for Porcupine wake word — or use openWakeWord instead)
+- OpenAI/Anthropic API key (not yet implemented)
+
+### Offline Stack Summary
+
+| Component | Offline Tech | Auto-Download | External Dep |
+|-----------|-------------|---------------|--------------|
+| **LLM** | Ollama or llama-cpp-python | Ollama: yes / GGUF: manual | None / GGUF file |
+| **TTS** | piper-tts Python package | ✅ Yes (HuggingFace) | piper-tts pip package |
+| **STT** | Vosk or Whisper.cpp | ✅ Yes | vosk or pywhispercpp |
+| **Wake Word** | openWakeWord | ✅ Yes | openwakeword pip package |
+| **Memory** | ChromaDB | ✅ Lazy load | sentence-transformers |
+| **MCP** | 5 built-in servers | ✅ Auto-connect | mcp package |
 
 ## Architecture
 

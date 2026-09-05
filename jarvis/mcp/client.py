@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import sys
 import uuid
+from pathlib import Path
 from typing import Any
 
 from mcp import ClientSession, StdioServerParameters
@@ -22,6 +25,31 @@ class MCPTool:
         self.server_name = server_name
 
 
+# Built-in MCP servers that can be auto-discovered
+_BUILTIN_MCP_SERVERS = {
+    "filesystem": {
+        "command": sys.executable,
+        "args": ["-m", "jarvis.mcp.servers.filesystem", "."],
+    },
+    "terminal": {
+        "command": sys.executable,
+        "args": ["-m", "jarvis.mcp.servers.terminal"],
+    },
+    "git": {
+        "command": sys.executable,
+        "args": ["-m", "jarvis.mcp.servers.git"],
+    },
+    "memory": {
+        "command": sys.executable,
+        "args": ["-m", "jarvis.mcp.servers.memory"],
+    },
+    "web_search": {
+        "command": sys.executable,
+        "args": ["-m", "jarvis.mcp.servers.web_search"],
+    },
+}
+
+
 class MCPClient:
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -29,18 +57,36 @@ class MCPClient:
         self.tools: list[MCPTool] = []
         self.is_connected = False
 
+    def _resolve_servers(self) -> dict[str, dict[str, Any]]:
+        """Merge user-configured servers with auto-discovered built-ins."""
+        servers = dict(self.settings.mcp.servers)
+        if self.settings.mcp.auto_discover:
+            for name, config in _BUILTIN_MCP_SERVERS.items():
+                if name not in servers:
+                    servers[name] = config
+        return servers
+
     async def connect_all(self) -> None:
-        for server_name, config in self.settings.mcp.servers.items():
+        servers = self._resolve_servers()
+        for server_name, config in servers.items():
             await self.connect_server(server_name, config)
 
         self.is_connected = len(self.sessions) > 0
-        logger.info(f"Connected to {len(self.sessions)} MCP servers")
+        logger.info(
+            f"Connected to {len(self.sessions)} MCP servers ({len(self.tools)} tools)"
+            if self.is_connected
+            else "No MCP servers connected"
+        )
 
     async def connect_server(self, name: str, config: dict[str, Any]) -> bool:
         try:
             command = config.get("command")
             args = config.get("args", [])
             env = config.get("env", {})
+
+            if not command:
+                logger.warning(f"MCP server '{name}' has no command, skipping")
+                return False
 
             server_params = StdioServerParameters(
                 command=command,
@@ -67,7 +113,7 @@ class MCPClient:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to connect to MCP server {name}: {e}")
+            logger.error(f"Failed to connect to MCP server '{name}': {e}")
             return False
 
     async def call_tool(self, tool_name: str, arguments: dict[str, Any]) -> Any:
@@ -92,6 +138,12 @@ class MCPClient:
 
     async def list_all_tools(self) -> list[MCPTool]:
         return self.tools
+
+    async def get_available_tool(self, tool_name: str) -> MCPTool | None:
+        for tool in self.tools:
+            if tool.name == tool_name:
+                return tool
+        return None
 
     async def get_available_tools(self) -> list[MCPTool]:
         return self.tools
