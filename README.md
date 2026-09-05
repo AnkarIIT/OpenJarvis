@@ -75,7 +75,6 @@ downloads all voice models (Piper TTS, Vosk/Whisper STT, openWakeWord wake word)
 - Real-time audio streaming for STT
 - Voice activity detection (VAD)
 - Multi-modal capabilities (image input)
-- Full OpenAI/Anthropic API integration (LM Studio/LocalAI are ready now)
 
 ## Requirements
 
