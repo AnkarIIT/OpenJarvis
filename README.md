@@ -62,19 +62,16 @@ downloads all voice models (Piper TTS, Vosk/Whisper STT, openWakeWord wake word)
 | **Builtin: Memory** | ✅ 3 commands | remember/recall/forget via ChromaDB |
 | **Builtin: Voice Control** | ✅ 4 commands | Toggle on/off, test, set language (`/language hi-IN`) |
 
-### ❌ Cannot Do
+### 🚧 Future Roadmap
 
-| Area | Issue | Impact |
-|------|-------|--------|
-| **LLM: OpenAI/Anthropic** | Requires `openai`/`anthropic` pip packages + API key | Set `JARVIS_LLM_PROVIDER=openai` with `JARVIS_LLM_API_KEY`; LM Studio/LocalAI are better free options |
-| **Voice: Hardware testing** | Requires real mic + speakers | Not tested with physical hardware |
-| **Sarvam AI: Rate limits** | No rate-limit handling in API calls | May fail on burst usage |
-
-### 🚧 In Development (Planned)
-
-- Real-time audio streaming for STT
-- Voice activity detection (VAD)
-- Multi-modal capabilities (image input)
+| Priority | Area | Plan |
+|----------|------|------|
+| **High** | OpenAI/Anthropic cloud APIs | Full SDK integration with streaming — already supported, just install `openai`/`anthropic` + set `JARVIS_LLM_API_KEY` (LM Studio/LocalAI remain the free local alternatives) |
+| **High** | Voice hardware testing | Testing with real microphone + speakers (wake word detection, STT capture, TTS playback) |
+| **Medium** | Sarvam AI rate-limit handling | Add retry middleware with exponential backoff for cloud API calls |
+| **Medium** | Real-time audio streaming | Low-latency chunked STT streaming |
+| **Medium** | Voice Activity Detection (VAD) | Silence detection for smarter voice activation |
+| **Low** | Multi-modal input | Image input support for vision-capable LLMs |
 
 ## Requirements
 
