@@ -62,11 +62,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added auto-detection priority chain
 - Added Environment Variables reference table (8 vars)
 - Added Model Management section (`--models`, `--pull`)
-- Added Supported Agentic AI Models table
+- Added Supported Agentic AI Models table (Hermes 2 Pro, DeepSeek Coder, Qwen, Llama 3.1)
 - Updated Capabilities table (LM Studio, LocalAI, External Skills HTTP)
 - Updated Cloud Features section (OpenAI/Anthropic now supported)
 - Updated Acknowledgments with new project links
 - Updated offline stack summary table
+- Fixed `--no-ollama` → `llama_cpp` provider mode reference
+
+### Changed — CLI
+- `main.py`: added `--models`/`-m` to list all detected providers + installable models
+- `main.py`: added `--pull <model>`/`-p` to download a specific model via LLMClient
 
 ### Changed — Tests
 - `test_settings_defaults` — updated for `provider="auto"` default
