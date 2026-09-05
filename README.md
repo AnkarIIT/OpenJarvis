@@ -249,9 +249,11 @@ JARVIS supports agentic AI models via direct GGUF download or Ollama:
 
 ## Voice Commands
 
-- "Hey JARVIS" - Wake word
-- `Ctrl+Space` - Push-to-talk
-- Continuous listening mode available
+- "Hey JARVIS" - Wake word (openWakeWord, no API key!)
+- `Space` - Toggle continuous listening mode (in Voice screen)
+- `/voice on` - Enable voice listening (via command palette)
+- `/voice off` - Disable voice listening
+- `/voice test` - Test TTS with custom message
 
 ## Development
 

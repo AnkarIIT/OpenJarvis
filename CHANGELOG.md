@@ -68,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Acknowledgments with new project links
 - Updated offline stack summary table
 - Fixed `--no-ollama` → `llama_cpp` provider mode reference
+- Reframed "Cannot Do" section as "Future Roadmap" with priority levels (High/Medium/Low)
+- Updated Voice Commands section with accurate key bindings (/voice on/off, Space toggle)
 
 ### Changed — CLI
 - `main.py`: added `--models`/`-m` to list all detected providers + installable models
