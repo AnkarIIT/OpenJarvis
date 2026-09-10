@@ -47,6 +47,14 @@ _BUILTIN_MCP_SERVERS = {
         "command": sys.executable,
         "args": ["-m", "jarvis.mcp.servers.web_search"],
     },
+    "browser": {
+        "command": sys.executable,
+        "args": ["-m", "jarvis.mcp.servers.browser"],
+    },
+    "desktop": {
+        "command": sys.executable,
+        "args": ["-m", "jarvis.mcp.servers.desktop"],
+    },
 }
 
 
@@ -94,23 +102,22 @@ class MCPClient:
                 env=env,
             )
 
-            read_stream, write_stream = await stdio_client(server_params).__aenter__()
-            session = ClientSession(read_stream, write_stream)
-            await session.__aenter__()
-            await session.initialize()
+            async with stdio_client(server_params) as (read_stream, write_stream):
+                async with ClientSession(read_stream, write_stream) as session:
+                    await session.initialize()
 
-            tools_result = await session.list_tools()
-            for tool in tools_result.tools:
-                self.tools.append(MCPTool(
-                    name=tool.name,
-                    description=tool.description,
-                    input_schema=tool.inputSchema,
-                    server_name=name,
-                ))
+                    tools_result = await session.list_tools()
+                    for tool in tools_result.tools:
+                        self.tools.append(MCPTool(
+                            name=tool.name,
+                            description=tool.description,
+                            input_schema=tool.inputSchema,
+                            server_name=name,
+                        ))
 
-            self.sessions[name] = session
-            logger.info(f"Connected to MCP server: {name} ({len(tools_result.tools)} tools)")
-            return True
+                    self.sessions[name] = session
+                    logger.info(f"Connected to MCP server: {name} ({len(tools_result.tools)} tools)")
+                    return True
 
         except Exception as e:
             logger.error(f"Failed to connect to MCP server '{name}': {e}")
