@@ -27,6 +27,29 @@ class JarvisApp(App):
 
     CSS_PATH = "css/jarvis.tcss"
 
+    def __init__(self, settings: Settings | None = None):
+        super().__init__()
+        self.settings = settings or load_settings()
+        # Apply theme before the app starts
+        self._apply_theme(self.settings.ui.theme)
+        self.skill_registry = SkillRegistry(self.settings)
+        self.agent_loop = AgentLoop(self.settings, skill_registry=self.skill_registry)
+        self.voice_pipeline = VoicePipeline(self.settings, self.agent_loop) if self.settings.voice.enabled else None
+        self.current_screen = "chat"
+        self.chat_panel: ChatPanel | None = None
+        self.status_bar: StatusBar | None = None
+        self.command_palette: CommandPalette | None = None
+
+    def _apply_theme(self, theme: str) -> None:
+        """Dynamically set the CSS path based on the selected theme."""
+        theme_map = {
+            "feynman": "css/feynman.tcss",
+            "dark": "css/jarvis.tcss",
+            "light": "css/jarvis.tcss",
+            "jarvis": "css/jarvis.tcss",
+        }
+        self.CSS_PATH = theme_map.get(theme, "css/jarvis.tcss")
+
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit"),
         Binding("ctrl+c", "clear_chat", "Clear Chat"),
@@ -42,17 +65,6 @@ class JarvisApp(App):
         Binding("ctrl+u", "switch_tab('voice')", "Voice"),
         Binding("ctrl+b", "setup", "Setup"),
     ]
-
-    def __init__(self, settings: Settings | None = None):
-        super().__init__()
-        self.settings = settings or load_settings()
-        self.skill_registry = SkillRegistry(self.settings)
-        self.agent_loop = AgentLoop(self.settings, skill_registry=self.skill_registry)
-        self.voice_pipeline = VoicePipeline(self.settings, self.agent_loop) if self.settings.voice.enabled else None
-        self.current_screen = "chat"
-        self.chat_panel: ChatPanel | None = None
-        self.status_bar: StatusBar | None = None
-        self.command_palette: CommandPalette | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)

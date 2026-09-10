@@ -66,7 +66,7 @@ class MemorySettings(BaseSettings):
 class UISettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="JARVIS_UI_")
 
-    theme: Literal["jarvis", "dark", "light"] = "jarvis"
+    theme: Literal["jarvis", "dark", "light", "feynman"] = "jarvis"
     show_tokens: bool = True
     stream: bool = True
     compact_mode: bool = False

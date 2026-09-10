@@ -24,6 +24,21 @@ class SettingsScreen(Screen):
         yield Container(
             Vertical(
                 Static("Settings", id="settings-title"),
+                Static("Theme", classes="section-title"),
+                Horizontal(
+                    Label("Theme:"),
+                    Select(
+                        [
+                            ("JARVIS Classic", "jarvis"),
+                            ("Dark Mode", "dark"),
+                            ("Light Mode", "light"),
+                            ("⚡ Feynman Research", "feynman"),
+                        ],
+                        value=self.settings.ui.theme,
+                        id="ui-theme",
+                    ),
+                    id="theme-row",
+                ),
                 Static("LLM Configuration", classes="section-title"),
                 Horizontal(
                     Label("Provider:"),

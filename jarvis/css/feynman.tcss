@@ -1,0 +1,392 @@
+/*
+ * Feynman Research Agent Theme
+ * Inspired by Feynman's curiosity-driven, deep-research aesthetic
+ *
+ * Color palette: Deep navy + Electric cyan + Warm amber accents
+ * Represents: Exploration, discovery, precision, depth
+ */
+
+/* === Color Tokens === */
+$bg-deep: #050a12;
+$bg-surface: #0a1020;
+$bg-card: #0f1a2e;
+$bg-card-hover: #152040;
+$bg-input: #080e18;
+
+$cyan-bright: #00e5ff;
+$cyan-dim: #0077aa;
+$cyan-glow: rgba(0, 229, 255, 0.15);
+
+$amber: #ffab00;
+$amber-dim: #cc8800;
+$amber-glow: rgba(255, 171, 0, 0.12);
+
+$green: #00e676;
+$green-dim: #00a860;
+
+$red: #ff5252;
+$red-dim: #cc4040;
+
+$purple: #b388ff;
+$purple-dim: #8855cc;
+
+$text-primary: #e8eaf6;
+$text-secondary: #9eaac0;
+$text-muted: #5c6a82;
+
+$border: #1a2540;
+$border-active: #2a3a5e;
+
+/* === Screen === */
+Screen {
+    background: $bg-deep;
+    color: $text-primary;
+}
+
+/* === App Container === */
+#app-container {
+    height: 1fr;
+}
+
+#sidebar {
+    width: 26;
+    background: $bg-surface;
+    border-right: solid 1px $border;
+    padding: 1;
+    height: 1fr;
+}
+
+#sidebar:hidden {
+    width: 0;
+    padding: 0;
+    border: none;
+}
+
+#content-area {
+    width: 1fr;
+    height: 1fr;
+}
+
+#main-content {
+    height: 1fr;
+    background: $bg-deep;
+}
+
+/* === Logo & Branding === */
+#logo {
+    text-align: center;
+    text-style: bold;
+    color: $cyan-bright;
+    font-size: 22;
+    margin-bottom: 0;
+    text-style: bold underline;
+}
+
+#tagline {
+    text-align: center;
+    color: $text-secondary;
+    font-size: 10;
+    margin-bottom: 2;
+}
+
+/* === Setup Screen === */
+#setup-screen {
+    background: $bg-deep;
+}
+
+#setup-container {
+    align: center middle;
+    width: 80;
+    height: 30;
+    background: $bg-card;
+    border: solid 1px $cyan-dim;
+    padding: 2;
+}
+
+#setup-title {
+    text-align: center;
+    text-style: bold;
+    color: $cyan-bright;
+    font-size: 28;
+    margin-bottom: 0;
+}
+
+#setup-subtitle {
+    text-align: center;
+    color: $text-secondary;
+    margin-bottom: 2;
+}
+
+#setup-actions {
+    margin: 1;
+    height: 3;
+    align: center middle;
+}
+
+#setup-footer {
+    margin: 1;
+    height: 1;
+    dock: bottom;
+    align: center middle;
+}
+
+/* === Section Labels === */
+.section-label {
+    color: $cyan-bright;
+    text-style: bold;
+    margin: 1 1 0 1;
+}
+
+/* === Skill Cards === */
+.skill-card-name {
+    color: $cyan-bright;
+    text-style: bold;
+}
+
+.skill-card-desc {
+    color: $text-secondary;
+}
+
+.skill-card-count {
+    color: $amber;
+}
+
+.skill-card {
+    padding: 1 2;
+    margin: 0 1;
+    background: $bg-card;
+    border: solid 1px $border;
+}
+
+.skill-card:hover {
+    background: $bg-card-hover;
+    border: solid 1px $cyan-dim;
+}
+
+/* === List Items === */
+.skill-item {
+    background: transparent;
+    margin: 0 1;
+    padding: 1;
+}
+
+/* === Header === */
+Header {
+    background: $bg-surface;
+    color: $cyan-bright;
+    height: 1;
+    border-bottom: solid 1px $border;
+}
+
+/* === Footer === */
+Footer {
+    background: $bg-surface;
+    color: $text-muted;
+    height: 1;
+    border-top: solid 1px $border;
+}
+
+/* === Status Bar === */
+#status-bar {
+    background: $bg-surface;
+    color: $cyan-dim;
+    dock: bottom;
+    height: 1;
+    border-top: solid 1px $border;
+}
+
+#dash-status-left {
+    color: $cyan-bright;
+    text-style: bold;
+}
+
+#dash-status-center {
+    color: $text-secondary;
+}
+
+#dash-status-right {
+    color: $text-muted;
+}
+
+#dash-status-left {
+    color: $cyan-bright;
+}
+
+#dash-status-left {
+    color: $cyan-bright;
+}
+
+#dash-logo {
+    text-align: center;
+    text-style: bold;
+    color: $cyan-bright;
+    font-size: 24;
+    margin: 1;
+}
+
+#dash-tagline {
+    text-align: center;
+    color: $text-muted;
+    font-size: 10;
+    margin-bottom: 1;
+}
+
+#dash-help {
+    text-align: center;
+    color: $amber;
+    font-size: 9;
+    margin-bottom: 1;
+}
+
+/* === Sidebar === */
+#sidebar {
+    background: $bg-surface;
+}
+
+#logo {
+    color: $cyan-bright;
+}
+
+#tagline {
+    color: $text-muted;
+}
+
+/* === Tabbed Content === */
+TabPane {
+    background: $bg-deep;
+}
+
+TabbedContent {
+    background: $bg-deep;
+}
+
+/* === List Views === */
+ListView {
+    background: $bg-surface;
+    border: solid 1px $border;
+}
+
+ListView > .list-view--highlighted {
+    background: $bg-card-hover;
+    border: solid 1px $cyan-dim;
+    color: $cyan-bright;
+}
+
+/* === Buttons === */
+Button {
+    background: $bg-card;
+    border: solid 1px $border;
+    color: $text-primary;
+}
+
+Button:hover {
+    background: $bg-card-hover;
+    border: solid 1px $cyan-bright;
+    color: $cyan-bright;
+}
+
+Button.primary {
+    background: $cyan-dim;
+    color: $bg-deep;
+}
+
+Button.primary:hover {
+    background: $cyan-bright;
+}
+
+Button.success {
+    background: $green-dim;
+    color: $bg-deep;
+}
+
+Button.success:hover {
+    background: $green;
+}
+
+/* === Inputs === */
+Input {
+    background: $bg-input;
+    border: solid 1px $border;
+    color: $text-primary;
+}
+
+Input:focus {
+    border: solid 1px $cyan-bright;
+    color: $cyan-bright;
+}
+
+/* === Select === */
+Select {
+    background: $bg-card;
+    border: solid 1px $border;
+    color: $text-primary;
+}
+
+Select:focus {
+    border: solid 1px $cyan-bright;
+}
+
+/* === Labels === */
+Label {
+    color: $text-primary;
+}
+
+/* === Cards === */
+Card {
+    background: $bg-card;
+    border: solid 1px $border;
+}
+
+/* === Progress === */
+ProgressBar {
+    background: $bg-surface;
+    border: solid 1px $border;
+}
+
+ProgressBar > .bar {
+    background: $cyan-bright;
+}
+
+/* === Rich Log === */
+RichLog {
+    background: $bg-deep;
+    color: $text-primary;
+}
+
+/* === Status Items === */
+.status-item {
+    color: $text-primary;
+}
+
+.status-desc {
+    color: $text-secondary;
+}
+
+/* === Tool Items === */
+.tool-name {
+    color: $amber;
+}
+
+.tool-desc {
+    color: $text-muted;
+}
+
+/* === Voice Items === */
+.voice-item {
+    color: $text-secondary;
+}
+
+/* === Chat Panel === */
+#chat-panel {
+    background: $bg-deep;
+}
+
+/* === Command Palette === */
+#command-palette {
+    background: $bg-surface;
+    border: solid 1px $border;
+}
+
+/* === CSS Variables for dynamic theming === */
+/* JARVIS theme is default, feynman is above */
+/* Light theme would override all variables */
