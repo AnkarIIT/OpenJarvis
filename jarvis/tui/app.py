@@ -112,7 +112,7 @@ class JarvisApp(App):
             await main_content.mount(screen)
             self.status_bar.update_screen(screen_name)
             if screen_name == "chat":
-                self.chat_panel = self.query_one(ChatPanel, ChatPanel) if self.query_one("#chat-messages", Container) else None
+                self.chat_panel = self.query_one("#chat-messages", Container).query_one(ChatPanel) if self.query_one("#chat-messages", Container).query_one(ChatPanel, see_type=False) else None
 
     def action_switch_tab(self, screen_name: str) -> None:
         self.run_worker(self.switch_screen(screen_name))
