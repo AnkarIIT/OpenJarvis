@@ -23,7 +23,7 @@ _VOSK_MODELS = {
 }
 
 
-def _ensure_vosk_model(model_name: str) -> Path | None:
+async def _ensure_vosk_model(model_name: str) -> Path | None:
     """Auto-download Vosk model if not present."""
     config_dir = Path(os.path.expanduser("~/.jarvis/voice"))
     config_dir.mkdir(parents=True, exist_ok=True)
@@ -35,17 +35,24 @@ def _ensure_vosk_model(model_name: str) -> Path | None:
     zip_name = f"{model_name}.zip"
     zip_path = config_dir / zip_name
 
-    if model_name in _VOSK_MODELS:
-        url = _VOSK_MODELS[model_name]
-        logger.info(f"Downloading Vosk model '{model_name}' from {url}...")
-        try:
-            urllib.request.urlretrieve(url, str(zip_path))
-            logger.info(f"Downloaded {zip_name}")
-        except Exception as e:
-            logger.error(f"Failed to download Vosk model: {e}")
-            return None
-    else:
+    if model_name not in _VOSK_MODELS:
         logger.error(f"Unknown Vosk model: {model_name}. Available: {list(_VOSK_MODELS.keys())}")
+        return None
+
+    url = _VOSK_MODELS[model_name]
+    logger.info(f"Downloading Vosk model '{model_name}' from {url}...")
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=300) as http:
+            async with http.stream("GET", url) as resp:
+                if resp.status_code != 200:
+                    raise Exception(f"HTTP {resp.status_code}")
+                with open(str(zip_path), "wb") as f:
+                    async for chunk in resp.aiter_bytes(8192):
+                        f.write(chunk)
+        logger.info(f"Downloaded {zip_name}")
+    except Exception as e:
+        logger.error(f"Failed to download Vosk model: {e}")
         return None
 
     # Extract
@@ -53,10 +60,8 @@ def _ensure_vosk_model(model_name: str) -> Path | None:
         logger.info(f"Extracting {zip_name}...")
         with zipfile.ZipFile(zip_path, 'r') as zf:
             zf.extractall(str(config_dir))
-        # The extracted folder may have a different name
         extracted_dirs = [d for d in config_dir.iterdir() if d.is_dir() and d.name.startswith("vosk-model")]
         if extracted_dirs:
-            # Rename to expected path
             extracted = extracted_dirs[0]
             if extracted != model_path:
                 extracted.rename(model_path)
@@ -73,35 +78,39 @@ class VoskSTT:
         self.model = None
         self.recognizer = None
         self.sample_rate = settings.voice.sample_rate
-        self._init_model()
 
     def _get_model_path(self) -> Path:
         config_dir = Path(os.path.expanduser("~/.jarvis/voice"))
         return config_dir / self.settings.voice.stt_model
 
-    def _init_model(self) -> None:
+    async def _ensure_model(self) -> bool:
+        """Lazy-load the Vosk model, downloading if necessary."""
+        if self.recognizer is not None:
+            return True
+        if not self.model_path.exists():
+            logger.info(f"Vosk model not found at {self.model_path}, attempting auto-download...")
+            downloaded = await _ensure_vosk_model(self.settings.voice.stt_model)
+            if downloaded:
+                self.model_path = downloaded
+            else:
+                logger.warning(f"Vosk model not available: {self.model_path}")
+                return False
+
         try:
             from vosk import Model, KaldiRecognizer
-            if not self.model_path.exists():
-                # Try auto-download
-                logger.info(f"Vosk model not found at {self.model_path}, attempting auto-download...")
-                downloaded = _ensure_vosk_model(self.settings.voice.stt_model)
-                if downloaded:
-                    self.model_path = downloaded
-                else:
-                    logger.warning(f"Vosk model not available: {self.model_path}")
-                    return
-
             self.model = Model(str(self.model_path))
             self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
             logger.info("Vosk STT model loaded")
+            return True
         except ImportError:
             logger.warning("Vosk not installed — will use fallback STT")
+            return False
         except Exception as e:
             logger.error(f"Vosk model init error: {e}")
+            return False
 
     async def listen_once(self, timeout: float = 10.0) -> str:
-        if not self.recognizer:
+        if not await self._ensure_model():
             return ""
 
         try:
@@ -110,7 +119,8 @@ class VoskSTT:
             def callback(indata, frames, time, status):
                 if status:
                     logger.warning(f"Audio callback status: {status}")
-                asyncio.run_coroutine_threadsafe(audio_queue.put(bytes(indata)), asyncio.get_event_loop())
+                loop = asyncio.get_running_loop()
+                asyncio.run_coroutine_threadsafe(audio_queue.put(bytes(indata)), loop)
 
             stream = sd.RawInputStream(
                 samplerate=self.sample_rate,
@@ -160,7 +170,7 @@ class WhisperSTT:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.model_name = "base.en"  # Default — small, good accuracy
+        self.model_name = "base.en"
         self.sample_rate = 16000
         self._model = None
 
@@ -169,7 +179,6 @@ class WhisperSTT:
             return True
         try:
             from pywhispercpp.model import Model
-            # The model will auto-download on first use
             self._model = Model(self.model_name)
             logger.info(f"Whisper model loaded: {self.model_name}")
             return True
@@ -185,14 +194,14 @@ class WhisperSTT:
             return ""
 
         try:
-            # Record audio using sounddevice
             audio_queue = asyncio.Queue()
 
             def callback(indata, frames, time, status):
                 if status:
                     logger.warning(f"Audio callback status: {status}")
                 pcm = bytes(indata)
-                asyncio.run_coroutine_threadsafe(audio_queue.put(pcm), asyncio.get_event_loop())
+                loop = asyncio.get_running_loop()
+                asyncio.run_coroutine_threadsafe(audio_queue.put(pcm), loop)
 
             stream = sd.RawInputStream(
                 samplerate=self.sample_rate,
@@ -211,20 +220,15 @@ class WhisperSTT:
                     try:
                         data = await asyncio.wait_for(audio_queue.get(), timeout=0.1)
                         audio_data += data
-                        if len(audio_data) > 0:
-                            # For simplicity, stop early if we have enough audio
-                            if len(audio_data) > self.sample_rate * 16:  # 16 seconds max
-                                break
+                        if len(audio_data) > self.sample_rate * 16:
+                            break
                     except asyncio.TimeoutError:
                         continue
 
             if not audio_data:
                 return ""
 
-            # Convert bytes to numpy array for whisper
             audio_array = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
-
-            # Transcribe
             segments = self._model.transcribe(audio_array)
             text_parts = []
             for segment in segments:
@@ -249,7 +253,7 @@ class WhisperSTT:
 
 
 class SarvamSTT:
-    """STT using Sarvam AI (Saaras v3/v4). https://docs.sarvam.ai"""
+    """STT using Sarvam AI (Saaras v3/v4)."""
 
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -265,7 +269,6 @@ class SarvamSTT:
         import aiohttp
 
         try:
-            # Record audio using sounddevice
             frames = []
 
             def callback(indata, frames_count, time, status):
@@ -295,7 +298,6 @@ class SarvamSTT:
             url = "https://api.sarvam.ai/speech-to-text"
             headers = {"api-subscription-key": self.api_key}
 
-            # Convert to WAV
             import wave
             import io as io_module
             buf = io_module.BytesIO()
@@ -371,13 +373,13 @@ def create_stt(settings: Settings):
 
     # Default: try Vosk (offline), then Whisper (offline), then mock
     try:
-        from vosk import Model  # noqa: F401
+        from vosk import Model
         return VoskSTT(settings)
     except ImportError:
         pass
 
     try:
-        from pywhispercpp import Model  # noqa: F401
+        from pywhispercpp import Model
         logger.info("Vosk not available, using Whisper.cpp (offline)")
         return WhisperSTT(settings)
     except ImportError:
