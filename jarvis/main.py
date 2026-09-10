@@ -45,7 +45,10 @@ def main(
             model_list = ", ".join(models) if models else "None"
             if len(model_list) > 60:
                 model_list = model_list[:57] + "..."
-            console.print(f"  {provider:16} {status:20} {version:20} Models: {model_list}")
+            version_str = str(version) if version else "N/A"
+            if len(version_str) > 20:
+                version_str = version_str[:17] + "..."
+            console.print(f"  {provider:16} {status:20} {version_str:20} Models: {model_list}")
 
         console.print(f"\n[bold cyan]Available Models to Install[/bold cyan]\n")
         for m in available:
@@ -135,7 +138,7 @@ def doctor():
         table.add_row(
             provider.replace("_", " ").title(),
             "OK Available" if status["available"] else "ERROR Not found",
-            status.get("version", "N/A"),
+            str(status.get("version", "N/A") or "N/A"),
             models,
         )
     console.print(table)
