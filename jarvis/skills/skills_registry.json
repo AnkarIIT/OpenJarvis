@@ -1,0 +1,161 @@
+{
+  "version": "1.0",
+  "skills": [
+    {
+      "name": "browser",
+      "type": "builtin",
+      "description": "Control web browser via Playwright — navigate, click, type, screenshot",
+      "commands": ["browser_navigate", "browser_click", "browser_type", "browser_screenshot", "browser_scroll", "browser_go_back", "browser_go_forward", "browser_get_content", "browser_get_title", "browser_wait"],
+      "dependencies": ["playwright>=1.40"],
+      "optional_deps": ["chromium"],
+      "install_command": "pip install playwright && playwright install chromium",
+      "mcp_servers": ["jarvis-mcp-browser"],
+      "category": "automation",
+      "enabled_by_default": true
+    },
+    {
+      "name": "desktop",
+      "type": "builtin",
+      "description": "Control mouse and keyboard via pyautogui — click, type, hotkeys, screenshots",
+      "commands": ["desktop_click", "desktop_type", "desktop_hotkey", "desktop_screenshot", "desktop_scroll", "desktop_get_windows"],
+      "dependencies": ["pyautogui>=0.9.54"],
+      "optional_deps": [],
+      "install_command": "pip install pyautogui",
+      "mcp_servers": ["jarvis-mcp-desktop"],
+      "category": "automation",
+      "enabled_by_default": true
+    },
+    {
+      "name": "system_monitor",
+      "type": "builtin",
+      "description": "System monitoring — CPU, memory, disk, GPU, processes, network",
+      "commands": ["system_monitor", "get_cpu", "get_memory", "get_disk", "get_gpu", "get_processes"],
+      "dependencies": [],
+      "optional_deps": ["psutil"],
+      "install_command": "pip install psutil",
+      "mcp_servers": [],
+      "category": "system",
+      "enabled_by_default": true
+    },
+    {
+      "name": "code_assistant",
+      "type": "builtin",
+      "description": "Code analysis — AST parsing, function listing, TODO finding",
+      "commands": ["code_list_functions", "code_find_todos", "code_structure"],
+      "dependencies": [],
+      "optional_deps": [],
+      "install_command": "",
+      "mcp_servers": [],
+      "category": "development",
+      "enabled_by_default": true
+    },
+    {
+      "name": "memory",
+      "type": "builtin",
+      "description": "Persistent memory via ChromaDB — remember, recall, forget",
+      "commands": ["memory_remember", "memory_recall", "memory_forget"],
+      "dependencies": ["chromadb", "sentence-transformers"],
+      "optional_deps": [],
+      "install_command": "pip install chromadb sentence-transformers",
+      "mcp_servers": ["jarvis-mcp-memory"],
+      "category": "memory",
+      "enabled_by_default": true
+    },
+    {
+      "name": "voice_control",
+      "type": "builtin",
+      "description": "Voice interaction — wake word, STT, TTS",
+      "commands": ["voice_on", "voice_off", "voice_test", "language_set"],
+      "dependencies": ["openWakeWord", "piper-tts", "vosk", "pywhispercpp"],
+      "optional_deps": ["SarvamAI"],
+      "install_command": "jarvis --install",
+      "mcp_servers": [],
+      "category": "voice",
+      "enabled_by_default": true
+    },
+    {
+      "name": "marketing",
+      "type": "external",
+      "description": "Marketing playbooks, copywriting, ad campaigns — wraps ai-marketing-skills",
+      "commands": ["marketing_campaign", "marketing_copy", "marketing_analysis"],
+      "dependencies": [],
+      "optional_deps": [],
+      "install_command": "",
+      "mcp_servers": [],
+      "category": "external",
+      "enabled_by_default": false
+    },
+    {
+      "name": "visualizer",
+      "type": "external",
+      "description": "AI visualizer — generate faces, animations, media displays — wraps ai-visualizer",
+      "commands": ["visualize_face", "visualize_animate", "visualize_media"],
+      "dependencies": [],
+      "optional_deps": [],
+      "install_command": "",
+      "mcp_servers": [],
+      "category": "external",
+      "enabled_by_default": false
+    },
+    {
+      "name": "memory_vault",
+      "type": "external",
+      "description": "Persistent key-value memory vault — wraps ai-memory-vault",
+      "commands": ["vault_store", "vault_retrieve", "vault_delete"],
+      "dependencies": [],
+      "optional_deps": [],
+      "install_command": "",
+      "mcp_servers": [],
+      "category": "external",
+      "enabled_by_default": false
+    },
+    {
+      "name": "barehands",
+      "type": "external",
+      "description": "Air-board hand tracking, card presentation — wraps barehands",
+      "commands": ["hand_track", "card_present", "gesture_control"],
+      "dependencies": [],
+      "optional_deps": [],
+      "install_command": "",
+      "mcp_servers": [],
+      "category": "external",
+      "enabled_by_default": false
+    },
+    {
+      "name": "backtalk",
+      "type": "external",
+      "description": "Mood-based conversational AI — wraps backtalk",
+      "commands": ["chat_mood", "personality_set", "emotion_response"],
+      "dependencies": [],
+      "optional_deps": [],
+      "install_command": "",
+      "mcp_servers": [],
+      "category": "external",
+      "enabled_by_default": false
+    },
+    {
+      "name": "fullstack_agent",
+      "type": "external",
+      "description": "Full-stack development toolbox — wraps fullstack-agent",
+      "commands": ["fs_create_project", "fs_generate_code", "fs_deploy"],
+      "dependencies": [],
+      "optional_deps": [],
+      "install_command": "",
+      "mcp_servers": [],
+      "category": "external",
+      "enabled_by_default": false
+    },
+    {
+      "name": "web_search",
+      "type": "builtin",
+      "description": "Web search via DuckDuckGo API",
+      "commands": ["web_search", "web_fetch"],
+      "dependencies": [],
+      "optional_deps": [],
+      "install_command": "",
+      "mcp_servers": ["jarvis-mcp-web-search"],
+      "category": "internet",
+      "enabled_by_default": true
+    }
+  ]
+}

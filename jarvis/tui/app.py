@@ -12,6 +12,7 @@ from jarvis.tui.screens.skills import SkillsScreen
 from jarvis.tui.screens.tools import ToolsScreen
 from jarvis.tui.screens.memory import MemoryScreen
 from jarvis.tui.screens.settings_screen import SettingsScreen
+from jarvis.tui.screens.setup_screen import SetupScreen
 from jarvis.tui.screens.voice import VoiceScreen
 from jarvis.tui.widgets.chat_panel import ChatPanel
 from jarvis.tui.widgets.status_bar import StatusBar
@@ -39,6 +40,7 @@ class JarvisApp(App):
         Binding("ctrl+o", "switch_tab('tools')", "Tools"),
         Binding("ctrl+y", "switch_tab('settings')", "Settings"),
         Binding("ctrl+u", "switch_tab('voice')", "Voice"),
+        Binding("ctrl+b", "setup", "Setup"),
     ]
 
     def __init__(self, settings: Settings | None = None):
@@ -76,10 +78,8 @@ class JarvisApp(App):
         self.status_bar = self.query_one("#status-bar", StatusBar)
         self.command_palette = self.query_one("#command-palette", CommandPalette)
 
-        # Initialize agent loop (connects MCP servers, vector store, loads skills)
         await self.agent_loop.initialize()
 
-        # Wire voice pipeline into voice_control skill (now that skills are loaded)
         if self.voice_pipeline and hasattr(self.skill_registry, "skill_instances"):
             voice_skill = self.skill_registry.skill_instances.get("voice_control")
             if voice_skill and hasattr(voice_skill, "set_voice_pipeline"):
@@ -100,6 +100,7 @@ class JarvisApp(App):
             "memory": MemoryScreen(self.settings),
             "tools": ToolsScreen(self.settings, mcp_client=self.agent_loop.mcp),
             "settings": SettingsScreen(self.settings),
+            "setup": SetupScreen(self.settings, self.skill_registry, self.agent_loop.mcp, self.agent_loop),
             "voice": VoiceScreen(self.voice_pipeline, self.settings) if self.voice_pipeline else None,
         }
 
@@ -107,15 +108,28 @@ class JarvisApp(App):
         if screen is None and screen_name == "voice":
             self.app.notify("Voice is not enabled in settings", title="JARVIS")
             return
+        if screen is None and screen_name == "setup":
+            self.app.notify("Setup screen", title="JARVIS")
+            return
         if screen:
             self.current_screen = screen_name
             await main_content.mount(screen)
             self.status_bar.update_screen(screen_name)
             if screen_name == "chat":
-                self.chat_panel = self.query_one("#chat-messages", Container).query_one(ChatPanel) if self.query_one("#chat-messages", Container).query_one(ChatPanel, see_type=False) else None
+                try:
+                    self.chat_panel = (
+                        self.query_one("#chat-messages", Container)
+                        .query_one(ChatPanel, see_type=False)
+                    )
+                except Exception:
+                    self.chat_panel = None
 
     def action_switch_tab(self, screen_name: str) -> None:
         self.run_worker(self.switch_screen(screen_name))
+
+    def action_setup(self) -> None:
+        """Open the Feynman-style setup screen."""
+        self.run_worker(self.switch_screen("setup"))
 
     def action_clear_chat(self) -> None:
         if self.current_screen == "chat" and self.chat_panel:
@@ -141,7 +155,6 @@ class JarvisApp(App):
         if self.voice_pipeline:
             await self.voice_pipeline.stop()
 
-        # Clean up any external skill subprocesses started during the session.
         for skill in self.skill_registry.skill_instances.values():
             if hasattr(skill, "_stop") and callable(skill._stop):
                 try:

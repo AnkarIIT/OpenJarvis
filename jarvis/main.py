@@ -9,6 +9,7 @@ from rich.console import Console
 
 from jarvis.config.settings import load_settings, Settings
 from jarvis.config.installer import install
+from jarvis.skills.skill_manager import SkillManager
 from jarvis.tui.app import JarvisApp
 from jarvis.utils.logger import setup_file_logging, get_logger
 
@@ -148,6 +149,85 @@ def doctor():
     console.print(f"[bold]Python:[/bold] {sys_info['python_version'].split()[0]}")
     console.print(f"[bold]CPU:[/bold] {sys_info['cpu_count']} cores")
     console.print(f"[bold]Memory:[/bold] {sys_info['memory_total'] // (1024**3)} GB")
+
+
+@app.command()
+def list_skills():
+    """List all available skills with install status"""
+    manager = SkillManager()
+    skills = manager.list_skills()
+    stats = manager.get_stats()
+
+    from rich.table import Table
+    table = Table(title="JARVIS Skills")
+    table.add_column("Name", style="cyan")
+    table.add_column("Type", style="green")
+    table.add_column("Category", style="yellow")
+    table.add_column("Commands", style="white")
+    table.add_column("Installed", style="blue")
+
+    for skill in skills:
+        cmds = ", ".join(skill["commands"][:3])
+        if len(skill["commands"]) > 3:
+            cmds += "..."
+        table.add_row(
+            skill["name"],
+            skill["type"],
+            skill["category"],
+            cmds,
+            "[green]Yes[/green]" if skill["installed"] else "[red]No[/red]",
+        )
+    console.print(table)
+    console.print(f"\nTotal: {stats['total']} skills | {stats['installed']} installed | {stats['builtin']} builtin")
+
+
+@app.command()
+def install_skill(skill_name: str = typer.Argument(..., help="Name of skill to install")):
+    """Install a specific skill and its dependencies"""
+    manager = SkillManager()
+    skill = manager.get_skill(skill_name)
+    if not skill:
+        console.print(f"[red]Skill '{skill_name}' not found. Use 'jarvis list-skills' to see available skills.[/red]")
+        sys.exit(1)
+
+    console.print(f"[bold]Installing {skill_name}[/bold]")
+    console.print(f"Description: {skill['description']}")
+    console.print(f"Commands: {', '.join(skill['commands'])}")
+
+    deps = skill.get("dependencies", [])
+    if deps:
+        console.print(f"[yellow]Dependencies: {', '.join(deps)}[/yellow]")
+        if not typer.confirm("Install dependencies?"):
+            console.print("[yellow]Skipped.[/yellow]")
+            return
+
+    success = manager.install(skill_name)
+    if success:
+        console.print(f"[green]OK {skill_name} installed![/green]")
+    else:
+        console.print(f"[red]Failed to install {skill_name}[/red]")
+        sys.exit(1)
+
+
+@app.command()
+def search_skills(query: str = typer.Argument(..., help="Search query")):
+    """Search skills by name, description, or category"""
+    manager = SkillManager()
+    results = manager.search(query)
+
+    if not results:
+        console.print(f"[yellow]No skills found matching '{query}'[/yellow]")
+        return
+
+    from rich.table import Table
+    table = Table(title=f"Search results for '{query}'")
+    table.add_column("Name", style="cyan")
+    table.add_column("Description", style="white")
+    table.add_column("Category", style="yellow")
+
+    for skill in results:
+        table.add_row(skill["name"], skill["description"][:50], skill["category"])
+    console.print(table)
 
 
 if __name__ == "__main__":
