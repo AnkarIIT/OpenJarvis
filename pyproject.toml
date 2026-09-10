@@ -39,6 +39,8 @@ dependencies = [
     "duckduckgo-search>=6.0",
 
     "aiohttp>=3.9",
+    "playwright>=1.40",
+    "pyautogui>=0.9.54",
 ]
 
 [project.optional-dependencies]
@@ -69,6 +71,8 @@ jarvis-mcp-terminal = "jarvis.mcp.servers.terminal:main"
 jarvis-mcp-git = "jarvis.mcp.servers.git:main"
 jarvis-mcp-memory = "jarvis.mcp.servers.memory:main"
 jarvis-mcp-web-search = "jarvis.mcp.servers.web_search:main"
+jarvis-mcp-browser = "jarvis.mcp.servers.browser:main"
+jarvis-mcp-desktop = "jarvis.mcp.servers.desktop:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]

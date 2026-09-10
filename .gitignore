@@ -60,3 +60,7 @@ ai-visualizer/
 /barehands/
 /fullstack-agent/
 /prompts/
+# JARVIS Sub-Projects (must be cloned separately - see scripts/init_submodules.sh)
+# These are independent git repos. After cloning OpenJarvis, run:
+#   bash scripts/init_submodules.sh
+# to clone all required sub-projects.
