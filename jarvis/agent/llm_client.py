@@ -30,7 +30,11 @@ async def _chat_ollama(
     stream: bool,
 ) -> AsyncGenerator[str, None]:
     """Chat via Ollama HTTP API."""
-    import ollama
+    try:
+        import ollama
+    except ImportError:
+        yield "[Error: ollama Python package not installed. Run: pip install ollama]"
+        return
     client = ollama.AsyncClient(host=settings.llm.base_url)
 
     try:
@@ -372,16 +376,19 @@ async def _probe_provider(settings: Settings, provider: str) -> bool:
     """Probe whether a provider is reachable and has a usable model."""
     try:
         if provider == "ollama":
-            import ollama
-            client = ollama.AsyncClient(host=settings.llm.base_url, timeout=5)
-            tags = await client.list()
-            model_names = [m.get("name", "") for m in tags.get("models", [])]
-            if model_names:
-                # Try to use the configured model, or fall back to first available
-                if settings.llm.model not in model_names:
-                    settings.llm.model = model_names[0]
-                return True
-            return False
+            try:
+                import ollama
+                client = ollama.AsyncClient(host=settings.llm.base_url, timeout=5)
+                tags = await asyncio.wait_for(client.list(), timeout=5.0)
+                model_names = [m.get("name", "") for m in tags.get("models", [])]
+                if model_names:
+                    # Try to use the configured model, or fall back to first available
+                    if settings.llm.model not in model_names:
+                        settings.llm.model = model_names[0]
+                    return True
+                return False
+            except Exception:
+                return False
 
         elif provider in ("lm_studio", "localai", "openai"):
             import httpx
@@ -628,6 +635,13 @@ class LLMClient:
         # Resolve provider (with auto-detection)
         provider = await self._detect_or_resolve()
         logger.debug(f"LLM provider resolved: {provider}")
+
+        # Prefer smaller models for lower latency if configured
+        if provider == "ollama" and self.settings.llm.model and ":" in self.settings.llm.model:
+            model_name = self.settings.llm.model
+            large_models = ["13b", "70b", "7b"]
+            if any(size in model_name for size in large_models):
+                logger.info(f"Model {model_name} may have high latency. Consider smaller models.")
 
         provider_handlers = {
             "ollama": _chat_ollama,
