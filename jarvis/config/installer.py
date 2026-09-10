@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import platform
 import shutil
 import subprocess
@@ -55,6 +56,11 @@ class Installer:
     async def run(self) -> bool:
         console.print("\n[bold cyan]JARVIS Terminal Agent - Setup[/bold cyan]\n")
 
+        # Step 0: Auto-detect and install missing dependencies
+        if not await self._check_and_install_deps():
+            console.print("[red]ERROR: Could not resolve all dependencies[/red]")
+            return False
+
         if not await self._check_prerequisites():
             return False
 
@@ -69,6 +75,127 @@ class Installer:
         console.print("\n[bold green]✅ JARVIS setup complete![/bold green]")
         console.print("Run [bold]jarvis[/bold] to start.\n")
         return True
+
+    async def _check_and_install_deps(self) -> bool:
+        """Auto-detect missing Python packages and install them."""
+        console.print("[cyan]Checking dependencies...[/cyan]")
+
+        # Define all required packages from pyproject.toml
+        required = {
+            # Core
+            "textual": "textual>=0.52",
+            "rich": "rich>=13.7",
+            "pydantic": "pydantic>=2.7",
+            "pydantic_settings": "pydantic-settings>=2.3",
+            "httpx": "httpx>=0.27",
+            "numpy": "numpy>=1.26",
+            "pyyaml": "pyyaml>=6.0",
+            "platformdirs": "platformdirs>=4.0",
+            "aiohttp": "aiohttp>=3.9",
+            "psutil": "psutil>=5.9",
+            "python_dotenv": "python-dotenv>=1.0",
+            "duckduckgo_search": "duckduckgo-search>=6.0",
+            "sounddevice": "sounddevice>=0.4",
+            "playwright": "playwright>=1.40",
+            "pyautogui": "pyautogui>=0.9.54",
+            "mcp": "mcp>=1.0",
+            "chromadb": "chromadb>=0.5",
+            "sentence_transformers": "sentence-transformers>=3.0",
+            "ollama": "ollama>=0.3",
+        }
+
+        # Voice-specific
+        voice_deps = {
+            "vosk": "vosk>=0.3",
+            "piper_tts": "piper-tts>=1.2",
+            "pywhispercpp": "pywhispercpp>=0.6",
+            "openwakeword": "openwakeword>=0.6",
+        }
+
+        # LLM-specific
+        llm_deps = {
+            "llama_cpp_python": "llama-cpp-python>=0.2",
+        }
+
+        missing = []
+        installed = []
+
+        for pkg_name, pkg_spec in required.items():
+            if not self._check_import(pkg_name):
+                missing.append(pkg_spec)
+                console.print(f"  [red]MISSING[/red] {pkg_name}")
+            else:
+                installed.append(pkg_name)
+
+        # Check voice deps if voice is enabled
+        try:
+            settings = load_settings()
+            if settings.voice.enabled:
+                for pkg_name, pkg_spec in voice_deps.items():
+                    if not self._check_import(pkg_name):
+                        missing.append(pkg_spec)
+                        console.print(f"  [red]MISSING (voice)[/red] {pkg_name}")
+        except Exception:
+            pass
+
+        # Check llama_cpp if needed
+        for pkg_name, pkg_spec in llm_deps.items():
+            if not self._check_import(pkg_name):
+                missing.append(pkg_spec)
+                console.print(f"  [red]MISSING (llm)[/red] {pkg_name}")
+
+        if missing:
+            console.print(f"\n[yellow]{len(missing)} dependencies missing. Installing...[/yellow]")
+            for pkg_spec in missing:
+                console.print(f"  Installing: {pkg_spec}")
+                success = await self._pip_install(pkg_spec)
+                if success:
+                    installed.append(pkg_spec.split(">=")[0].split("<=")[0].split("~=")[0].strip())
+                else:
+                    console.print(f"  [red]FAILED[/red] {pkg_spec}")
+                    return False
+
+        if installed:
+            console.print(f"\n[green]OK All {len(installed)} dependencies satisfied[/green]")
+
+        return True
+
+    def _check_import(self, module_name: str) -> bool:
+        """Check if a Python module can be imported."""
+        try:
+            importlib.util.find_spec(module_name.replace("-", "_").replace(".", "_"))
+            return True
+        except (ImportError, ModuleNotFoundError, ValueError):
+            # Also try direct import as fallback
+            try:
+                __import__(module_name.replace("-", "_"))
+                return True
+            except (ImportError, ModuleNotFoundError):
+                return False
+
+    async def _pip_install(self, package: str) -> bool:
+        """Install a package via pip."""
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, "-m", "pip", "install", package,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.wait(), timeout=120)
+            out = stdout.decode("utf-8", errors="replace") if stdout else ""
+            err = stderr.decode("utf-8", errors="replace") if stderr else ""
+            if proc.returncode == 0:
+                logger.info(f"pip install {package} succeeded")
+                return True
+            else:
+                logger.error(f"pip install {package} failed: {err}")
+                return False
+        except asyncio.TimeoutError:
+            logger.error(f"pip install {package} timed out")
+            return False
+        except Exception as e:
+            logger.error(f"pip install {package} error: {e}")
+            return False
 
     async def _check_prerequisites(self) -> bool:
         console.print("[cyan]Checking prerequisites...[/cyan]")
