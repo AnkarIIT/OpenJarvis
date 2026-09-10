@@ -46,7 +46,12 @@ async def _ensure_piper_model(voice_name: str, onnx_path: Path, config_path: Pat
         try:
             logger.info(f"Downloading Piper voice model from {url}...")
             onnx_path.parent.mkdir(parents=True, exist_ok=True)
-            urllib.request.urlretrieve(url, str(onnx_path))
+            import httpx
+            async with httpx.AsyncClient(timeout=300) as http:
+                async with http.stream("GET", url) as resp:
+                    with open(str(onnx_path), "wb") as f:
+                        async for chunk in resp.aiter_bytes(8192):
+                            f.write(chunk)
 
             # Download config JSON
             config_url = url.replace(".onnx", ".onnx.json")
@@ -125,7 +130,7 @@ class PiperTTS:
             audio_data = bytearray()
 
             def _generate():
-                for chunk in self._piper_voice.synthesize(text, self._piper_voice):
+                for chunk in self._piper_voice.synthesize(text):
                     audio_data.extend(chunk)
 
             await asyncio.get_event_loop().run_in_executor(None, _generate)
