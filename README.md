@@ -11,7 +11,7 @@ A terminal-based AI assistant inspired by Iron Man's JARVIS from the Marvel Cine
 - **Terminal UI**: Beautiful TUI built with Textual framework
 - **Voice Support**: Offline STT (Vosk with auto-download / Whisper.cpp) + TTS (Piper with auto-download) + Sarvam AI cloud TTS/STT with language auto-detection
 - **Wake Word**: Fully offline open-source wake word detection (openWakeWord — no API key needed) or Porcupine (auto-downloads .ppn)
-- **MCP Tools**: 5 auto-discovered MCP servers (filesystem, terminal, git, memory, web_search)
+- **MCP Tools**: 7 auto-discovered MCP servers (filesystem, terminal, git, memory, web_search, browser, desktop)
 - **Skills System**: 10 modular skills (4 builtin + 6 external) with 47 total commands
 - **Long-term Memory**: Vector-based memory with ChromaDB + sentence-transformers
 - **External Integration**: Wraps 6 external AI projects as native JARVIS skills with HTTP client communication
@@ -51,7 +51,7 @@ downloads all voice models (Piper TTS, Vosk/Whisper STT, openWakeWord wake word)
 | **LLM: LM Studio** | ✅ Auto-detected | Probes port 1234, auto-selects models via OpenAI-compatible API |
 | **LLM: LocalAI** | ✅ Auto-detected | Probes port 8080/41523, OpenAI-compatible API |
 | **MCP Client** | ✅ Auto-connect | Connects to all configured + auto-discovered servers; tools shared with AgentLoop |
-| **MCP Servers** | ✅ 5 built-in | filesystem, terminal, git, memory, web_search — auto-started as stdio subprocesses |
+| **MCP Servers** | ✅ 7 built-in | filesystem, terminal, git, memory, web_search, browser (Playwright), desktop (pyautogui) — auto-started as stdio subprocesses |
 | **External Skills** | ✅ 10 skills | marketing, visualizer, memory_vault, barehands, backtalk, fullstack_agent — all with HTTP client integration |
 | **Long-term Memory** | ✅ ChromaDB | Vector store with cosine similarity; embeddings lazy-loaded |
 | **Voice: Wake Word** | ✅ Offline | openWakeWord (no API key!) or Porcupine with auto-download of `.ppn` |
@@ -60,7 +60,12 @@ downloads all voice models (Piper TTS, Vosk/Whisper STT, openWakeWord wake word)
 | **Builtin: System Monitor** | ✅ 6 commands | CPU, memory, disk, GPU, network, processes |
 | **Builtin: Code Assistant** | ✅ 3 commands | AST analysis: read functions, find TODOs, file structure |
 | **Builtin: Memory** | ✅ 3 commands | remember/recall/forget via ChromaDB |
-| **Builtin: Voice Control** | ✅ 4 commands | Toggle on/off, test, set language (`/language hi-IN`) |
+|| **Builtin: Voice Control** | ✅ 4 commands | Voice on/off, test, language setting (`/language hi-IN`) |
+|| **Builtin: Browser** | ✅ 9 commands | Navigate, click, type, screenshot, scroll, wait via Playwright |
+|| **Builtin: Desktop** | ✅ 7 commands | Mouse/keyboard control, screenshots via pyautogui |
+|| **MCP: Browser** | ✅ 10 tools | Playwright browser automation (navigate, click, type, screenshot) |
+|| **MCP: Desktop** | ✅ 7 tools | pyautogui desktop control (mouse, keyboard, hotkey, screenshot) |
+|| **Voice: Wake Word** | ✅ Offline | openWakeWord (no API key!) or Porcupine with auto-download of `.ppn` |
 
 ### 🚧 Future Roadmap
 
@@ -148,6 +153,7 @@ jarvis/
 | `code_assistant` | 3 | Analyze code, list functions, find TODOs |
 | `memory` | 3 | Remember, recall, forget memories |
 | `voice_control` | 4 | Voice on/off, test, language setting |
+| `browser` | 9 | Navigate, click, type, screenshot, scroll, wait |
 
 ## External Skills
 
@@ -167,6 +173,8 @@ jarvis/
 - **git** (`jarvis-mcp-git`) - Git operations (repo-aware)
 - **memory** (`jarvis-mcp-memory`) - Persistent key-value storage
 - **web_search** (`jarvis-mcp-web-search`) - Web search via DuckDuckGo
+- **browser** (`jarvis-mcp-browser`) - Browser automation via Playwright (navigate, click, type, screenshot, scroll)
+- **desktop** (`jarvis-mcp-desktop`) - Desktop control via pyautogui (mouse, keyboard, hotkey, screenshot)
 
 ### MCP Server CLI
 
@@ -176,6 +184,8 @@ jarvis-mcp-filesystem --root /path/to/project
 jarvis-mcp-terminal --allow ls,cat,git
 jarvis-mcp-git --repo /path/to/repo
 jarvis-mcp-memory --path ~/.jarvis/memory
+jarvis-mcp-browser --headless  # or --headed for visible browser
+jarvis-mcp-desktop             # no flags needed
 ```
 
 ## Configuration
@@ -244,8 +254,20 @@ JARVIS supports agentic AI models via direct GGUF download or Ollama:
 | `Ctrl+C` | Clear chat |
 | `Ctrl+K` | Command palette |
 | `Ctrl+V` | Toggle voice |
-| `Ctrl+T/G/M/O/Y/U` | Switch tabs |
+| `Ctrl+1-7` | Switch tabs (Chat, Skills, Memory, Tools, Voice, Settings, Dashboard) |
 | `F1` | Help |
+
+### Dashboard Tab Shortcuts
+
+When in the Dashboard screen (default on startup):
+- **Ctrl+1** — Chat tab
+- **Ctrl+2** — Skills tab (builtin + external skills list)
+- **Ctrl+3** — Memory tab (ChromaDB memory viewer)
+- **Ctrl+4** — Tools tab (all MCP tools grouped by server)
+- **Ctrl+5** — Voice tab (voice configuration status)
+- **Ctrl+6** — Settings tab
+- **Ctrl+7** — Dashboard tab (system status + AI provider detection)
+- **Esc** — Back to chat
 
 ## Voice Commands
 
@@ -281,4 +303,6 @@ MIT License - See LICENSE file for details.
 - Built with [Textual](https://textual.textualize.io/)
 - Local AI via [Ollama](https://ollama.com/) / [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) / LM Studio / LocalAI
 - Voice via [Piper](https://github.com/rhasspy/piper) & [Vosk](https://alphacephei.com/vosk/) & [openWakeWord](https://github.com/dscripka/openwakeword)
+- Browser automation via [Playwright](https://playwright.dev/python/)
+- Desktop automation via [pyautogui](https://github.com/asweigart/pyautogui)
 - MCP via [Model Context Protocol](https://modelcontextprotocol.io/)
