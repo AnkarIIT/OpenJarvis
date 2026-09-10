@@ -42,7 +42,7 @@ class VoiceSettings(BaseSettings):
     stt_model: str = "vosk-model-small-en-us-0.15"
     sample_rate: int = 16000
     push_to_talk_key: str = "ctrl+space"
-    sarvam_api_key: str = "sk_8l5pqftf_JYOeeOD9sIiwIrFAnKk0iP4n"
+    sarvam_api_key: str = ""  # Set via JARVIS_VOICE_SARVAM_API_KEY env var
     sarvam_tts_model: Literal["bulbul:v3", "bulbul:v2"] = "bulbul:v3"
     sarvam_stt_model: Literal["saaras:v3", "saaras:v4"] = "saaras:v3"
     sarvam_tts_speaker: str = "shubh"
@@ -77,13 +77,12 @@ class SkillsSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="JARVIS_SKILLS_")
 
     enabled: list[str] = Field(default_factory=lambda: [
-        "system_monitor", "code_assistant", "memory", "voice_control", "marketing", "visualizer", "memory_vault", "barehands", "backtalk", "fullstack_agent"
-    ])
-    paths: list[str] = Field(default_factory=lambda: [
-        "~/.jarvis/skills",
-        "./.jarvis/skills",
-        "jarvis/skills/external"
-    ])
+            "system_monitor", "code_assistant", "memory", "voice_control",
+            "predictive", "autonomous", "traffic_camera", "multisensory",
+            "instant_learning", "emotional",
+            "marketing", "visualizer", "memory_vault", "barehands", "backtalk", "fullstack_agent"
+        ])
+    paths: list[str] = Field(default_factory=lambda: [])  # Computed dynamically
 
 
 class ExternalSkillsSettings(BaseSettings):
@@ -140,18 +139,25 @@ class Settings(BaseSettings):
 
     @property
     def skills_paths(self) -> list[Path]:
+        """Return resolved absolute paths for skill discovery.
+
+        Uses dynamically computed paths that work both in dev and installed mode.
+        """
         paths: list[Path] = []
-        for p in self.skills.paths:
-            path = Path(os.path.expanduser(p))
-            if not path.is_absolute():
-                # Resolve relative paths against the project root when possible,
-                # falling back to CWD so existing behavior is preserved.
-                candidate = Path(__file__).resolve().parent.parent.parent / p
-                if candidate.exists():
-                    path = candidate.resolve()
-                else:
-                    path = Path.cwd() / p
-            paths.append(path)
+        proj_root = Path(__file__).resolve().parent.parent.parent
+        candidates = [
+            Path.home() / ".jarvis" / "skills",
+            Path.cwd() / ".jarvis" / "skills",
+            proj_root / "jarvis" / "skills" / "external",
+            proj_root / "skills",
+        ]
+        for p in candidates:
+            if p.exists():
+                paths.append(p.resolve())
+        # Always include CWD fallback
+        if not any(p == Path.cwd() / "skills" for p in paths):
+            if (Path.cwd() / "skills").exists():
+                paths.append(Path.cwd() / "skills")
         return paths
 
     @property
