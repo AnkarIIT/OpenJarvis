@@ -132,4 +132,3 @@ class CommandPalette(ModalScreen):
             self.app.exit()
 
 
-from textual.containers import Horizontal
