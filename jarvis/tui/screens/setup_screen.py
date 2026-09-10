@@ -186,7 +186,7 @@ class SetupScreen(Screen):
         selected_label.update(f"Selected: {selected}")
         total_label.update(f"Total: {total}")
 
-    @on(ListItem.Highlighted)
+    @on(ListItem.highlighted)
     def on_item_highlighted(self, event: ListView.Highlighted) -> None:
         """Show tooltip/description on hover."""
         item = event.item
