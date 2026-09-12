@@ -23,9 +23,19 @@ if (-not $pipxExists) {
     python -m pip install --user pipx
     # Add pipx to PATH on Windows
     $pythonScripts = python -c "import sys, site; print(site.getusersitepackages().replace('site-packages', 'Scripts'))"
-    Write-Host "Add this to your PATH: $pythonScripts"
+    Write-Host "Add this to PATH: $pythonScripts"
     Write-Host "Run: [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';$pythonScripts', 'User')"
     Write-Host "Or restart PowerShell after adding to PATH."
+}
+
+# Step 0b: Install JARVIS via pipx if available, else fallback to pip
+Write-Host ""
+Write-Host "[0.5/5] Installing JARVIS..."
+if (Get-Command pipx -ErrorAction SilentlyContinue) {
+    pipx install git+https://github.com/AnkarIIT/OpenJarvis.git
+} else {
+    Write-Host "pipx not available, using pip install..."
+    pip install -e ".[all,dev]"
 }
 
 # Step 1: Clone sub-projects
