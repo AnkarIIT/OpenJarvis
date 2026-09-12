@@ -11,6 +11,21 @@ echo "║   JARVIS - Friend Setup Script           ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
+# Step 0: Ensure pipx is available
+echo "[0/5] Ensuring pipx is available..."
+if ! command -v pipx &> /dev/null; then
+    echo "pipx not found, installing..."
+    python -m pip install --user pipx
+    # Add pipx to PATH on Windows
+    case "$(uname)" in
+        MINGW*|MSYS*|CYGWIN*)
+            PYTHON_SCRIPTS="$(python -c 'import sys; import site; print(site.getusersitepackages().replace("site-packages", "Scripts"))')"
+            echo "Add to PATH: $PYTHON_SCRIPTS"
+            echo "Run: set PATH=%PATH%;$PYTHON_SCRIPTS"
+            ;;
+    esac
+fi
+
 # Step 1: Clone sub-projects
 echo "[1/5] Cloning sub-projects..."
 bash "$SCRIPT_DIR/init_submodules.sh"
@@ -29,9 +44,12 @@ case "$(uname)" in
         SCRIPTS_DIR="$(python -c 'import sys; print(sys.executable)')"
         SCRIPTS_DIR="$(dirname "$SCRIPTS_DIR")/Scripts"
         echo "Add to PATH: $SCRIPTS_DIR"
+        echo "Run: set PATH=%PATH%;$SCRIPTS_DIR"
+        echo "Then restart PowerShell or run: $SHELL"
         ;;
     *)
         echo "Run: echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
+        echo "Then: source ~/.bashrc"
         ;;
 esac
 

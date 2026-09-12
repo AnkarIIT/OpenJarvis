@@ -20,20 +20,29 @@ A terminal-based AI assistant inspired by Iron Man's JARVIS from the Marvel Cine
 ## Quick Start
 
 ```bash
-# Install with pipx (recommended)
-pipx install git+https://github.com/AnkarIIT/OpenJarvis.git
+# One-command setup — auto-detects AI providers + downloads all voice models
+# This handles pipx installation, git clone, and PATH setup automatically:
+python -m pip install pipx && pipx install git+https://github.com/AnkarIIT/OpenJarvis.git
 
-# Or install from source
+# OR install from source (clone first, then run the setup script):
 git clone https://github.com/AnkarIIT/OpenJarvis.git
 cd OpenJarvis
-pip install -e .
+python scripts/setup_friend.sh
 
-# One-command setup — auto-detects AI providers + downloads all voice models
-jarvis --install
+# If pipx fails or you prefer direct pip install:
+pip install -e .
+# Then add Python Scripts to PATH if jarvis is not found:
+# Windows: set PATH=%PATH%;%USERPROFILE%\AppData\Roaming\Python\Python314\Scripts
+#   (replace Python314 with your Python version, or run: where jarvis to find the actual path)
+# Linux/Mac: export PATH=$PATH:$HOME/.local/bin
 
 # Start JARVIS
 jarvis
 ```
+
+> **First time?** Run `jarvis --install` after installing to auto-detect AI providers and download all voice models.
+>
+> **Friends having trouble?** See `scripts/setup_friend.sh` for a guided step-by-step setup that handles pipx installation, PATH configuration, and initial setup automatically.
 
 The installer auto-detects available AI providers (Ollama, LM Studio, LocalAI, llama-cpp-python) and
 downloads all voice models (Piper TTS, Vosk/Whisper STT, openWakeWord wake word) on first run.
