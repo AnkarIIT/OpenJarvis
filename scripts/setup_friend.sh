@@ -1,6 +1,7 @@
 #!/bin/bash
 # Complete setup for a friend who just cloned OpenJarvis.
 # Run this on a fresh clone to get everything working.
+# Usage: bash scripts/setup_friend.sh  (NOT: python scripts/setup_friend.sh)
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -16,17 +17,18 @@ echo "[0/5] Ensuring pipx is available..."
 if ! command -v pipx &> /dev/null; then
     echo "pipx not found, installing..."
     python -m pip install --user pipx
-    # Add pipx to PATH on Windows
+    # Add pipx to PATH on Windows (Git Bash / MSYS)
     case "$(uname)" in
         MINGW*|MSYS*|CYGWIN*)
             PYTHON_SCRIPTS="$(python -c 'import sys; import site; print(site.getusersitepackages().replace("site-packages", "Scripts"))')"
             echo "Add to PATH: $PYTHON_SCRIPTS"
-            echo "Run: set PATH=%PATH%;$PYTHON_SCRIPTS"
+            echo "Then restart Git Bash or run: export PATH=\"\$PATH:$PYTHON_SCRIPTS\""
             ;;
     esac
 fi
 
 # Step 1: Clone sub-projects
+echo ""
 echo "[1/5] Cloning sub-projects..."
 bash "$SCRIPT_DIR/init_submodules.sh"
 
@@ -44,8 +46,7 @@ case "$(uname)" in
         SCRIPTS_DIR="$(python -c 'import sys; print(sys.executable)')"
         SCRIPTS_DIR="$(dirname "$SCRIPTS_DIR")/Scripts"
         echo "Add to PATH: $SCRIPTS_DIR"
-        echo "Run: set PATH=%PATH%;$SCRIPTS_DIR"
-        echo "Then restart PowerShell or run: $SHELL"
+        echo "Then restart Git Bash or run: export PATH=\"\$PATH:$SCRIPTS_DIR\""
         ;;
     *)
         echo "Run: echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"

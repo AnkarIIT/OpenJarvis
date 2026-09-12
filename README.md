@@ -19,25 +19,51 @@ A terminal-based AI assistant inspired by Iron Man's JARVIS from the Marvel Cine
 
 ## Quick Start
 
-```bash
-# One-command setup — auto-detects AI providers + downloads all voice models
-# This handles pipx installation, git clone, and PATH setup automatically:
-python -m pip install pipx && pipx install git+https://github.com/AnkarIIT/OpenJarvis.git
+### Option 1: pipx (Recommended)
 
-# OR install from source (clone first, then run the setup script):
+```powershell
+# Windows (PowerShell):
+python -m pip install pipx
+pipx install git+https://github.com/AnkarIIT/OpenJarvis.git
+
+# Linux/Mac:
+python3 -m pip install --user pipx
+pipx install git+https://github.com/AnkarIIT/OpenJarvis.git
+```
+
+### Option 2: From source with setup script
+
+```powershell
+# Clone the repo
 git clone https://github.com/AnkarIIT/OpenJarvis.git
 cd OpenJarvis
-python scripts/setup_friend.sh
 
-# If pipx fails or you prefer direct pip install:
+# Run the setup script (use PowerShell on Windows, bash on Linux/Mac):
+# Windows PowerShell:
+.\scripts\setup_friend.ps1
+# Git Bash / MSYS on Windows:
+bash scripts/setup_friend.sh
+# Linux/Mac:
+bash scripts/setup_friend.sh
+```
+
+### Option 3: Direct pip install
+
+```powershell
+# Clone, then install:
+git clone https://github.com/AnkarIIT/OpenJarvis.git
+cd OpenJarvis
 pip install -e .
-# Then add Python Scripts to PATH if jarvis is not found:
-# Windows: set PATH=%PATH%;%USERPROFILE%\AppData\Roaming\Python\Python314\Scripts
-#   (replace Python314 with your Python version, or run: where jarvis to find the actual path)
-# Linux/Mac: export PATH=$PATH:$HOME/.local/bin
+# If jarvis command is not found, add Python Scripts to PATH:
+# Windows PowerShell: [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';C:\Users\<you>\AppData\Roaming\Python\Python314\Scripts', 'User')
+# Then restart your terminal.
+```
 
-# Start JARVIS
+### Start JARVIS
+
+```powershell
 jarvis
+# First time? Run: jarvis --install  (auto-detects AI providers + downloads voice models)
 ```
 
 > **First time?** Run `jarvis --install` after installing to auto-detect AI providers and download all voice models.
