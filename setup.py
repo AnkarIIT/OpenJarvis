@@ -58,7 +58,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "jarvis=jarvis.main:main",
+            "jarvis=jarvis.main:app",
             "jarvis-mcp-filesystem=jarvis.mcp.servers.filesystem:main",
             "jarvis-mcp-terminal=jarvis.mcp.servers.terminal:main",
             "jarvis-mcp-git=jarvis.mcp.servers.git:main",
