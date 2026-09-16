@@ -17,6 +17,7 @@ except Exception:  # pragma: no cover - optional dependency
 
 from jarvis.config.settings import Settings
 from jarvis.utils.logger import get_logger
+from jarvis.memory.privacy import contains_sensitive_data
 
 logger = get_logger(__name__)
 
@@ -72,6 +73,8 @@ class VectorStore:
 
         if not self._initialized:
             raise RuntimeError("Vector store not initialized")
+        if not self.settings.memory.allow_sensitive and contains_sensitive_data(content):
+            raise ValueError("Memory rejected because it appears to contain a secret or credential")
 
         memory_id = str(uuid.uuid4())
         if not await self._ensure_embedding_model():
@@ -81,8 +84,14 @@ class VectorStore:
 
         meta = {
             "timestamp": datetime.now().isoformat(),
+            "category": "personal",
             **(metadata or {}),
         }
+        if self.settings.memory.retention_days > 0:
+            from datetime import timedelta
+            meta["expires_at"] = (
+                datetime.now() + timedelta(days=self.settings.memory.retention_days)
+            ).isoformat()
 
         self.collection.add(
             ids=[memory_id],
@@ -114,10 +123,14 @@ class VectorStore:
         memories = []
         if results["ids"] and results["ids"][0]:
             for i, memory_id in enumerate(results["ids"][0]):
+                metadata = results["metadatas"][0][i] or {}
+                if self._is_expired(metadata):
+                    await self.delete_memory(memory_id)
+                    continue
                 memories.append({
                     "id": memory_id,
                     "content": results["documents"][0][i],
-                    "metadata": results["metadatas"][0][i],
+                    "metadata": metadata,
                     "score": 1 - results["distances"][0][i] if results["distances"] else 0,
                 })
 
@@ -135,11 +148,15 @@ class VectorStore:
         memories = []
         if results["ids"]:
             for i, memory_id in enumerate(results["ids"]):
+                metadata = results["metadatas"][i] or {}
+                if self._is_expired(metadata):
+                    await self.delete_memory(memory_id)
+                    continue
                 memories.append({
                     "id": memory_id,
                     "content": results["documents"][i],
-                    "metadata": results["metadatas"][i],
-                    "timestamp": results["metadatas"][i].get("timestamp", ""),
+                    "metadata": metadata,
+                    "timestamp": metadata.get("timestamp", ""),
                 })
 
         return memories
@@ -155,4 +172,14 @@ class VectorStore:
             self.collection.delete(ids=[memory_id])
             return True
         except Exception:
+            return False
+
+    @staticmethod
+    def _is_expired(metadata: dict[str, Any]) -> bool:
+        expires_at = metadata.get("expires_at")
+        if not expires_at:
+            return False
+        try:
+            return datetime.fromisoformat(expires_at) <= datetime.now()
+        except (TypeError, ValueError):
             return False

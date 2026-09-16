@@ -51,6 +51,12 @@ class MemorySkill:
                 handler=self._forget,
                 skill_name=self.name,
             ),
+            SkillCommand(
+                name="memory_policy",
+                description="Show memory retention and sensitive-data policy",
+                handler=self._policy,
+                skill_name=self.name,
+            ),
         ]
 
     async def _remember(self, content: str, metadata: str = "{}") -> str:
@@ -102,3 +108,11 @@ class MemorySkill:
         except Exception as e:
             logger.error(f"Failed to delete memory: {e}")
             return f"Failed to delete memory: {e}"
+
+    async def _policy(self) -> str:
+        if not self.settings:
+            return "Memory settings are unavailable."
+        retention = self.settings.memory.retention_days
+        retention_text = f"{retention} days" if retention > 0 else "indefinite"
+        sensitive = "allowed" if self.settings.memory.allow_sensitive else "blocked"
+        return f"Memory retention: {retention_text}; sensitive data: {sensitive}."

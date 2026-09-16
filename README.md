@@ -237,6 +237,11 @@ jarvis permissions
 jarvis doctor --json
 ```
 
+Memory is privacy-aware by default: entries that look like API keys, bearer
+tokens, passwords, or private keys are rejected. Configure
+`memory.retention_days` to automatically expire entries, or set
+`memory.allow_sensitive` only when you explicitly need to store sensitive data.
+
 Skills must contain `SKILL.md` or `skill.yaml`. User skills are installed under
 `~/.jarvis/skills/` and can declare commands through a Python `skill.py` module.
 MCP servers are stored in `~/.jarvis/config.json`; dangerous servers should be

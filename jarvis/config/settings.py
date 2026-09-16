@@ -64,6 +64,8 @@ class MemorySettings(BaseSettings):
     embedding_model: str = "nomic-embed-text"
     collection_name: str = "jarvis_memory"
     max_results: int = 5
+    retention_days: int = 0
+    allow_sensitive: bool = False
 
 
 class UISettings(BaseSettings):
