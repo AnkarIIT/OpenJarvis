@@ -104,19 +104,6 @@ class Installer:
             "ollama": "ollama>=0.3",
         }
 
-        # Voice-specific
-        voice_deps = {
-            "vosk": "vosk>=0.3",
-            "piper_tts": "piper-tts>=1.2",
-            "pywhispercpp": "pywhispercpp>=0.6",
-            "openwakeword": "openwakeword>=0.6",
-        }
-
-        # LLM-specific
-        llm_deps = {
-            "llama_cpp_python": "llama-cpp-python>=0.2",
-        }
-
         missing = []
         installed = []
 
@@ -131,6 +118,20 @@ class Installer:
         try:
             settings = load_settings()
             if settings.voice.enabled:
+                voice_deps = {
+                    "vosk": "vosk>=0.3",
+                    "piper": "piper-tts>=1.2",
+                    "openwakeword": "openwakeword>=0.6",
+                }
+                if settings.voice.stt_engine == "whisper":
+                    voice_deps = {"pywhispercpp": "pywhispercpp>=0.6"}
+                elif settings.voice.stt_engine == "sarvam":
+                    voice_deps = {}
+                if settings.voice.wake_word_engine == "porcupine":
+                    voice_deps["pvporcupine"] = "pvporcupine>=3.0"
+                elif settings.voice.wake_word_engine not in ("auto", "openwakeword"):
+                    voice_deps.pop("openwakeword", None)
+
                 for pkg_name, pkg_spec in voice_deps.items():
                     if not self._check_import(pkg_name):
                         missing.append(pkg_spec)
@@ -138,11 +139,15 @@ class Installer:
         except Exception:
             pass
 
-        # Check llama_cpp if needed
-        for pkg_name, pkg_spec in llm_deps.items():
-            if not self._check_import(pkg_name):
-                missing.append(pkg_spec)
-                console.print(f"  [red]MISSING (llm)[/red] {pkg_name}")
+        # llama-cpp-python has platform/Python-version-specific wheels and is
+        # only needed when the user explicitly selects that provider.
+        try:
+            settings = load_settings()
+            if settings.llm.provider == "llama_cpp" and not self._check_import("llama_cpp"):
+                missing.append("llama-cpp-python>=0.2")
+                console.print("  [red]MISSING (llm)[/red] llama_cpp")
+        except Exception:
+            pass
 
         if missing:
             console.print(f"\n[yellow]{len(missing)} dependencies missing. Installing...[/yellow]")
@@ -162,16 +167,21 @@ class Installer:
 
     def _check_import(self, module_name: str) -> bool:
         """Check if a Python module can be imported."""
-        try:
-            importlib.util.find_spec(module_name.replace("-", "_").replace(".", "_"))
-            return True
-        except (ImportError, ModuleNotFoundError, ValueError):
-            # Also try direct import as fallback
+        candidates = {
+            "piper": ["piper"],
+            "piper_tts": ["piper"],
+            "python_dotenv": ["dotenv"],
+            "llama_cpp_python": ["llama_cpp"],
+        }.get(module_name, [module_name.replace("-", "_").replace(".", "_")])
+        for candidate in candidates:
             try:
-                __import__(module_name.replace("-", "_"))
+                if importlib.util.find_spec(candidate) is not None:
+                    return True
+                __import__(candidate)
                 return True
-            except (ImportError, ModuleNotFoundError):
-                return False
+            except (ImportError, ModuleNotFoundError, ValueError):
+                continue
+        return False
 
     async def _pip_install(self, package: str) -> bool:
         """Install a package via pip."""
@@ -181,14 +191,14 @@ class Installer:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(proc.wait(), timeout=120)
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=600)
             out = stdout.decode("utf-8", errors="replace") if stdout else ""
             err = stderr.decode("utf-8", errors="replace") if stderr else ""
             if proc.returncode == 0:
                 logger.info(f"pip install {package} succeeded")
                 return True
             else:
-                logger.error(f"pip install {package} failed: {err}")
+                logger.error(f"pip install {package} failed: {err or out}")
                 return False
         except asyncio.TimeoutError:
             logger.error(f"pip install {package} timed out")

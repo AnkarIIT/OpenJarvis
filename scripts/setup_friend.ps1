@@ -15,28 +15,14 @@ Write-Host "║   JARVIS - Friend Setup Script           ║"
 Write-Host "╚══════════════════════════════════════════╝"
 Write-Host ""
 
-# Step 0: Ensure pipx is available
-Write-Host "[0/5] Ensuring pipx is available..."
-$pipxExists = Get-Command pipx -ErrorAction SilentlyContinue
-if (-not $pipxExists) {
-    Write-Host "pipx not found, installing..."
-    python -m pip install --user pipx
-    # Add pipx to PATH on Windows
-    $pythonScripts = python -c "import sys, site; print(site.getusersitepackages().replace('site-packages', 'Scripts'))"
-    Write-Host "Add this to PATH: $pythonScripts"
-    Write-Host "Run: [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';$pythonScripts', 'User')"
-    Write-Host "Or restart PowerShell after adding to PATH."
-}
-
-# Step 0b: Install JARVIS via pipx if available, else fallback to pip
+# Step 0: Install JARVIS from this checkout.
+# Use the active Python interpreter so the installed command and dependencies
+# are guaranteed to belong to the same environment.
 Write-Host ""
-Write-Host "[0.5/5] Installing JARVIS..."
-if (Get-Command pipx -ErrorAction SilentlyContinue) {
-    pipx install git+https://github.com/AnkarIIT/OpenJarvis.git
-} else {
-    Write-Host "pipx not available, using pip install..."
-    pip install -e ".[all,dev]"
-}
+Write-Host "[0/5] Installing JARVIS..."
+Set-Location $ProjectDir
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
 
 # Step 1: Clone sub-projects
 Write-Host ""
@@ -80,9 +66,6 @@ if (Test-Path "$ProjectDir\prompts") {
 # Step 2: Install Python dependencies
 Write-Host ""
 Write-Host "[2/5] Installing Python dependencies..."
-Set-Location $ProjectDir
-pip install -e ".[all,dev]"
-
 # Step 3: Add to PATH if needed
 Write-Host ""
 Write-Host "[3/5] Setting up PATH..."
@@ -94,15 +77,15 @@ Write-Host "Then restart PowerShell or close and reopen this window."
 # Step 4: Install
 Write-Host ""
 Write-Host "[4/5] Running jarvis --install..."
-jarvis --install
+python -m jarvis.main --install
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Install failed - try running 'jarvis --install' manually" -ForegroundColor Yellow
+    throw "JARVIS setup failed. Run 'python -m jarvis.main --install' to see the full error."
 }
 
 # Step 5: Test
 Write-Host ""
 Write-Host "[5/5] Testing..."
-jarvis --models
+python -m jarvis.main --models
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Models detection had issues - check Ollama is running" -ForegroundColor Yellow
 }

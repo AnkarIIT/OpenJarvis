@@ -32,6 +32,8 @@ def main(
     debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode"),
 ):
     """JARVIS Terminal Agent"""
+    settings = load_settings()
+
     if list_models:
         from jarvis.utils.detectors import detect_all_local_ai, get_available_models
 
@@ -63,7 +65,12 @@ def main(
         from jarvis.agent.llm_client import LLMClient
         client = LLMClient(settings)
         try:
-            client.pull_model(pull_model)
+            async def pull() -> None:
+                async for progress in client.pull_model(pull_model):
+                    if progress.strip():
+                        console.print(progress.rstrip())
+
+            asyncio.run(pull())
             console.print(f"[green]OK Model '{pull_model}' ready[/green]")
         except Exception as e:
             console.print(f"[red]ERROR Failed to pull model: {e}[/red]")
@@ -73,11 +80,6 @@ def main(
     if install_mode:
         asyncio.run(install())
         return
-
-    settings = load_settings()
-
-    if config_path:
-        settings.config_file = Path(config_path).expanduser()
 
     setup_file_logging(settings.config_dir)
 

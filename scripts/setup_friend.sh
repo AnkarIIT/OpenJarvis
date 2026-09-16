@@ -12,21 +12,6 @@ echo "║   JARVIS - Friend Setup Script           ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
-# Step 0: Ensure pipx is available
-echo "[0/5] Ensuring pipx is available..."
-if ! command -v pipx &> /dev/null; then
-    echo "pipx not found, installing..."
-    python -m pip install --user pipx
-    # Add pipx to PATH on Windows (Git Bash / MSYS)
-    case "$(uname)" in
-        MINGW*|MSYS*|CYGWIN*)
-            PYTHON_SCRIPTS="$(python -c 'import sys; import site; print(site.getusersitepackages().replace("site-packages", "Scripts"))')"
-            echo "Add to PATH: $PYTHON_SCRIPTS"
-            echo "Then restart Git Bash or run: export PATH=\"\$PATH:$PYTHON_SCRIPTS\""
-            ;;
-    esac
-fi
-
 # Step 1: Clone sub-projects
 echo ""
 echo "[1/5] Cloning sub-projects..."
@@ -36,7 +21,8 @@ bash "$SCRIPT_DIR/init_submodules.sh"
 echo ""
 echo "[2/5] Installing Python dependencies..."
 cd "$PROJECT_DIR"
-pip install -e ".[all,dev]"
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
 
 # Step 3: Add to PATH if needed
 echo ""
@@ -57,12 +43,15 @@ esac
 # Step 4: Install
 echo ""
 echo "[4/5] Running jarvis --install..."
-jarvis --install || echo "Install failed - try running 'jarvis --install' manually"
+python -m jarvis.main --install || {
+    echo "Install failed - run 'python -m jarvis.main --install' to see the full error"
+    exit 1
+}
 
 # Step 5: Test
 echo ""
 echo "[5/5] Testing..."
-jarvis --models || echo "Models detection had issues - check Ollama is running"
+python -m jarvis.main --models || echo "Models detection had issues - check Ollama is running"
 
 echo ""
 echo "╔══════════════════════════════════════════╗"
