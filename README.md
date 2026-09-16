@@ -109,6 +109,7 @@ and diagnostics are implemented and covered by automated tests. The latest local
 | Memory | ChromaDB semantic memory with retention and secret filtering |
 | MCP discovery | Implemented with persistent sessions and compatibility serialization |
 | MCP recovery | One bounded reconnect attempt after a failed tool call; full supervision remains future work |
+| Agent task state | Each run has an ID and reports running, completed, failed, or cancelled state |
 | MCP safety defaults | Memory and web search allowed by default; dangerous servers require explicit opt-in |
 | Voice imports | CI/headless-safe |
 | Real voice operation | Requires optional packages, native audio, models, and hardware testing |

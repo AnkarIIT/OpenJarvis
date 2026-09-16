@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import asyncio
 from typing import Any, AsyncGenerator
 
 from jarvis.agent.llm_client import LLMClient
@@ -10,6 +11,7 @@ from jarvis.config.settings import Settings
 from jarvis.mcp.client import MCPClient
 from jarvis.memory.vector_store import VectorStore
 from jarvis.agent.permissions import confirmation_required_result, requires_confirmation
+from jarvis.agent.tasks import AgentTask
 from jarvis.skills.registry import SkillRegistry
 from jarvis.utils.logger import get_logger
 
@@ -25,6 +27,8 @@ class AgentLoop:
         self.skill_registry = skill_registry or SkillRegistry(settings)
         self.conversation_history: list[dict[str, Any]] = []
         self.max_history = 20
+        self.current_task: AgentTask | None = None
+        self.last_task: AgentTask | None = None
 
     @property
     def vector_store(self) -> VectorStore | None:
@@ -38,6 +42,25 @@ class AgentLoop:
         await self.skill_registry.initialize()
 
     async def run(self, user_input: str, voice_mode: bool = False) -> AsyncGenerator[str, None]:
+        task = AgentTask()
+        task.start()
+        self.current_task = task
+        try:
+            async for chunk in self._run(user_input, voice_mode):
+                yield chunk
+        except asyncio.CancelledError:
+            task.finish("cancelled")
+            raise
+        except Exception as exc:
+            task.finish("failed", str(exc))
+            raise
+        else:
+            task.finish("completed")
+        finally:
+            self.last_task = task
+            self.current_task = None
+
+    async def _run(self, user_input: str, voice_mode: bool = False) -> AsyncGenerator[str, None]:
         await self._add_user_message(user_input)
 
         original_input = user_input
@@ -264,4 +287,6 @@ class AgentLoop:
             "mcp_connected": self.mcp.is_connected,
             "memory_enabled": self.memory is not None,
             "history_length": len(self.conversation_history),
+            "current_task": self.current_task.as_dict() if self.current_task else None,
+            "last_task": self.last_task.as_dict() if self.last_task else None,
         }
