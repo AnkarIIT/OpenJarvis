@@ -182,7 +182,10 @@ class MCPClient:
             try:
                 await self._stacks[name].aclose()
             except Exception as e:
-                logger.error(f"Error disconnecting {name}: {e}")
+                if "cancel scope" in str(e).lower():
+                    logger.debug("MCP server %s closed with an AnyIO cancel-scope warning", name)
+                else:
+                    logger.error(f"Error disconnecting {name}: {e}")
         self.sessions.clear()
         self._stacks.clear()
         self.tools.clear()
