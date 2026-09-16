@@ -31,6 +31,12 @@ class MCPSettings(BaseSettings):
     allow_dangerous: bool = False
     enabled_servers: list[str] = Field(default_factory=list)
     require_confirmation: bool = True
+    audit_enabled: bool = True
+    audit_path: str = "~/.jarvis/audit.jsonl"
+
+    @property
+    def audit_file(self) -> Path:
+        return Path(os.path.expanduser(self.audit_path))
 
 
 class VoiceSettings(BaseSettings):

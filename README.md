@@ -110,6 +110,7 @@ and diagnostics are implemented and covered by automated tests. The latest local
 | MCP discovery | Implemented with persistent sessions and compatibility serialization |
 | MCP recovery | One bounded reconnect attempt after a failed tool call; full supervision remains future work |
 | Agent task state | Each run has an ID and reports running, completed, failed, or cancelled state |
+| Action audit log | Enabled by default at `~/.jarvis/audit.jsonl`; sensitive argument keys are redacted |
 | MCP safety defaults | Memory and web search allowed by default; dangerous servers require explicit opt-in |
 | Voice imports | CI/headless-safe |
 | Real voice operation | Requires optional packages, native audio, models, and hardware testing |
@@ -322,6 +323,10 @@ When dangerous MCP servers are enabled, `mcp.require_confirmation` defaults to `
 agent blocks those actions unless an explicit confirmation interface approves them. This prevents
 an LLM from silently writing files, executing commands, committing changes, navigating a browser,
 or controlling the desktop.
+
+Tool attempts are recorded in an append-only JSONL audit log by default. Set
+`mcp.audit_enabled` to `false` to disable it or change `mcp.audit_path` to relocate it. Known
+secret-like argument keys are redacted before being written.
 
 Skills must contain `SKILL.md` or `skill.yaml`. User skills are installed under
 `~/.jarvis/skills/` and can declare commands through a Python `skill.py` module.

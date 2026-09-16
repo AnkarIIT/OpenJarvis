@@ -12,6 +12,7 @@ from jarvis.mcp.client import MCPClient
 from jarvis.memory.vector_store import VectorStore
 from jarvis.agent.permissions import confirmation_required_result, requires_confirmation
 from jarvis.agent.tasks import AgentTask
+from jarvis.agent.audit import AuditLogger
 from jarvis.skills.registry import SkillRegistry
 from jarvis.utils.logger import get_logger
 
@@ -29,6 +30,7 @@ class AgentLoop:
         self.max_history = 20
         self.current_task: AgentTask | None = None
         self.last_task: AgentTask | None = None
+        self.audit = AuditLogger(self.settings.mcp.audit_file)
 
     @property
     def vector_store(self) -> VectorStore | None:
@@ -256,23 +258,52 @@ class AgentLoop:
         skill_cmd = next((c for c in self.skill_registry.list_commands() if c.name == tool_name), None)
 
         if mcp_tool:
+            source = f"mcp:{mcp_tool.server_name}"
+            self._audit_tool(tool_name, source, "requested", arguments)
             if requires_confirmation(self.settings, mcp_tool.server_name):
                 logger.warning(
                     "Blocked MCP tool %s from %s pending explicit confirmation",
                     tool_name,
                     mcp_tool.server_name,
                 )
-                return confirmation_required_result(tool_name, mcp_tool.server_name)
+                blocked = confirmation_required_result(tool_name, mcp_tool.server_name)
+                self._audit_tool(tool_name, source, "blocked", arguments, blocked["message"])
+                return blocked
             result = await self.mcp.call_tool(tool_name, arguments)
             if "error" in result:
+                self._audit_tool(tool_name, source, "failed", arguments, str(result["error"]))
                 return {"error": result["error"]}
+            self._audit_tool(tool_name, source, "completed", arguments)
             return result
         elif skill_cmd:
+            source = "skill"
+            self._audit_tool(tool_name, source, "requested", arguments)
             try:
-                return await self.skill_registry.execute_command(tool_name, **arguments)
+                result = await self.skill_registry.execute_command(tool_name, **arguments)
             except TypeError:
-                return await self.skill_registry.execute_command(tool_name)
+                result = await self.skill_registry.execute_command(tool_name)
+            self._audit_tool(tool_name, source, "completed", arguments)
+            return result
+        self._audit_tool(tool_name, "unknown", "failed", arguments, "tool not found")
         return {"error": f"Tool or skill not found: {tool_name}"}
+
+    def _audit_tool(
+        self,
+        tool_name: str,
+        source: str,
+        status: str,
+        arguments: dict[str, Any] | None = None,
+        error: str | None = None,
+    ) -> None:
+        if self.settings.mcp.audit_enabled:
+            self.audit.record(
+                task_id=self.current_task.task_id if self.current_task else None,
+                tool=tool_name,
+                source=source,
+                status=status,
+                arguments=arguments,
+                error=error,
+            )
 
     async def _add_user_message(self, content: str) -> None:
         self.conversation_history.append({"role": "user", "content": content})
