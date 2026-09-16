@@ -113,6 +113,7 @@ and diagnostics are implemented and covered by automated tests. The latest local
 | Agent task state | Each run has an ID and reports running, completed, failed, or cancelled state |
 | Durable task state | Task lifecycle records persist in `~/.jarvis/tasks.jsonl` by default |
 | Planner/executor/verifier trace | Agent runs record planning, tool execution, and result-verification steps |
+| File snapshots | Approved filesystem writes snapshot the target before mutation under `~/.jarvis/snapshots` |
 | Action audit log | Enabled by default at `~/.jarvis/audit.jsonl`; sensitive argument keys are redacted |
 | MCP safety defaults | Memory and web search allowed by default; dangerous servers require explicit opt-in |
 | Action approval UI | TUI modal approval for each dangerous MCP invocation; denial is fail-closed |

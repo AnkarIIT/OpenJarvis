@@ -184,6 +184,7 @@ def permissions():
         f"{settings.mcp.max_retries} retries"
     )
     console.print(f"Task state: {settings.task_state_file}")
+    console.print(f"Snapshot directory: {settings.snapshot_dir}")
     console.print("To explicitly enable dangerous servers, set mcp.allow_dangerous=true in config.json.")
     console.print("Dangerous actions remain blocked until an execution confirmation interface is configured.")
 

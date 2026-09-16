@@ -17,6 +17,7 @@ from jarvis.agent.permissions import (
 )
 from jarvis.agent.tasks import AgentTask, TaskStore
 from jarvis.agent.audit import AuditLogger
+from jarvis.agent.snapshots import SnapshotStore
 from jarvis.skills.registry import SkillRegistry
 from jarvis.utils.logger import get_logger
 
@@ -37,6 +38,7 @@ class AgentLoop:
         self.task_store = TaskStore(self.settings.task_state_file)
         self.last_task = self.task_store.latest()
         self.audit = AuditLogger(self.settings.mcp.audit_file)
+        self.snapshots = SnapshotStore(self.settings.snapshot_dir)
         self.approval_handler: Callable[
             [str, str, dict[str, Any]], Awaitable[bool]
         ] | None = None
@@ -306,6 +308,23 @@ class AgentLoop:
                     blocked = confirmation_required_result(tool_name, mcp_tool.server_name)
                     self._audit_tool(tool_name, source, "blocked", arguments, blocked["message"])
                     return blocked
+            if mcp_tool.server_name == "filesystem" and tool_name == "write_file":
+                try:
+                    target = Path(arguments["path"]).expanduser().resolve()
+                    snapshot_id = self.snapshots.snapshot_file(
+                        target,
+                        self.current_task.task_id if self.current_task else None,
+                    )
+                    self._audit_tool(
+                        tool_name,
+                        source,
+                        "snapshot",
+                        {"path": str(target), "snapshot_id": snapshot_id},
+                    )
+                except Exception as exc:
+                    message = f"Filesystem mutation blocked because snapshot failed: {exc}"
+                    self._audit_tool(tool_name, source, "failed", arguments, message)
+                    return {"error": message}
             result = await self.mcp.call_tool(tool_name, arguments)
             if "error" in result:
                 self._audit_tool(tool_name, source, "failed", arguments, str(result["error"]))
