@@ -11,8 +11,8 @@ A terminal-based AI assistant inspired by Iron Man's JARVIS from the Marvel Cine
 - **Terminal UI**: Beautiful TUI built with Textual framework
 - **Voice Support**: Offline STT (Vosk with auto-download / Whisper.cpp) + TTS (Piper with auto-download) + Sarvam AI cloud TTS/STT with language auto-detection
 - **Wake Word**: Fully offline open-source wake word detection (openWakeWord — no API key needed) or Porcupine (auto-downloads .ppn)
-- **MCP Tools**: 7 auto-discovered MCP servers (filesystem, terminal, git, memory, web_search, browser, desktop)
-- **Skills System**: 10 modular skills (4 builtin + 6 external) with 47 total commands
+- **MCP Tools**: 7 built-in servers with safe-by-default filtering
+- **Skills System**: Built-in and user-installed skills with manifest validation
 - **Long-term Memory**: Vector-based memory with ChromaDB + sentence-transformers
 - **External Integration**: Wraps 6 external AI projects as native JARVIS skills with HTTP client communication
 - **Automated Setup**: One-command installation with auto-detection + auto-download of all models
@@ -66,52 +66,85 @@ jarvis
 # First time? Run: jarvis --install  (auto-detects AI providers + downloads voice models)
 ```
 
-> **First time?** Run `jarvis --install` after installing to auto-detect AI providers and download all voice models.
+> **First time?** Run `jarvis --install` after installing to detect providers and configure optional components.
 >
 > **Friends having trouble?** See `scripts/setup_friend.sh` for a guided step-by-step setup that handles pipx installation, PATH configuration, and initial setup automatically.
 
-The installer auto-detects available AI providers (Ollama, LM Studio, LocalAI, llama-cpp-python) and
-downloads all voice models (Piper TTS, Vosk/Whisper STT, openWakeWord wake word) on first run.
+The installer detects available AI providers and installs selected optional dependencies. Voice models
+and native audio backends are optional and may require additional downloads and hardware.
 
-## Current Capabilities — What JARVIS Can Do
+## Where JARVIS Stands
 
-### ✅ Fully Working
+JARVIS is a working local-assistant platform, not a fully autonomous always-on agent. Installation,
+CLI/TUI startup, configuration, memory, skills, MCP discovery, safety defaults, provider detection,
+and diagnostics are implemented and covered by automated tests. The latest local validation passed
+**31 tests**; CI targets Python 3.10–3.13.
 
-| Area | Status | Details |
-|------|--------|---------|
-| **TUI Interface** | ✅ Functional | Textual-based terminal with chat, skills, tools, memory, settings, voice screens |
-| **Skills System** | ✅ 47 commands | 4 builtin (system_monitor, code_assistant, memory, voice_control) + 6 external |
-| **LLM: Ollama** | ✅ Streaming | Local models with tool-call support & exponential backoff retry |
-| **LLM: Llama-cpp-python** | ✅ Streaming | Load `llama-cpp-python` GGUF models directly (no Ollama). Hermes 2 Pro, DeepSeek Coder supported |
-| **LLM: LM Studio** | ✅ Auto-detected | Probes port 1234, auto-selects models via OpenAI-compatible API |
-| **LLM: LocalAI** | ✅ Auto-detected | Probes port 8080/41523, OpenAI-compatible API |
-| **MCP Client** | ✅ Auto-connect | Connects to all configured + auto-discovered servers; tools shared with AgentLoop |
-| **MCP Servers** | ✅ 7 built-in | filesystem, terminal, git, memory, web_search, browser (Playwright), desktop (pyautogui) — auto-started as stdio subprocesses |
-| **External Skills** | ✅ 10 skills | marketing, visualizer, memory_vault, barehands, backtalk, fullstack_agent — all with HTTP client integration |
-| **Long-term Memory** | ✅ ChromaDB | Vector store with cosine similarity; embeddings lazy-loaded |
-| **Voice: Wake Word** | ✅ Offline | openWakeWord (no API key!) or Porcupine with auto-download of `.ppn` |
-| **Voice: TTS** | ✅ Auto-download | piper-tts Python package with HuggingFace voice auto-download; Sarvam cloud fallback |
-| **Voice: STT** | ✅ Auto-download | Vosk (auto-downloads model) or Whisper.cpp (`pywhispercpp`, auto-downloads model) |
-| **Builtin: System Monitor** | ✅ 6 commands | CPU, memory, disk, GPU, network, processes |
-| **Builtin: Code Assistant** | ✅ 3 commands | AST analysis: read functions, find TODOs, file structure |
-| **Builtin: Memory** | ✅ 3 commands | remember/recall/forget via ChromaDB |
-|| **Builtin: Voice Control** | ✅ 4 commands | Voice on/off, test, language setting (`/language hi-IN`) |
-|| **Builtin: Browser** | ✅ 9 commands | Navigate, click, type, screenshot, scroll, wait via Playwright |
-|| **Builtin: Desktop** | ✅ 7 commands | Mouse/keyboard control, screenshots via pyautogui |
-|| **MCP: Browser** | ✅ 10 tools | Playwright browser automation (navigate, click, type, screenshot) |
-|| **MCP: Desktop** | ✅ 7 tools | pyautogui desktop control (mouse, keyboard, hotkey, screenshot) |
-|| **Voice: Wake Word** | ✅ Offline | openWakeWord (no API key!) or Porcupine with auto-download of `.ppn` |
+| Area | Current status |
+|------|---------------|
+| Installation and editable install | Working on supported Python versions |
+| CLI, TUI, and configuration persistence | Working |
+| Provider detection and chat | Working when a provider/model is available |
+| Ollama and OpenAI-compatible providers | Streaming and tool-call paths implemented |
+| llama.cpp/GGUF provider | Implemented; requires a local GGUF model and optional dependency |
+| Anthropic provider | Implemented, but less exercised than local providers |
+| Provider diagnostics | `jarvis doctor --json` reports provider/model, attempts, retries, fallbacks, latency, and errors |
+| Skills | Built-in and external skills load with optional-dependency isolation |
+| User extensions | Add/remove/enable/disable skills and configure MCP servers |
+| Skill manifests | Validates names, permissions, dependencies, and supported platforms |
+| Memory | ChromaDB semantic memory with retention and secret filtering |
+| MCP discovery | Implemented with persistent sessions and compatibility serialization |
+| MCP safety defaults | Memory and web search allowed by default; dangerous servers require explicit opt-in |
+| Voice imports | CI/headless-safe |
+| Real voice operation | Requires optional packages, native audio, models, and hardware testing |
+| Automated tests | 31 local tests passing; CI matrix covers Python 3.10–3.13 |
 
-### 🚧 Future Roadmap
+## What JARVIS Can Do
 
-| Priority | Area | Plan |
-|----------|------|------|
-| **High** | OpenAI/Anthropic cloud APIs | Full SDK integration with streaming — already supported, just install `openai`/`anthropic` + set `JARVIS_LLM_API_KEY` (LM Studio/LocalAI remain the free local alternatives) |
-| **High** | Voice hardware testing | Testing with real microphone + speakers (wake word detection, STT capture, TTS playback) |
-| **Medium** | Sarvam AI rate-limit handling | Add retry middleware with exponential backoff for cloud API calls |
-| **Medium** | Real-time audio streaming | Low-latency chunked STT streaming |
-| **Medium** | Voice Activity Detection (VAD) | Silence detection for smarter voice activation |
-| **Low** | Multi-modal input | Image input support for vision-capable LLMs |
+- Chat and stream responses through Ollama, llama.cpp/GGUF, LM Studio, LocalAI, OpenAI-compatible
+  APIs, and Anthropic when configured.
+- Detect providers, retry some transient failures, and expose provider diagnostics.
+- Execute structured LLM tool calls through the agent loop.
+- Provide a Textual terminal interface and CLI commands for setup, diagnostics, permissions, models,
+  skills, MCP servers, and tools.
+- Monitor CPU, memory, disk, GPU, network, and processes.
+- Inspect source-code structure, functions, and TODOs.
+- Store, search, expire, and forget semantic memories while rejecting obvious secrets by default.
+- Install local/Git skills, enable or disable skills, and validate skill manifests.
+- Connect to filesystem, terminal, Git, memory, web-search, browser, and desktop MCP servers when
+  permitted by configuration.
+- Use Playwright browser automation and PyAutoGUI desktop automation when optional dependencies and
+  a suitable local environment are available.
+- Use Vosk/Whisper speech-to-text, Piper/Sarvam text-to-speech, and wake-word integrations when
+  required packages, models, native audio, and hardware are present.
+
+## What JARVIS Cannot Reliably Do Yet
+
+- It cannot produce answers without an active compatible LLM provider and model.
+- It is not a production-grade autonomous supervisor: durable background tasks, approvals, rollback,
+  crash recovery, resource limits, and runaway-action prevention are incomplete.
+- MCP lifecycle supervision is incomplete. Automatic restart, health monitoring, bounded backoff, and
+  durable per-server metrics are not yet production-ready.
+- Permissions are primarily server-level. Complete per-tool approval is not implemented; for example,
+  Git status cannot yet be independently allowed while commits require confirmation.
+- Voice is not fully validated on real hardware. Microphone capture, speaker output, wake-word
+  reliability, noise handling, VAD, barge-in, and long-running sessions still need testing.
+- Vision and multimodal understanding are limited; screenshots, camera frames, documents, and video
+  are not yet a mature general-purpose input pipeline.
+- External skills are not all self-contained. Some require separate projects, services, playbooks, or
+  dependencies that are not bundled with this repository.
+- Cloud-provider behavior is not completely uniform. Anthropic streaming/tool-call behavior and
+  provider-specific error handling need broader end-to-end coverage.
+- There is no mature multi-user profile, private/shared memory separation, or timezone-aware
+  personal-preference system.
+
+## Recommended Next Milestones
+
+1. Add per-tool permissions, confirmation prompts, and audit logs.
+2. Add MCP health checks, timeouts, bounded restart/backoff, and server metrics.
+3. Build a fake-provider/fake-MCP end-to-end harness for fallback, denial, timeout, and crash cases.
+4. Complete real Windows voice hardware validation.
+5. Expand provider, extension, and multimodal integration tests.
 
 ## Requirements
 
@@ -141,12 +174,14 @@ export JARVIS_LLM_MODEL_PATH=./models/llama-3.1-8b-instruct.Q4_K_M.gguf
 export JARVIS_VOICE_STT_ENGINE=whisper  # or keep 'vosk'
 ```
 
-All models auto-download on first run:
-- **Piper voices**: Downloaded to `~/.jarvis/voice/` via HuggingFace
-- **Vosk STT models**: Downloaded to `~/.jarvis/voice/`
-- **Whisper models**: Downloaded to `~/.local/share/pywhispercpp/`
-- **openWakeWord models**: Downloaded on first import
-- **Porcupine .ppn**: Downloaded from HuggingFace (access key still required)
+Some optional models can download on first use:
+- **Piper voices**: Downloaded to `~/.jarvis/voice/` when the Piper backend is selected
+- **Vosk STT models**: Downloaded to `~/.jarvis/voice/` when Vosk is selected
+- **Whisper models**: Downloaded by the selected Whisper backend
+- **Wake-word models**: Downloaded by the selected wake-word backend
+
+Downloads require network access and storage. Voice still requires a working native audio backend
+and microphone/speaker hardware.
 
 ### Cloud Features (Optional)
 
@@ -164,7 +199,7 @@ All models auto-download on first run:
 | **STT** | Vosk or Whisper.cpp | ✅ Yes | vosk or pywhispercpp |
 | **Wake Word** | openWakeWord | ✅ Yes | openwakeword pip package |
 | **Memory** | ChromaDB | ✅ Lazy load | sentence-transformers |
-| **MCP** | 5 built-in servers | ✅ Auto-connect | mcp package |
+| **MCP** | 7 built-in servers | Filtered by safety policy | mcp package |
 
 ## Architecture
 
@@ -189,6 +224,12 @@ jarvis/
 | `memory` | 3 | Remember, recall, forget memories |
 | `voice_control` | 4 | Voice on/off, test, language setting |
 | `browser` | 9 | Navigate, click, type, screenshot, scroll, wait |
+| `autonomous` | Optional | Automation-related commands; not a production autonomous supervisor |
+| `emotional` | Optional | Text/emotional analysis |
+| `instant_learning` | Optional | Learning utilities |
+| `multisensory` | Optional | Multisensory utilities |
+| `predictive` | Optional | Prediction utilities |
+| `traffic_camera` | Optional | Traffic-camera integration when dependencies are available |
 
 ## External Skills
 
@@ -214,6 +255,13 @@ jarvis/
 ### MCP Server CLI
 
 All MCP servers accept flags via argparse:
+```powershell
+jarvis-mcp-filesystem --root /path/to/project
+jarvis-mcp-terminal --allow ls,cat,git
+jarvis-mcp-git --repo /path/to/repo
+jarvis-mcp-memory --path ~/.jarvis/memory
+jarvis-mcp-browser --headless
+jarvis-mcp-desktop
 ```
 
 ### Extensions
@@ -242,18 +290,24 @@ tokens, passwords, or private keys are rejected. Configure
 `memory.retention_days` to automatically expire entries, or set
 `memory.allow_sensitive` only when you explicitly need to store sensitive data.
 
+MCP safety is server-level today. `memory` and `web_search` are allowed by default. `filesystem`,
+`terminal`, `git`, `browser`, and `desktop` are disabled unless explicitly enabled with
+`mcp.allow_dangerous` and, optionally, `mcp.enabled_servers`. There is not yet a confirmation
+prompt for every individual write, delete, commit, or desktop action.
+
 Skills must contain `SKILL.md` or `skill.yaml`. User skills are installed under
 `~/.jarvis/skills/` and can declare commands through a Python `skill.py` module.
 MCP servers are stored in `~/.jarvis/config.json`; dangerous servers should be
-added explicitly rather than enabled through automatic discovery. Terminal,
-browser, and desktop MCP servers are disabled by default; set
-`"mcp": {"allow_dangerous": true}` only on a trusted machine.bash
-jarvis-mcp-filesystem --root /path/to/project
-jarvis-mcp-terminal --allow ls,cat,git
-jarvis-mcp-git --repo /path/to/repo
-jarvis-mcp-memory --path ~/.jarvis/memory
-jarvis-mcp-browser --headless  # or --headed for visible browser
-jarvis-mcp-desktop             # no flags needed
+added explicitly rather than enabled through automatic discovery. Enable dangerous servers only
+on a trusted machine:
+
+```json
+{
+  "mcp": {
+    "allow_dangerous": true,
+    "enabled_servers": ["memory", "web_search", "filesystem"]
+  }
+}
 ```
 
 ## Configuration
