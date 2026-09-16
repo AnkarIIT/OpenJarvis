@@ -90,6 +90,9 @@ class VoicePipeline:
         self.settings.voice.language = language_code
         if hasattr(self.tts, "language_code"):
             self.tts.language_code = language_code
+        if hasattr(self.stt, "set_language") and language_code not in {"auto", "unknown"}:
+            if not self.stt.set_language(language_code):
+                logger.warning("Voice language changed for response only; STT model is unavailable")
         logger.info(f"JARVIS language set to: {language_code}")
 
     async def listen_once(self) -> str:

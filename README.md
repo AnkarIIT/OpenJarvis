@@ -114,6 +114,7 @@ and diagnostics are implemented and covered by automated tests. The latest local
 | Durable task state | Task lifecycle records persist in `~/.jarvis/tasks.jsonl` by default |
 | Planner/executor/verifier trace | Agent runs record planning, tool execution, and result-verification steps |
 | File snapshots | Approved filesystem writes snapshot the target before mutation under `~/.jarvis/snapshots` |
+| Offline multilingual STT | Bundled Vosk model selection currently covers English and Hindi; other languages need another backend/model |
 | Action audit log | Enabled by default at `~/.jarvis/audit.jsonl`; sensitive argument keys are redacted |
 | MCP safety defaults | Memory and web search allowed by default; dangerous servers require explicit opt-in |
 | Action approval UI | TUI modal approval for each dangerous MCP invocation; denial is fail-closed |
@@ -177,6 +178,8 @@ Example:
 ```
 - Voice is not fully validated on real hardware. Microphone capture, speaker output, wake-word
   reliability, noise handling, VAD, barge-in, and long-running sessions still need testing.
+- Offline STT model coverage is currently limited. English and Hindi have bundled Vosk mappings;
+  other languages require Sarvam, Whisper, or a separately installed compatible model.
 - Vision and multimodal understanding are limited; screenshots, camera frames, documents, and video
   are not yet a mature general-purpose input pipeline.
 - External skills are not all self-contained. Some require separate projects, services, playbooks, or

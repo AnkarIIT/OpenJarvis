@@ -26,9 +26,20 @@ def _require_audio_backend() -> None:
 
 # Pre-defined model URLs for auto-download
 _VOSK_MODELS = {
-    "small-en-us": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
-    "small-hi": "https://alphacephei.com/vosk/models/vosk-model-small-hi-0.22.zip",
+    "vosk-model-small-en-us-0.15": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
+    "vosk-model-small-hi-0.22": "https://alphacephei.com/vosk/models/vosk-model-small-hi-0.22.zip",
 }
+_LANGUAGE_MODELS = {
+    "en": "vosk-model-small-en-us-0.15",
+    "en-in": "vosk-model-small-en-us-0.15",
+    "hi": "vosk-model-small-hi-0.22",
+    "hi-in": "vosk-model-small-hi-0.22",
+}
+
+
+def resolve_stt_model(language: str) -> str | None:
+    normalized = language.lower().replace("_", "-")
+    return _LANGUAGE_MODELS.get(normalized) or _LANGUAGE_MODELS.get(normalized.split("-", 1)[0])
 
 
 async def _ensure_vosk_model(model_name: str) -> Path | None:
@@ -86,6 +97,23 @@ class VoskSTT:
         self.model = None
         self.recognizer = None
         self.sample_rate = settings.voice.sample_rate
+
+    def set_language(self, language: str) -> bool:
+        model = resolve_stt_model(language)
+        if model is None:
+            logger.warning(
+                "No bundled offline STT model for %s; supported languages: %s",
+                language,
+                ", ".join(sorted(_LANGUAGE_MODELS)),
+            )
+            return False
+        if model != self.settings.voice.stt_model:
+            self.settings.voice.stt_model = model
+            self.model_path = self._get_model_path()
+            self.model = None
+            self.recognizer = None
+            logger.info("STT model selected for %s: %s", language, model)
+        return True
 
     def _get_model_path(self) -> Path:
         config_dir = Path(os.path.expanduser("~/.jarvis/voice"))
