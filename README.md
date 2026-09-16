@@ -112,6 +112,7 @@ and diagnostics are implemented and covered by automated tests. The latest local
 | Agent task state | Each run has an ID and reports running, completed, failed, or cancelled state |
 | Action audit log | Enabled by default at `~/.jarvis/audit.jsonl`; sensitive argument keys are redacted |
 | MCP safety defaults | Memory and web search allowed by default; dangerous servers require explicit opt-in |
+| Action approval UI | TUI modal approval for each dangerous MCP invocation; denial is fail-closed |
 | Voice imports | CI/headless-safe |
 | Real voice operation | Requires optional packages, native audio, models, and hardware testing |
 | Automated tests | 31 local tests passing; CI matrix covers Python 3.10–3.13 |
@@ -149,8 +150,9 @@ and diagnostics are implemented and covered by automated tests. The latest local
 - MCP lifecycle supervision is incomplete. The client now records basic server health and attempts
   one bounded reconnect after a failed tool call, but restart limits, backoff, timeouts, and durable
   per-server metrics are not yet production-ready.
-- Permissions are primarily server-level. Complete per-tool approval is not implemented; for example,
-  Git status cannot yet be independently allowed while commits require confirmation.
+- Permissions are still primarily server-level, but dangerous MCP invocations now require an exact
+  TUI approval before execution. Fine-grained policies such as allowing Git status while denying
+  commits remain future work.
 - Voice is not fully validated on real hardware. Microphone capture, speaker output, wake-word
   reliability, noise handling, VAD, barge-in, and long-running sessions still need testing.
 - Vision and multimodal understanding are limited; screenshots, camera frames, documents, and video
@@ -164,7 +166,7 @@ and diagnostics are implemented and covered by automated tests. The latest local
 
 ## Recommended Next Milestones
 
-1. Add per-tool permissions, confirmation prompts, and audit logs.
+1. Add per-tool permissions and action-specific policies on top of the approval UI.
 2. Add MCP health checks, timeouts, bounded restart/backoff, and server metrics.
 3. Build a fake-provider/fake-MCP end-to-end harness for fallback, denial, timeout, and crash cases.
 4. Complete real Windows voice hardware validation.

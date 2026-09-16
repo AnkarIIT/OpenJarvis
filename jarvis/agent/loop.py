@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import json
 import asyncio
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Awaitable, Callable
 
 from jarvis.agent.llm_client import LLMClient
 from jarvis.agent.system_prompt import get_system_prompt
@@ -31,6 +31,9 @@ class AgentLoop:
         self.current_task: AgentTask | None = None
         self.last_task: AgentTask | None = None
         self.audit = AuditLogger(self.settings.mcp.audit_file)
+        self.approval_handler: Callable[
+            [str, str, dict[str, Any]], Awaitable[bool]
+        ] | None = None
 
     @property
     def vector_store(self) -> VectorStore | None:
@@ -261,14 +264,19 @@ class AgentLoop:
             source = f"mcp:{mcp_tool.server_name}"
             self._audit_tool(tool_name, source, "requested", arguments)
             if requires_confirmation(self.settings, mcp_tool.server_name):
-                logger.warning(
-                    "Blocked MCP tool %s from %s pending explicit confirmation",
-                    tool_name,
-                    mcp_tool.server_name,
-                )
-                blocked = confirmation_required_result(tool_name, mcp_tool.server_name)
-                self._audit_tool(tool_name, source, "blocked", arguments, blocked["message"])
-                return blocked
+                approved = False
+                if self.approval_handler is not None:
+                    approved = await self.approval_handler(
+                        tool_name,
+                        mcp_tool.server_name,
+                        arguments,
+                    )
+                if approved:
+                    self._audit_tool(tool_name, source, "approved", arguments)
+                else:
+                    blocked = confirmation_required_result(tool_name, mcp_tool.server_name)
+                    self._audit_tool(tool_name, source, "blocked", arguments, blocked["message"])
+                    return blocked
             result = await self.mcp.call_tool(tool_name, arguments)
             if "error" in result:
                 self._audit_tool(tool_name, source, "failed", arguments, str(result["error"]))

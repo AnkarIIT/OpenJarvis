@@ -19,6 +19,7 @@ from jarvis.tui.widgets.status_bar import StatusBar
 from jarvis.tui.widgets.command_palette import CommandPalette
 from jarvis.agent.loop import AgentLoop
 from jarvis.voice.pipeline import VoicePipeline
+from jarvis.tui.widgets.approval import ApprovalScreen
 
 
 class JarvisApp(App):
@@ -34,11 +35,33 @@ class JarvisApp(App):
         self._apply_theme(self.settings.ui.theme)
         self.skill_registry = SkillRegistry(self.settings)
         self.agent_loop = AgentLoop(self.settings, skill_registry=self.skill_registry)
+        self.agent_loop.approval_handler = self.request_action_approval
         self.voice_pipeline = VoicePipeline(self.settings, self.agent_loop) if self.settings.voice.enabled else None
         self.current_screen = "chat"
         self.chat_panel: ChatPanel | None = None
         self.status_bar: StatusBar | None = None
         self.command_palette: CommandPalette | None = None
+
+    async def request_action_approval(
+        self,
+        tool_name: str,
+        server_name: str,
+        arguments: dict,
+    ) -> bool:
+        """Show a modal approval request for one exact tool invocation."""
+        import asyncio
+
+        result_future = asyncio.get_running_loop().create_future()
+
+        def receive_result(result: bool | None) -> None:
+            if not result_future.done():
+                result_future.set_result(bool(result))
+
+        self.push_screen(
+            ApprovalScreen(tool_name, server_name, arguments),
+            callback=receive_result,
+        )
+        return bool(await result_future)
 
     def _apply_theme(self, theme: str) -> None:
         """Dynamically set the CSS path based on the selected theme."""
