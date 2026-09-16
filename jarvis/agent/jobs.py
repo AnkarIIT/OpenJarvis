@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+from collections.abc import Awaitable, Callable, Iterator
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any
 from uuid import uuid4
 
 
@@ -23,6 +26,8 @@ class AgentJob:
     attempts: int = 0
     last_error: str | None = None
     completed_at: str | None = None
+    started_at: str | None = None
+    output: str | None = None
 
     def due(self, now: datetime | None = None) -> bool:
         if self.status != "pending":
@@ -42,6 +47,8 @@ class AgentJob:
             "attempts": self.attempts,
             "last_error": self.last_error,
             "completed_at": self.completed_at,
+            "started_at": self.started_at,
+            "output": self.output,
         }
 
 
@@ -66,6 +73,8 @@ class JobStore:
                 attempts=data.get("attempts", 0),
                 last_error=data.get("last_error"),
                 completed_at=data.get("completed_at"),
+                started_at=data.get("started_at"),
+                output=data.get("output"),
             )
             jobs[job.job_id] = job
         return jobs
@@ -92,6 +101,50 @@ class JobStore:
         self._append(job)
         return True
 
+    @contextmanager
+    def worker_lock(self) -> Iterator[bool]:
+        """Hold a cross-process lock while selecting and executing one job."""
+        lock_path = self.path.with_name(f"{self.path.name}.lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            try:
+                owner_text = lock_path.read_text(encoding="ascii").strip()
+                owner_pid = int(owner_text) if owner_text else None
+            except (FileNotFoundError, ValueError):
+                yield False
+                return
+            if owner_pid is None:
+                yield False
+                return
+            try:
+                os.kill(owner_pid, 0)
+            except ProcessLookupError:
+                with suppress(OSError):
+                    lock_path.unlink()
+                try:
+                    descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                except FileExistsError:
+                    yield False
+                    return
+            except OSError:
+                yield False
+                return
+            else:
+                yield False
+                return
+
+        try:
+            os.write(descriptor, str(os.getpid()).encode("ascii"))
+            yield True
+        finally:
+            os.close(descriptor)
+            try:
+                lock_path.unlink()
+            except FileNotFoundError:
+                pass
+
 
 class JobRunner:
     def __init__(self, store: JobStore, execute: Callable[[str], Awaitable[Any]]):
@@ -99,24 +152,29 @@ class JobRunner:
         self.execute = execute
 
     async def run_due_once(self) -> AgentJob | None:
-        job = next((candidate for candidate in self.store.list() if candidate.due()), None)
-        if job is None:
-            return None
-        job.status = "running"
-        job.attempts += 1
-        self.store.save(job)
-        try:
-            await self.execute(job.prompt)
-        except asyncio.CancelledError:
-            job.status = "cancelled"
+        with self.store.worker_lock() as acquired:
+            if not acquired:
+                return None
+            job = next((candidate for candidate in self.store.list() if candidate.due()), None)
+            if job is None:
+                return None
+            job.status = "running"
+            job.started_at = _now().isoformat()
+            job.attempts += 1
             self.store.save(job)
-            raise
-        except Exception as exc:
-            job.last_error = str(exc)
-            job.status = "failed" if job.attempts >= job.max_attempts else "pending"
+            try:
+                result = await self.execute(job.prompt)
+                job.output = None if result is None else str(result)
+            except asyncio.CancelledError:
+                job.status = "cancelled"
+                self.store.save(job)
+                raise
+            except Exception as exc:
+                job.last_error = str(exc)
+                job.status = "failed" if job.attempts >= job.max_attempts else "pending"
+                self.store.save(job)
+                return job
+            job.status = "completed"
+            job.completed_at = _now().isoformat()
             self.store.save(job)
             return job
-        job.status = "completed"
-        job.completed_at = _now().isoformat()
-        self.store.save(job)
-        return job

@@ -92,7 +92,7 @@ and native audio backends are optional and may require additional downloads and 
 JARVIS is a working local-assistant platform, not a fully autonomous always-on agent. Installation,
 CLI/TUI startup, configuration, memory, skills, MCP discovery, safety defaults, provider detection,
 and diagnostics are implemented and covered by automated tests. The latest local validation passed
-**31 tests**; CI targets Python 3.10–3.13.
+**58 tests**; CI targets Python 3.10–3.13.
 
 | Area | Current status |
 |------|---------------|
@@ -116,7 +116,7 @@ and diagnostics are implemented and covered by automated tests. The latest local
 | File snapshots | Approved filesystem writes snapshot the target before mutation under `~/.jarvis/snapshots` |
 | Offline multilingual STT | Bundled Vosk model selection currently covers English and Hindi; other languages need another backend/model |
 | Vision/document status | Camera analysis and screenshots are available; direct multimodal LLM input remains disabled |
-| Background jobs | Durable local queue with status, retries, cancellation, and one-shot execution |
+| Background jobs | Durable queue with status, retries, cancellation, output persistence, and a continuous worker |
 | Action audit log | Enabled by default at `~/.jarvis/audit.jsonl`; sensitive argument keys are redacted |
 | MCP safety defaults | Memory and web search allowed by default; dangerous servers require explicit opt-in |
 | Action approval UI | TUI modal approval for each dangerous MCP invocation; denial is fail-closed |
@@ -140,7 +140,8 @@ and diagnostics are implemented and covered by automated tests. The latest local
 - Inspect source-code structure, functions, and TODOs.
 - Store, search, expire, and forget semantic memories while rejecting obvious secrets by default.
 - Queue supervised background jobs with `job-add`, inspect them with `job-list`, cancel them with
-  `job-cancel`, and execute one due job with `job-run-once`.
+  `job-cancel`, execute one due job with `job-run-once`, or run the continuous worker with
+  `job-worker`.
 - Install local/Git skills, enable or disable skills, and validate skill manifests.
 - Connect to filesystem, terminal, Git, memory, web-search, browser, and desktop MCP servers when
   permitted by configuration.
@@ -155,9 +156,10 @@ and diagnostics are implemented and covered by automated tests. The latest local
 ## What JARVIS Cannot Reliably Do Yet
 
 - It cannot produce answers without an active compatible LLM provider and model.
-- It is not a production-grade autonomous supervisor: durable background tasks, approvals, rollback,
-  crash recovery, resource limits, and runaway-action prevention are incomplete. The current job
-  runtime is a durable one-shot queue; it does not yet install itself as a Windows service or daemon.
+- It is not a production-grade autonomous supervisor: approvals, rollback, crash recovery, resource
+  limits, and runaway-action prevention are incomplete. `job-worker` continuously polls the durable
+  queue and prevents duplicate workers with a lock, but it still must be started by the user or an
+  operating-system service manager.
 - MCP lifecycle supervision is incomplete. The client now records basic server health and attempts
   one bounded reconnect after a failed tool call, with configurable call timeout, retries, backoff,
   health, and latency metrics. Full restart limits and durable per-server supervision remain future
@@ -196,11 +198,23 @@ Example:
 
 ## Recommended Next Milestones
 
-1. Add per-tool permissions and action-specific policies on top of the approval UI.
-2. Add MCP health checks, timeouts, bounded restart/backoff, and server metrics.
-3. Build a fake-provider/fake-MCP end-to-end harness for fallback, denial, timeout, and crash cases.
-4. Complete real Windows voice hardware validation.
-5. Expand provider, extension, and multimodal integration tests.
+1. Install `job-worker` as a Windows Task Scheduler task or controlled service with heartbeat and restart policy.
+2. Persist job task IDs, retry history, cancellation, and structured output for operator inspection.
+3. Add semantic action metadata instead of relying on tool-name permission heuristics.
+4. Build a fake-provider/fake-MCP end-to-end harness for fallback, denial, timeout, and crash cases.
+5. Add subagents, sandboxed execution, multimodal input, and profile-aware memory.
+
+### Continuous background worker
+
+The worker runs due jobs continuously and shuts down cleanly with `Ctrl+C`:
+
+```powershell
+jarvis job-worker --poll-interval 5
+```
+
+For unattended Windows operation, create a Task Scheduler task that launches the command at
+logon or system startup. Keep unattended jobs restricted to read-only or explicitly approved
+policies; starting the worker does not bypass MCP permissions or TUI approval requirements.
 
 ## Requirements
 

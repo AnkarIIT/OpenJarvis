@@ -2,21 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import json
+import signal
 import subprocess
 import sys
-from pathlib import Path
+from contextlib import suppress
 
 import typer
 from rich.console import Console
 
-from jarvis.config.settings import load_settings, Settings
-from jarvis.config.installer import install
-from jarvis.skills.skill_manager import SkillManager
-from jarvis.skills.registry import SkillRegistry
-from jarvis.mcp.client import MCPClient
 from jarvis.agent.jobs import AgentJob, JobRunner, JobStore
+from jarvis.config.installer import install
+from jarvis.config.settings import load_settings
+from jarvis.mcp.client import MCPClient
+from jarvis.skills.registry import SkillRegistry
+from jarvis.skills.skill_manager import SkillManager
 from jarvis.tui.app import JarvisApp
-from jarvis.utils.logger import setup_file_logging, get_logger
+from jarvis.utils.logger import get_logger, setup_file_logging
 
 logger = get_logger(__name__)
 console = Console()
@@ -58,7 +59,7 @@ def main(
                 version_str = version_str[:17] + "..."
             console.print(f"  {provider:16} {status:20} {version_str:20} Models: {model_list}")
 
-        console.print(f"\n[bold cyan]Available Models to Install[/bold cyan]\n")
+        console.print("\n[bold cyan]Available Models to Install[/bold cyan]\n")
         for m in available:
             if m.get("recommended"):
                 tag = "[bold green][*][/bold green]" if m.get("ram_gb", 99) <= 8 else "[yellow][!][/yellow]"
@@ -184,17 +185,64 @@ def job_run_once():
         console.print(f"Job {job.job_id}: {job.status}")
 
 
-async def _consume_agent_run(loop, prompt: str) -> None:
-    async for _ in loop.run(prompt):
+@app.command("job-worker")
+def job_worker(
+    poll_interval: float = typer.Option(5.0, "--poll-interval", min=0.5, help="Seconds between polls"),
+):
+    """Run due background jobs continuously until interrupted."""
+    settings = load_settings()
+    stop_event = asyncio.Event()
+
+    def request_stop(_signum, _frame) -> None:
+        stop_event.set()
+
+    for signum in (signal.SIGINT, getattr(signal, "SIGTERM", signal.SIGINT)):
+        with suppress(ValueError):
+            signal.signal(signum, request_stop)
+
+    async def run_worker() -> None:
+        from jarvis.agent.loop import AgentLoop
+
+        loop = AgentLoop(settings)
+        await loop.initialize()
+        runner = JobRunner(
+            JobStore(settings.jobs_file),
+            lambda prompt: _consume_agent_run(loop, prompt),
+        )
+        console.print(f"[green]JARVIS job worker running[/green] (poll={poll_interval:.1f}s)")
+        try:
+            while not stop_event.is_set():
+                job = await runner.run_due_once()
+                if job is not None:
+                    console.print(f"Job {job.job_id}: {job.status}")
+                try:
+                    await asyncio.wait_for(stop_event.wait(), timeout=poll_interval)
+                except asyncio.TimeoutError:
+                    pass
+        finally:
+            await loop.mcp.disconnect_all()
+            console.print("[yellow]JARVIS job worker stopped[/yellow]")
+
+    try:
+        asyncio.run(run_worker())
+    except KeyboardInterrupt:
         pass
+
+
+async def _consume_agent_run(loop, prompt: str) -> str:
+    chunks: list[str] = []
+    async for chunk in loop.run(prompt):
+        chunks.append(chunk)
+    return "".join(chunks)
 
 
 @app.command()
 def doctor(json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON")):
     """Check system health"""
+    from rich.table import Table
+
     from jarvis.utils.detectors import detect_all_local_ai, get_system_info
     from jarvis.utils.health import build_health_report
-    from rich.table import Table
 
     settings = load_settings()
     if json_output:
