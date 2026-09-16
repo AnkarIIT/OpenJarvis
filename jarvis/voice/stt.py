@@ -8,13 +8,21 @@ import zipfile
 from pathlib import Path
 from typing import Optional
 
-import sounddevice as sd
+try:
+    import sounddevice as sd
+except (ImportError, OSError):
+    sd = None
 import numpy as np
 
 from jarvis.config.settings import Settings
 from jarvis.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _require_audio_backend() -> None:
+    if sd is None:
+        raise RuntimeError("Audio input is unavailable: install PortAudio and sounddevice")
 
 # Pre-defined model URLs for auto-download
 _VOSK_MODELS = {
@@ -110,6 +118,7 @@ class VoskSTT:
             return False
 
     async def listen_once(self, timeout: float = 10.0) -> str:
+        _require_audio_backend()
         if not await self._ensure_model():
             return ""
 
@@ -190,6 +199,7 @@ class WhisperSTT:
             return False
 
     async def listen_once(self, timeout: float = 10.0) -> str:
+        _require_audio_backend()
         if not await self._ensure_model():
             return ""
 
@@ -262,6 +272,7 @@ class SarvamSTT:
         self.sample_rate = settings.voice.sample_rate
 
     async def listen_once(self, timeout: float = 10.0) -> str:
+        _require_audio_backend()
         if not self.api_key:
             logger.warning("Sarvam STT: API key not set")
             return ""
