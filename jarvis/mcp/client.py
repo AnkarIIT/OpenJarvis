@@ -76,6 +76,22 @@ class MCPClient:
                     servers[name] = config
         return servers
 
+    @classmethod
+    def configured_servers(cls, settings: Settings) -> dict[str, dict[str, Any]]:
+        return dict(settings.mcp.servers)
+
+    @classmethod
+    def add_server(cls, settings: Settings, name: str, command: str, args: list[str]) -> None:
+        if not name.strip() or name in {".", ".."} or "/" in name or "\\" in name:
+            raise ValueError("MCP server name must be a simple non-empty name")
+        if name in settings.mcp.servers:
+            raise ValueError(f"MCP server already exists: {name}")
+        settings.mcp.servers[name] = {"command": command, "args": args, "env": {}}
+
+    @classmethod
+    def remove_server(cls, settings: Settings, name: str) -> bool:
+        return settings.mcp.servers.pop(name, None) is not None
+
     async def connect_all(self) -> None:
         servers = self._resolve_servers()
         for server_name, config in servers.items():

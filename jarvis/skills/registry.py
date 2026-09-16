@@ -116,6 +116,10 @@ class SkillRegistry:
 
     async def enable_skill(self, name: str) -> bool:
         ok = await self.loader.enable_skill(name)
+        if not ok and name in self._builtin_names():
+            if name not in self.settings.skills.enabled:
+                self.settings.skills.enabled.append(name)
+            ok = True
         if ok:
             try:
                 from jarvis.config.settings import save_settings
@@ -126,6 +130,10 @@ class SkillRegistry:
 
     async def disable_skill(self, name: str) -> bool:
         ok = await self.loader.disable_skill(name)
+        if not ok and name in self._builtin_names():
+            if name in self.settings.skills.enabled:
+                self.settings.skills.enabled.remove(name)
+            ok = True
         if ok:
             try:
                 from jarvis.config.settings import save_settings
@@ -147,3 +155,11 @@ class SkillRegistry:
 
     def list_skills(self) -> list[Skill]:
         return list(self.loader.skills.values())
+
+    @staticmethod
+    def _builtin_names() -> set[str]:
+        return {
+            "system_monitor", "code_assistant", "memory", "voice_control",
+            "browser", "predictive", "autonomous", "traffic_camera",
+            "multisensory", "instant_learning", "emotional",
+        }

@@ -152,6 +152,7 @@ class Settings(BaseSettings):
             proj_root / "jarvis" / "skills" / "external",
             proj_root / "skills",
         ]
+        candidates.extend(Path(os.path.expanduser(p)) for p in self.skills.paths)
         for p in candidates:
             if p.exists():
                 paths.append(p.resolve())

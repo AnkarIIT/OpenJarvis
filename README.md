@@ -214,7 +214,31 @@ jarvis/
 ### MCP Server CLI
 
 All MCP servers accept flags via argparse:
-```bash
+```
+
+### Extensions
+
+JARVIS supports user-installed skills and configured MCP servers:
+
+```powershell
+jarvis list-skills
+jarvis search-skills browser
+jarvis add-skill .\my-skill
+jarvis add-skill https://github.com/example/jarvis-skill.git
+jarvis enable-skill my-skill
+jarvis disable-skill my-skill
+jarvis remove-skill my-skill
+
+jarvis add-mcp my-server python --arg -m --arg my_mcp_server
+jarvis list-mcp
+jarvis remove-mcp my-server
+jarvis list-tools
+```
+
+Skills must contain `SKILL.md` or `skill.yaml`. User skills are installed under
+`~/.jarvis/skills/` and can declare commands through a Python `skill.py` module.
+MCP servers are stored in `~/.jarvis/config.json`; dangerous servers should be
+added explicitly rather than enabled through automatic discovery.bash
 jarvis-mcp-filesystem --root /path/to/project
 jarvis-mcp-terminal --allow ls,cat,git
 jarvis-mcp-git --repo /path/to/repo

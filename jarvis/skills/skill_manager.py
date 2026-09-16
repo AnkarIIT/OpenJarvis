@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import shutil
+import tempfile
+from urllib.parse import urlparse
 from pathlib import Path
 from typing import Any
 
@@ -104,6 +107,52 @@ class SkillManager:
                 self._install_mcp_server(server)
 
         logger.info(f"Skill '{skill_name}' installed successfully!")
+        return True
+
+    def add(self, source: str, name: str | None = None) -> Path:
+        """Add a local skill directory or clone a Git repository into user skills."""
+        destination_root = Path.home() / ".jarvis" / "skills"
+        destination_root.mkdir(parents=True, exist_ok=True)
+        source_path = Path(source).expanduser()
+        is_git = bool(urlparse(source).scheme in {"http", "https", "git", "ssh"}) or source.startswith("git@")
+
+        if is_git:
+            target_name = name or Path(urlparse(source).path).stem.removesuffix(".git")
+            if not target_name:
+                raise ValueError("A skill name is required for this repository URL")
+            self._validate_name(target_name)
+            destination = destination_root / target_name
+            if destination.exists():
+                raise FileExistsError(f"Skill directory already exists: {destination}")
+            subprocess.run(["git", "clone", source, str(destination)], check=True)
+        else:
+            if not source_path.is_dir():
+                raise FileNotFoundError(f"Skill directory not found: {source_path}")
+            target_name = name or source_path.name
+            self._validate_name(target_name)
+            destination = destination_root / target_name
+            if destination.exists():
+                raise FileExistsError(f"Skill directory already exists: {destination}")
+            shutil.copytree(source_path, destination)
+
+        manifest = destination / "SKILL.md"
+        yaml_manifest = destination / "skill.yaml"
+        if not manifest.exists() and not yaml_manifest.exists():
+            shutil.rmtree(destination, ignore_errors=True)
+            raise ValueError("Skill must contain SKILL.md or skill.yaml")
+        return destination
+
+    @staticmethod
+    def _validate_name(name: str) -> None:
+        if not name or name in {".", ".."} or Path(name).name != name:
+            raise ValueError("Skill name must be a single directory name")
+
+    def remove(self, skill_name: str) -> bool:
+        self._validate_name(skill_name)
+        destination = Path.home() / ".jarvis" / "skills" / skill_name
+        if not destination.is_dir():
+            return False
+        shutil.rmtree(destination)
         return True
 
     def _find_skill(self, name: str) -> dict[str, Any] | None:
