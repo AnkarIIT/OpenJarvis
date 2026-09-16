@@ -15,6 +15,7 @@ class AgentTask:
     started_at: str | None = None
     completed_at: str | None = None
     error: str | None = None
+    steps: list[dict[str, Any]] = field(default_factory=list)
 
     def start(self) -> None:
         self.status = "running"
@@ -25,6 +26,9 @@ class AgentTask:
         self.error = error
         self.completed_at = datetime.now(timezone.utc).isoformat()
 
+    def add_step(self, phase: str, detail: str, status: str = "completed") -> None:
+        self.steps.append({"phase": phase, "detail": detail, "status": status})
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "task_id": self.task_id,
@@ -32,6 +36,7 @@ class AgentTask:
             "started_at": self.started_at,
             "completed_at": self.completed_at,
             "error": self.error,
+            "steps": self.steps,
         }
 
 
@@ -57,4 +62,5 @@ class TaskStore:
             started_at=data.get("started_at"),
             completed_at=data.get("completed_at"),
             error=data.get("error"),
+            steps=data.get("steps", []),
         )

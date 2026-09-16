@@ -74,6 +74,9 @@ class AgentLoop:
             self.task_store.save(task)
 
     async def _run(self, user_input: str, voice_mode: bool = False) -> AsyncGenerator[str, None]:
+        if self.current_task:
+            self.current_task.add_step("plan", "Analyze request and select tools")
+            self.task_store.save(self.current_task)
         await self._add_user_message(user_input)
 
         original_input = user_input
@@ -150,7 +153,17 @@ class AgentLoop:
             for call in tool_calls:
                 tool_name = call["name"]
                 tool_args = call.get("arguments", {})
+                if self.current_task:
+                    self.current_task.add_step("execute", f"Run tool {tool_name}", "running")
                 result = await self._execute_tool(tool_name, tool_args)
+                if self.current_task:
+                    step_status = "failed" if isinstance(result, dict) and result.get("error") else "completed"
+                    self.current_task.add_step(
+                        "verify",
+                        f"Verify result from {tool_name}",
+                        step_status,
+                    )
+                    self.task_store.save(self.current_task)
                 tool_results.append({"tool": tool_name, "result": result})
                 messages.append({
                     "role": "tool",

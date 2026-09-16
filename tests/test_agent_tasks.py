@@ -1,6 +1,7 @@
 import pytest
 
 from jarvis.agent.loop import AgentLoop
+from jarvis.agent.tasks import AgentTask
 from jarvis.config.settings import Settings
 
 
@@ -18,6 +19,14 @@ async def test_agent_run_records_completed_task(monkeypatch):
     assert loop.last_task is not None
     assert loop.last_task.status == "completed"
     assert loop.last_task.task_id
+
+
+def test_agent_task_records_phases():
+    task = AgentTask()
+    task.add_step("plan", "select tools")
+    task.add_step("execute", "run tool")
+    task.add_step("verify", "check result")
+    assert [step["phase"] for step in task.steps] == ["plan", "execute", "verify"]
 
 
 @pytest.mark.asyncio
