@@ -5,18 +5,30 @@
 $ErrorActionPreference = "Stop"
 
 function Find-Python {
-    $commands = @("py", "python")
-    foreach ($command in $commands) {
-        $candidate = Get-Command $command -ErrorAction SilentlyContinue
-        if ($candidate) {
-            try {
-                & $command -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"
-                if ($LASTEXITCODE -eq 0) {
-                    return $command
+    $candidates = @(
+        @{ command = "py"; args = @("-3.12") },
+        @{ command = "py"; args = @("-3.13") },
+        @{ command = "py"; args = @("-3.11") },
+        @{ command = "py"; args = @("-3.10") },
+        @{ command = "python"; args = @() }
+    )
+    foreach ($candidate in $candidates) {
+        if (-not (Get-Command $candidate.command -ErrorAction SilentlyContinue)) {
+            continue
+        }
+        try {
+            & $candidate.command @($candidate.args) -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"
+            if ($LASTEXITCODE -eq 0) {
+                if ($candidate.args.Count -gt 0) {
+                    $pythonPath = (& $candidate.command @($candidate.args) -c "import sys; print(sys.executable)").Trim()
+                    if ($pythonPath) {
+                        return $pythonPath
+                    }
                 }
-            } catch {
-                continue
+                return (Get-Command $candidate.command).Source
             }
+        } catch {
+            continue
         }
     }
     return $null
