@@ -8,6 +8,7 @@ from typing import Any
 from jarvis.config.settings import Settings
 from jarvis.mcp.client import MCPClient
 from jarvis.utils.detectors import detect_all_local_ai, get_system_info
+from jarvis.agent.llm_client import LLMClient
 
 
 CORE_IMPORTS = {
@@ -26,6 +27,7 @@ def build_health_report(settings: Settings) -> dict[str, Any]:
         for name, module in CORE_IMPORTS.items()
     }
     servers = MCPClient(settings)._resolve_servers()
+    llm = LLMClient(settings)
     return {
         "status": "ok" if all(dependencies.values()) else "degraded",
         "runtime": {
@@ -35,6 +37,12 @@ def build_health_report(settings: Settings) -> dict[str, Any]:
         },
         "dependencies": dependencies,
         "providers": providers,
+        "llm": {
+            "configured_provider": settings.llm.provider,
+            "configured_model": settings.llm.model,
+            "active_provider": llm.provider_name,
+            "observability": llm.observability,
+        },
         "mcp": {
             "configured": sorted(settings.mcp.servers),
             "eligible_servers": sorted(servers),

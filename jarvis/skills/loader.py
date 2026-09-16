@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import yaml
+import platform
 from pathlib import Path
 from typing import Any
 from dataclasses import dataclass
@@ -60,8 +61,11 @@ class SkillLoader:
             content = skill_file.read_text(encoding="utf-8")
             config = yaml.safe_load(content)
 
+        if not isinstance(config, dict):
+            raise ValueError("skill manifest must contain a YAML object")
         if not config:
             return None
+        self._validate_manifest(config, skill_dir)
 
         enabled = config.get("name", "") in self.settings.skills.enabled
 
@@ -74,6 +78,21 @@ class SkillLoader:
             path=skill_dir,
             config=config,
         )
+
+    @staticmethod
+    def _validate_manifest(config: dict[str, Any], skill_dir: Path) -> None:
+        name = config.get("name", skill_dir.name)
+        if not isinstance(name, str) or not name or "/" in name or "\\" in name:
+            raise ValueError("skill name must be a simple non-empty name")
+        if "permissions" in config and not isinstance(config["permissions"], list):
+            raise ValueError("permissions must be a list")
+        if "platforms" in config and not isinstance(config["platforms"], list):
+            raise ValueError("platforms must be a list")
+        if "dependencies" in config and not isinstance(config["dependencies"], list):
+            raise ValueError("dependencies must be a list")
+        platforms = config.get("platforms", [])
+        if platforms and platform.system().lower() not in {str(p).lower() for p in platforms}:
+            raise ValueError(f"skill is not supported on {platform.system().lower()}")
 
     def _parse_skill_md(self, content: str) -> dict[str, Any]:
         lines = content.split("\n")

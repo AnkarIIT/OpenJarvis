@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import random
+import time
 import uuid
 from pathlib import Path
 from typing import Any, AsyncGenerator
@@ -512,6 +513,15 @@ class LLMClient:
         self._max_retries = 3
         self._base_delay = 1.0
         self._detected_provider: str | None = None
+        self.observability: dict[str, Any] = {
+            "active_provider": None,
+            "model": settings.llm.model,
+            "attempts": 0,
+            "retries": 0,
+            "fallbacks": 0,
+            "last_error": None,
+            "last_latency_ms": None,
+        }
 
     async def _with_retry_generator(self, gen_factory):
         """Retry an async generator factory on transient failures.
@@ -541,6 +551,7 @@ class LLMClient:
                 )
                 if not retryable or attempt == self._max_retries:
                     raise
+                self.observability["retries"] += 1
                 delay = self._base_delay * (2 ** (attempt - 1)) + random.uniform(0, 0.5)
                 logger.warning(
                     "LLM attempt %s/%s failed: %s. Retrying in %.1fs",
@@ -654,6 +665,9 @@ class LLMClient:
     ) -> AsyncGenerator[Any, None]:
         # Resolve provider (with auto-detection)
         provider = await self._detect_or_resolve()
+        self.observability["active_provider"] = provider
+        self.observability["model"] = self.settings.llm.model
+        started = time.perf_counter()
         logger.debug(f"LLM provider resolved: {provider}")
 
         # Prefer smaller models for lower latency if configured
@@ -678,14 +692,20 @@ class LLMClient:
             was_auto = self.settings.llm.provider in ("auto",) and provider != self.settings.llm.provider
 
             try:
+                self.observability["attempts"] += 1
                 async for chunk in self._with_retry_generator(
                     lambda: handler(self.settings, messages, tools, stream)
                 ):
                     yield chunk
+                self.observability["last_latency_ms"] = round(
+                    (time.perf_counter() - started) * 1000, 2
+                )
             except Exception as e:
+                self.observability["last_error"] = str(e)
                 if was_auto:
                     # Auto-detected provider failed — try fallback
-                    logger.error(f"LLM provider {provider} failed: {e}")
+                    self.observability["fallbacks"] += 1
+                    logger.error(f"LLM provider {provider} failed; attempting fallback: {e}")
                     async for chunk in _chat_fallback(self.settings, messages, tools, stream):
                         yield chunk
                 else:
