@@ -103,6 +103,9 @@ and diagnostics are implemented and covered by automated tests. The latest local
 
 - Chat and stream responses through Ollama, llama.cpp/GGUF, LM Studio, LocalAI, OpenAI-compatible
   APIs, and Anthropic when configured.
+- Reply in the language used by the user when language auto-detection is enabled. A fixed response
+  language can also be configured with `voice.language` or the `language` skill command. Voice
+  recognition quality still depends on the selected STT engine and its installed language model.
 - Detect providers, retry some transient failures, and expose provider diagnostics.
 - Execute structured LLM tool calls through the agent loop.
 - Provide a Textual terminal interface and CLI commands for setup, diagnostics, permissions, models,

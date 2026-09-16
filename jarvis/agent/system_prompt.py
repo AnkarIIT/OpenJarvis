@@ -61,7 +61,24 @@ JARVIS_VOICE_PROMPT = """You are JARVIS in voice mode. Keep responses:
 Address the user as "Sir" naturally, not robotically.
 """
 
-def get_system_prompt(voice_mode: bool = False) -> str:
+def get_system_prompt(
+    voice_mode: bool = False,
+    language: str = "en-IN",
+    language_detection: bool = True,
+) -> str:
+    if language_detection or language.lower() in {"auto", "unknown"}:
+        language_instruction = (
+            "\n\n## Language\n"
+            "Detect the language used in the user's latest message and reply in that same language. "
+            "Do not translate unless the user asks. Keep tool arguments and code in the format "
+            "required by the tool, but explain results in the user's language."
+        )
+    else:
+        language_instruction = (
+            f"\n\n## Language\nReply in {language} unless the user explicitly requests another language."
+        )
+
+    prompt = JARVIS_SYSTEM_PROMPT + language_instruction
     if voice_mode:
-        return JARVIS_SYSTEM_PROMPT + "\n\n" + JARVIS_VOICE_PROMPT
-    return JARVIS_SYSTEM_PROMPT
+        return prompt + "\n\n" + JARVIS_VOICE_PROMPT
+    return prompt

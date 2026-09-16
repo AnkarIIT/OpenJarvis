@@ -123,7 +123,14 @@ class AgentLoop:
                 yield f"\n[Tool {tool_name} completed]\n"
 
     def _build_messages(self, voice_mode: bool) -> list[dict[str, Any]]:
-        messages = [{"role": "system", "content": get_system_prompt(voice_mode)}]
+        messages = [{
+            "role": "system",
+            "content": get_system_prompt(
+                voice_mode,
+                language=self.settings.voice.language,
+                language_detection=self.settings.voice.language_detection,
+            ),
+        }]
         messages.extend(self.conversation_history[-self.max_history:])
         return messages
 
