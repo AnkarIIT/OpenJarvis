@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import shlex
+import os
 from pathlib import Path
 from typing import Any
 
@@ -55,8 +56,10 @@ def _build_tools() -> list[Tool]:
 
 
 class TerminalMCPServer:
-    def __init__(self, allowed_commands: list[str] | None = None):
+    def __init__(self, allowed_commands: list[str] | None = None, root_path: str = "."):
         self.allowed = set(allowed_commands) if allowed_commands else ALLOWED_COMMANDS
+        self.root = Path(root_path).expanduser().resolve()
+        self.processes: dict[int, asyncio.subprocess.Process] = {}
         self.server = Server(
             "terminal",
             on_list_tools=self._list_tools,
@@ -82,21 +85,36 @@ class TerminalMCPServer:
             return {"content": [TextContent(type="text", text=f"Error: {str(e)}")]}
 
     def _is_allowed(self, command: str) -> bool:
-        parts = shlex.split(command)
+        if any(token in command for token in (";", "&", "|", ">", "<", "`", "$", "\n", "\r")):
+            return False
+        try:
+            parts = shlex.split(command, posix=os.name != "nt")
+        except ValueError:
+            return False
         if not parts:
             return False
-        base_cmd = parts[0].split("/")[-1]
+        base_cmd = Path(parts[0]).name.lower()
+        if base_cmd.endswith(".exe"):
+            base_cmd = base_cmd[:-4]
         return base_cmd in self.allowed
+
+    def _resolve_cwd(self, cwd: str) -> Path:
+        resolved = (self.root / cwd).resolve() if not Path(cwd).is_absolute() else Path(cwd).resolve()
+        if not resolved.is_relative_to(self.root):
+            raise ValueError("Working directory is outside the terminal root")
+        if not resolved.is_dir():
+            raise ValueError("Working directory does not exist")
+        return resolved
 
     async def _run_command(self, command: str, cwd: str, timeout: int) -> dict[str, Any]:
         if not self._is_allowed(command):
             return {"content": [TextContent(type="text", text=f"Command not allowed: {command}")]}
 
         try:
-            cwd_path = Path(cwd).expanduser().resolve()
-            process = await asyncio.create_subprocess_shell(
-                command,
-                cwd=cwd_path,
+            parts = shlex.split(command, posix=os.name != "nt")
+            process = await asyncio.create_subprocess_exec(
+                *parts,
+                cwd=self._resolve_cwd(cwd),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -126,14 +144,15 @@ class TerminalMCPServer:
             return {"content": [TextContent(type="text", text=f"Command not allowed: {command}")]}
 
         try:
-            cwd_path = Path(cwd).expanduser().resolve()
-            process = await asyncio.create_subprocess_shell(
-                command,
-                cwd=cwd_path,
+            parts = shlex.split(command, posix=os.name != "nt")
+            process = await asyncio.create_subprocess_exec(
+                *parts,
+                cwd=self._resolve_cwd(cwd),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 start_new_session=True,
             )
+            self.processes[process.pid] = process
             return {"content": [TextContent(type="text", text=f"Started background process (PID: {process.pid})")]}
 
         except Exception as e:

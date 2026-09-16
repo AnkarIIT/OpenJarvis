@@ -61,6 +61,8 @@ class SkillRegistry:
         ]
 
         for skill in builtin_skills:
+            if skill.name not in self.settings.skills.enabled:
+                continue
             self.skill_instances[skill.name] = skill
             await skill.initialize(self.settings)
             self._register_skill_commands(skill)

@@ -32,7 +32,7 @@ def main(
     debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode"),
 ):
     """JARVIS Terminal Agent"""
-    settings = load_settings()
+    settings = load_settings(config_path)
 
     if list_models:
         from jarvis.utils.detectors import detect_all_local_ai, get_available_models

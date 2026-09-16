@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import random
+import uuid
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -10,6 +11,12 @@ from jarvis.config.settings import Settings
 from jarvis.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+def _openai_base_url(settings: Settings, provider_name: str | None = None) -> str:
+    base_url = settings.llm.base_url.rstrip("/")
+    if (provider_name or settings.llm.provider) == "openai" and not base_url.endswith("/v1"):
+        base_url = f"{base_url}/v1"
+    return base_url
 
 # Provider priority order for auto-detection.
 # When provider == "auto", LLMClient probes these in order and uses the first that responds.
@@ -28,7 +35,7 @@ async def _chat_ollama(
     messages: list[dict[str, Any]],
     tools: list[dict[str, Any]] | None,
     stream: bool,
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[Any, None]:
     """Chat via Ollama HTTP API."""
     try:
         import ollama
@@ -55,7 +62,7 @@ async def _chat_ollama(
                     for tool_call in chunk["message"]["tool_calls"]:
                         name = tool_call["function"]["name"]
                         args = tool_call["function"].get("arguments", {})
-                        yield f"\n[TOOL_CALL: {name}|{json.dumps(args)}]"
+                        yield {"type": "tool_call", "id": str(uuid.uuid4()), "name": name, "arguments": args}
         else:
             response = await client.chat(
                 model=settings.llm.model,
@@ -73,7 +80,7 @@ async def _chat_ollama(
                 for tool_call in response["message"]["tool_calls"]:
                     name = tool_call["function"]["name"]
                     args = tool_call["function"].get("arguments", {})
-                    yield f"\n[TOOL_CALL: {name}|{json.dumps(args)}]"
+                    yield {"type": "tool_call", "id": str(uuid.uuid4()), "name": name, "arguments": args}
     except Exception as e:
         logger.error(f"Ollama chat error: {e}")
         yield f"\n[Error: {str(e)}]"
@@ -84,7 +91,7 @@ async def _chat_llama_cpp(
     messages: list[dict[str, Any]],
     tools: list[dict[str, Any]] | None,
     stream: bool,
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[Any, None]:
     """Chat via llama-cpp-python (direct GGUF model inference)."""
     try:
         from llama_cpp import Llama
@@ -161,7 +168,7 @@ async def _chat_openai_compatible(
     tools: list[dict[str, Any]] | None,
     stream: bool,
     provider_name: str,
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[Any, None]:
     """Chat via any OpenAI-compatible API (LM Studio, LocalAI, OpenAI).
 
     provider_name is used for error messages to help debugging.
@@ -172,13 +179,11 @@ async def _chat_openai_compatible(
         yield f"[{provider_name} error: httpx not installed. Run: pip install httpx]"
         return
 
-    base_url = settings.llm.base_url
-    api_key = settings.llm.api_key or "not-needed"
+    base_url = _openai_base_url(settings, provider_name)
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
-    }
+    headers = {"Content-Type": "application/json"}
+    if settings.llm.api_key:
+        headers["Authorization"] = f"Bearer {settings.llm.api_key}"
 
     # Convert tools to OpenAI format if present
     openai_tools = None
@@ -217,6 +222,7 @@ async def _chat_openai_compatible(
                         text = await resp.aread()
                         yield f"[{provider_name} error: HTTP {resp.status_code} - {text.decode()[:200]}]"
                         return
+                    streamed_calls: dict[int, dict[str, Any]] = {}
                     async for line in resp.aiter_lines():
                         line = line.strip()
                         if not line or line == "data: [DONE]":
@@ -233,12 +239,26 @@ async def _chat_openai_compatible(
                         delta = choices[0].get("delta", {})
                         if delta.get("content"):
                             yield delta["content"]
-                        if delta.get("tool_calls"):
-                            for tc in delta["tool_calls"]:
-                                fn = tc.get("function", {})
-                                name = fn.get("name", "")
-                                args = fn.get("arguments", "")
-                                yield f"\n[TOOL_CALL: {name}|{args}"
+                        for tc in delta.get("tool_calls", []):
+                            index = tc.get("index", 0)
+                            call = streamed_calls.setdefault(
+                                index,
+                                {"id": tc.get("id") or str(uuid.uuid4()), "name": "", "arguments": ""},
+                            )
+                            fn = tc.get("function", {})
+                            call["name"] += fn.get("name", "")
+                            call["arguments"] += fn.get("arguments", "")
+                    for call in streamed_calls.values():
+                        try:
+                            arguments = json.loads(call["arguments"] or "{}")
+                        except json.JSONDecodeError:
+                            arguments = {}
+                        yield {
+                            "type": "tool_call",
+                            "id": call["id"],
+                            "name": call["name"],
+                            "arguments": arguments,
+                        }
             else:
                 resp = await http.post(
                     f"{base_url.rstrip('/')}/chat/completions",
@@ -258,7 +278,7 @@ async def _chat_openai_compatible(
                             fn = tc.get("function", {})
                             name = fn.get("name", "")
                             args = fn.get("arguments", {})
-                            yield f"\n[TOOL_CALL: {name}|{json.dumps(args)}]"
+                            yield {"type": "tool_call", "id": tc.get("id") or str(uuid.uuid4()), "name": name, "arguments": args}
     except Exception as e:
         logger.error(f"{provider_name} chat error: {e}")
         yield f"\n[Error: {str(e)}]"
@@ -269,7 +289,7 @@ async def _chat_anthropic(
     messages: list[dict[str, Any]],
     tools: list[dict[str, Any]] | None,
     stream: bool,
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[Any, None]:
     """Chat via Anthropic Claude API."""
     try:
         import anthropic
@@ -347,7 +367,7 @@ async def _chat_fallback(
     messages: list[dict[str, Any]],
     tools: list[dict[str, Any]] | None,
     stream: bool,
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[Any, None]:
     """Fallback that auto-detects an available provider."""
     detected = await detect_provider(settings)
     if detected == "ollama":
@@ -392,15 +412,15 @@ async def _probe_provider(settings: Settings, provider: str) -> bool:
 
         elif provider in ("lm_studio", "localai", "openai"):
             import httpx
-            base = settings.llm.base_url
-            if provider == "openai":
-                base = base or "https://api.openai.com/v1"
+            base = settings.llm.base_url or "https://api.openai.com/v1"
+            if provider == "openai" and not base.rstrip("/").endswith("/v1"):
+                base = f"{base.rstrip('/')}/v1"
             async with httpx.AsyncClient(timeout=5) as http:
                 # Check models endpoint
                 headers = {}
                 if settings.llm.api_key:
                     headers["Authorization"] = f"Bearer {settings.llm.api_key}"
-                resp = await http.get(f"{base.rstrip('/')}/v1/models", headers=headers)
+                resp = await http.get(f"{base.rstrip('/')}/models", headers=headers)
                 if resp.status_code == 200:
                     data = resp.json()
                     models = data.get("data", [])
@@ -631,7 +651,7 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         stream: bool = True,
-    ) -> AsyncGenerator[str, None]:
+    ) -> AsyncGenerator[Any, None]:
         # Resolve provider (with auto-detection)
         provider = await self._detect_or_resolve()
         logger.debug(f"LLM provider resolved: {provider}")
@@ -695,15 +715,15 @@ class LLMClient:
                 return []
         elif provider in ("lm_studio", "localai", "openai"):
             import httpx
-            base = self.settings.llm.base_url
-            if provider == "openai":
-                base = base or "https://api.openai.com/v1"
+            base = self.settings.llm.base_url or "https://api.openai.com/v1"
+            if provider == "openai" and not base.rstrip("/").endswith("/v1"):
+                base = f"{base.rstrip('/')}/v1"
             headers = {}
             if self.settings.llm.api_key:
-                headers["Authorization"] = f"Bearer {self.settings.llm.api_key}"
+                headers["Authorization"] = f"Bearer {settings.llm.api_key}"
             try:
                 async with httpx.AsyncClient(timeout=10) as http:
-                    resp = await http.get(f"{base.rstrip('/')}/v1/models", headers=headers)
+                    resp = await http.get(f"{base.rstrip('/')}/models", headers=headers)
                     if resp.status_code == 200:
                         data = resp.json()
                         return [m["id"] for m in data.get("data", [])]

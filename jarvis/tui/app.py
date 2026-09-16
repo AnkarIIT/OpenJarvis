@@ -167,6 +167,8 @@ class JarvisApp(App):
         if self.voice_pipeline:
             await self.voice_pipeline.stop()
 
+        await self.agent_loop.mcp.disconnect_all()
+
         for skill in self.skill_registry.skill_instances.values():
             if hasattr(skill, "_stop") and callable(skill._stop):
                 try:

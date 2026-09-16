@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import inspect
 import json
-import uuid
 from typing import Any, AsyncGenerator
 
 from jarvis.agent.llm_client import LLMClient
@@ -40,13 +39,16 @@ class AgentLoop:
     async def run(self, user_input: str, voice_mode: bool = False) -> AsyncGenerator[str, None]:
         await self._add_user_message(user_input)
 
+        original_input = user_input
         if self.memory:
-            relevant_memories = await self.memory.search(user_input, limit=3)
+            relevant_memories = await self.memory.search(original_input, limit=3)
             if relevant_memories:
                 memory_context = "\n".join([f"- {m['content']}" for m in relevant_memories])
                 user_input = f"[Relevant memories:\n{memory_context}]\n\n{user_input}"
 
         messages = self._build_messages(voice_mode)
+        if user_input != original_input:
+            messages[-1] = {"role": "user", "content": user_input}
 
         tool_results = []
         max_iterations = 5
@@ -64,7 +66,9 @@ class AgentLoop:
             tool_calls = []
 
             async for chunk in self.llm.chat(messages, tool_schemas, stream=True):
-                if chunk.startswith("[TOOL_CALL:") and chunk.endswith("]"):
+                if isinstance(chunk, dict) and chunk.get("type") == "tool_call":
+                    tool_calls.append(chunk)
+                elif isinstance(chunk, str) and chunk.startswith("[TOOL_CALL:") and chunk.endswith("]"):
                     payload = chunk[len("[TOOL_CALL: "):-1]
                     if "|" in payload:
                         tool_name, raw_args = payload.split("|", 1)
@@ -75,7 +79,11 @@ class AgentLoop:
                     else:
                         tool_name = payload
                         tool_args = {}
-                    tool_calls.append((tool_name, tool_args))
+                    tool_calls.append({
+                        "id": str(len(tool_calls)),
+                        "name": tool_name,
+                        "arguments": tool_args,
+                    })
                 else:
                     full_response += chunk
                     yield chunk
@@ -86,15 +94,30 @@ class AgentLoop:
                     await self.memory.add_memory(user_input, full_response)
                 break
 
-            messages.append({"role": "assistant", "content": full_response, "tool_calls": []})
+            messages.append({
+                "role": "assistant",
+                "content": full_response or None,
+                "tool_calls": [
+                    {
+                        "id": call["id"],
+                        "type": "function",
+                        "function": {
+                            "name": call["name"],
+                            "arguments": json.dumps(call.get("arguments", {})),
+                        },
+                    }
+                    for call in tool_calls
+                ],
+            })
 
-            for tool_name, tool_args in tool_calls:
+            for call in tool_calls:
+                tool_name = call["name"]
+                tool_args = call.get("arguments", {})
                 result = await self._execute_tool(tool_name, tool_args)
                 tool_results.append({"tool": tool_name, "result": result})
                 messages.append({
                     "role": "tool",
-                    "tool_call_id": str(uuid.uuid4()),
-                    "name": tool_name,
+                    "tool_call_id": call["id"],
                     "content": json.dumps(result),
                 })
                 yield f"\n[Tool {tool_name} completed]\n"

@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import uuid
+from contextlib import AsyncExitStack
 from pathlib import Path
 from typing import Any
 
@@ -62,6 +63,7 @@ class MCPClient:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.sessions: dict[str, ClientSession] = {}
+        self._stacks: dict[str, AsyncExitStack] = {}
         self.tools: list[MCPTool] = []
         self.is_connected = False
 
@@ -102,24 +104,28 @@ class MCPClient:
                 env=env,
             )
 
-            async with stdio_client(server_params) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
-                    await session.initialize()
+            stack = AsyncExitStack()
+            read_stream, write_stream = await stack.enter_async_context(stdio_client(server_params))
+            session = await stack.enter_async_context(ClientSession(read_stream, write_stream))
+            await session.initialize()
 
-                    tools_result = await session.list_tools()
-                    for tool in tools_result.tools:
-                        self.tools.append(MCPTool(
-                            name=tool.name,
-                            description=tool.description,
-                            input_schema=tool.inputSchema,
-                            server_name=name,
-                        ))
+            tools_result = await session.list_tools()
+            for tool in tools_result.tools:
+                self.tools.append(MCPTool(
+                    name=tool.name,
+                    description=tool.description or "",
+                    input_schema=tool.inputSchema,
+                    server_name=name,
+                ))
 
-                    self.sessions[name] = session
-                    logger.info(f"Connected to MCP server: {name} ({len(tools_result.tools)} tools)")
-                    return True
+            self.sessions[name] = session
+            self._stacks[name] = stack
+            logger.info(f"Connected to MCP server: {name} ({len(tools_result.tools)} tools)")
+            return True
 
         except Exception as e:
+            if "stack" in locals():
+                await stack.aclose()
             logger.error(f"Failed to connect to MCP server '{name}': {e}")
             return False
 
@@ -156,11 +162,12 @@ class MCPClient:
         return self.tools
 
     async def disconnect_all(self) -> None:
-        for name, session in self.sessions.items():
+        for name in list(self._stacks):
             try:
-                await session.__aexit__(None, None, None)
+                await self._stacks[name].aclose()
             except Exception as e:
                 logger.error(f"Error disconnecting {name}: {e}")
         self.sessions.clear()
+        self._stacks.clear()
         self.tools.clear()
         self.is_connected = False

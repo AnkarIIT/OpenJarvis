@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 from typing import Any, Literal
 
@@ -238,10 +239,25 @@ class Settings(BaseSettings):
         return super().model_dump_json(**kwargs)
 
 
-def load_settings() -> Settings:
-    return Settings()
+def load_settings(config_path: str | Path | None = None) -> Settings:
+    settings = Settings()
+    path = Path(config_path).expanduser() if config_path else settings.config_file
+    if not path.exists():
+        return settings
+
+    try:
+        stored = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(stored, dict):
+            raise ValueError("configuration root must be an object")
+        return Settings.model_validate(
+            {**settings.model_dump(), **stored}
+        )
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        raise RuntimeError(f"Failed to load configuration from {path}: {exc}") from exc
 
 
 def save_settings(settings: Settings) -> None:
     settings.config_dir.mkdir(parents=True, exist_ok=True)
-    settings.config_file.write_text(settings.model_dump_json(indent=2))
+    temporary = settings.config_file.with_suffix(".json.tmp")
+    temporary.write_text(settings.model_dump_json(indent=2), encoding="utf-8")
+    temporary.replace(settings.config_file)
