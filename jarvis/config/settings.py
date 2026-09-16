@@ -136,6 +136,7 @@ class Settings(BaseSettings):
     external: ExternalSkillsSettings = Field(default_factory=ExternalSkillsSettings)
     task_state_path: str = "~/.jarvis/tasks.jsonl"
     snapshot_path: str = "~/.jarvis/snapshots"
+    jobs_path: str = "~/.jarvis/jobs.jsonl"
 
     @field_validator("llm", "mcp", "voice", "memory", "ui", "skills", "external", mode="before")
     @classmethod
@@ -159,6 +160,10 @@ class Settings(BaseSettings):
     @property
     def snapshot_dir(self) -> Path:
         return Path(os.path.expanduser(self.snapshot_path))
+
+    @property
+    def jobs_file(self) -> Path:
+        return Path(os.path.expanduser(self.jobs_path))
 
     @property
     def memory_path(self) -> Path:

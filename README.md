@@ -116,6 +116,7 @@ and diagnostics are implemented and covered by automated tests. The latest local
 | File snapshots | Approved filesystem writes snapshot the target before mutation under `~/.jarvis/snapshots` |
 | Offline multilingual STT | Bundled Vosk model selection currently covers English and Hindi; other languages need another backend/model |
 | Vision/document status | Camera analysis and screenshots are available; direct multimodal LLM input remains disabled |
+| Background jobs | Durable local queue with status, retries, cancellation, and one-shot execution |
 | Action audit log | Enabled by default at `~/.jarvis/audit.jsonl`; sensitive argument keys are redacted |
 | MCP safety defaults | Memory and web search allowed by default; dangerous servers require explicit opt-in |
 | Action approval UI | TUI modal approval for each dangerous MCP invocation; denial is fail-closed |
@@ -138,6 +139,8 @@ and diagnostics are implemented and covered by automated tests. The latest local
 - Monitor CPU, memory, disk, GPU, network, and processes.
 - Inspect source-code structure, functions, and TODOs.
 - Store, search, expire, and forget semantic memories while rejecting obvious secrets by default.
+- Queue supervised background jobs with `job-add`, inspect them with `job-list`, cancel them with
+  `job-cancel`, and execute one due job with `job-run-once`.
 - Install local/Git skills, enable or disable skills, and validate skill manifests.
 - Connect to filesystem, terminal, Git, memory, web-search, browser, and desktop MCP servers when
   permitted by configuration.
@@ -153,7 +156,8 @@ and diagnostics are implemented and covered by automated tests. The latest local
 
 - It cannot produce answers without an active compatible LLM provider and model.
 - It is not a production-grade autonomous supervisor: durable background tasks, approvals, rollback,
-  crash recovery, resource limits, and runaway-action prevention are incomplete.
+  crash recovery, resource limits, and runaway-action prevention are incomplete. The current job
+  runtime is a durable one-shot queue; it does not yet install itself as a Windows service or daemon.
 - MCP lifecycle supervision is incomplete. The client now records basic server health and attempts
   one bounded reconnect after a failed tool call, with configurable call timeout, retries, backoff,
   health, and latency metrics. Full restart limits and durable per-server supervision remain future

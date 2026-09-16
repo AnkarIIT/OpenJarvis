@@ -14,6 +14,7 @@ from jarvis.config.installer import install
 from jarvis.skills.skill_manager import SkillManager
 from jarvis.skills.registry import SkillRegistry
 from jarvis.mcp.client import MCPClient
+from jarvis.agent.jobs import AgentJob, JobRunner, JobStore
 from jarvis.tui.app import JarvisApp
 from jarvis.utils.logger import setup_file_logging, get_logger
 
@@ -121,6 +122,71 @@ def main(
 def setup():
     """Run first-time setup"""
     asyncio.run(install())
+
+
+@app.command("job-add")
+def job_add(
+    prompt: str = typer.Argument(..., help="Prompt for the background agent job"),
+    run_at: str = typer.Option(None, "--run-at", help="UTC ISO-8601 time; runs immediately when omitted"),
+    max_attempts: int = typer.Option(1, "--max-attempts", min=1, max=5),
+):
+    """Persist a supervised background job."""
+    settings = load_settings()
+    job = AgentJob(prompt=prompt, run_at=run_at, max_attempts=max_attempts)
+    JobStore(settings.jobs_file).save(job)
+    console.print(f"[green]Job queued:[/green] {job.job_id}")
+
+
+@app.command("job-list")
+def job_list():
+    """List persisted background jobs."""
+    settings = load_settings()
+    for job in JobStore(settings.jobs_file).list():
+        console.print(
+            f"{job.job_id}  {job.status:9} attempts={job.attempts} "
+            f"run_at={job.run_at or 'now'}  {job.prompt}"
+        )
+
+
+@app.command("job-cancel")
+def job_cancel(job_id: str = typer.Argument(...)):
+    """Cancel a pending or failed background job."""
+    settings = load_settings()
+    if not JobStore(settings.jobs_file).cancel(job_id):
+        console.print(f"[red]Job cannot be cancelled:[/red] {job_id}")
+        raise typer.Exit(1)
+    console.print(f"[green]Job cancelled:[/green] {job_id}")
+
+
+@app.command("job-run-once")
+def job_run_once():
+    """Run one due background job with normal agent safety controls."""
+    settings = load_settings()
+
+    async def run() -> AgentJob | None:
+        from jarvis.agent.loop import AgentLoop
+
+        loop = AgentLoop(settings)
+        await loop.initialize()
+        runner = JobRunner(
+            JobStore(settings.jobs_file),
+            lambda prompt: _consume_agent_run(loop, prompt),
+        )
+        try:
+            return await runner.run_due_once()
+        finally:
+            await loop.mcp.disconnect_all()
+
+    job = asyncio.run(run())
+    if job is None:
+        console.print("No due jobs.")
+    else:
+        console.print(f"Job {job.job_id}: {job.status}")
+
+
+async def _consume_agent_run(loop, prompt: str) -> None:
+    async for _ in loop.run(prompt):
+        pass
 
 
 @app.command()
