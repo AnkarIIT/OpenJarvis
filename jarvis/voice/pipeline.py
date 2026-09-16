@@ -23,18 +23,34 @@ class VoicePipeline:
         self.is_listening = False
         self.push_to_talk = False
         self._listen_task: Optional[asyncio.Task] = None
+        self._handling_wake_word = False
 
     async def start_wake_word_listener(self) -> None:
         if self.settings.voice.wake_word_enabled:
-            await self.wake_word.start()
+            started = await self.wake_word.start()
+            if not started:
+                logger.warning("Wake-word listener could not start; voice wake-up is unavailable")
 
     async def stop_wake_word_listener(self) -> None:
         await self.wake_word.stop()
 
     async def _on_wake_word(self) -> None:
-        if not self.is_listening:
-            await self.start_listening()
+        if self._handling_wake_word:
+            return
+        self._handling_wake_word = True
+        try:
+            logger.info("Wake word accepted; greeting user")
+            await self.stop_wake_word_listener()
+            greeting = self.settings.voice.wake_word_greeting.strip() or "Hello Master"
+            if not await self.speak(greeting):
+                logger.warning("Wake-word greeting could not be played")
+            if not self.is_listening:
+                await self.start_listening()
             await self._process_voice_command()
+        finally:
+            self._handling_wake_word = False
+            if self.settings.voice.wake_word_enabled:
+                await self.start_wake_word_listener()
 
     async def start_listening(self) -> None:
         if self.is_listening:

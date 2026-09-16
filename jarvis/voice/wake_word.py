@@ -51,6 +51,8 @@ class PorcupineWakeWord:
         self.porcupine = None
         self.audio_stream = None
         self.running = False
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._callback_queued = False
 
     def _get_keyword_path(self) -> Path:
         config_dir = Path(os.path.expanduser("~/.jarvis/voice"))
@@ -80,6 +82,8 @@ class PorcupineWakeWord:
             )
 
             self.running = True
+            self._loop = asyncio.get_running_loop()
+            self._callback_queued = False
 
             def audio_callback(indata, frames, time, status):
                 if status:
@@ -87,9 +91,10 @@ class PorcupineWakeWord:
                 if self.running and self.porcupine:
                     pcm = indata[:, 0] if indata.ndim > 1 else indata
                     keyword_index = self.porcupine.process(pcm)
-                    if keyword_index >= 0:
+                    if keyword_index >= 0 and not self._callback_queued and self._loop:
                         logger.info("Wake word detected!")
-                        asyncio.run_coroutine_threadsafe(self._trigger_callback(), asyncio.get_event_loop())
+                        self._callback_queued = True
+                        asyncio.run_coroutine_threadsafe(self._trigger_callback(), self._loop)
 
             self.audio_stream = sd.InputStream(
                 samplerate=self.porcupine.sample_rate,
@@ -114,9 +119,13 @@ class PorcupineWakeWord:
             await self.callback()
         except Exception as e:
             logger.error(f"Wake word callback error: {e}")
+        finally:
+            self._callback_queued = False
 
     async def stop(self) -> None:
         self.running = False
+        self._callback_queued = False
+        self._loop = None
         if self.audio_stream:
             self.audio_stream.stop()
             self.audio_stream.close()
@@ -143,6 +152,8 @@ class OpenWakeWordDetector:
         self.running = False
         self._model = None
         self.sample_rate = 16000
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._callback_queued = False
 
     async def start(self) -> bool:
         try:
@@ -155,6 +166,8 @@ class OpenWakeWordDetector:
         try:
             self._model = Model()
             self.running = True
+            self._loop = asyncio.get_running_loop()
+            self._callback_queued = False
 
             def audio_callback(indata, frames, time, status):
                 if status:
@@ -164,10 +177,11 @@ class OpenWakeWordDetector:
                     pcm = indata[:, 0] if indata.ndim > 1 else indata
                     result = self._model.predict(pcm)
                     for model_name, score in result.items():
-                        if score > 0.5:  # threshold
+                        if score > 0.5 and not self._callback_queued and self._loop:
                             logger.info(f"Wake word detected! ({model_name}: {score})")
+                            self._callback_queued = True
                             asyncio.run_coroutine_threadsafe(
-                                self._trigger_callback(), asyncio.get_event_loop()
+                                self._trigger_callback(), self._loop
                             )
 
             self.audio_stream = sd.InputStream(
@@ -190,14 +204,20 @@ class OpenWakeWordDetector:
             await self.callback()
         except Exception as e:
             logger.error(f"Wake word callback error: {e}")
+        finally:
+            self._callback_queued = False
 
     async def stop(self) -> None:
         self.running = False
+        self._callback_queued = False
+        self._loop = None
         if self.audio_stream:
             self.audio_stream.stop()
             self.audio_stream.close()
             self.audio_stream = None
         self._model = None
+        self._loop = None
+        self._callback_queued = False
         logger.info("OpenWakeWord listener stopped")
 
 

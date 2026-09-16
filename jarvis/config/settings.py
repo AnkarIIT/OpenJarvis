@@ -40,6 +40,7 @@ class VoiceSettings(BaseSettings):
     stt_engine: Literal["vosk", "sarvam", "whisper"] = "vosk"
     wake_word_enabled: bool = True
     wake_word: str = "hey_jarvis"
+    wake_word_greeting: str = "Hello Master"
     wake_word_engine: Literal["auto", "openwakeword", "porcupine"] = "auto"
     tts_voice_model: str = "en_US-lessac-medium"
     stt_model: str = "vosk-model-small-en-us-0.15"

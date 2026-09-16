@@ -117,6 +117,9 @@ and diagnostics are implemented and covered by automated tests. The latest local
   a suitable local environment are available.
 - Use Vosk/Whisper speech-to-text, Piper/Sarvam text-to-speech, and wake-word integrations when
   required packages, models, native audio, and hardware are present.
+- When a supported wake-word engine detects the configured wake word, JARVIS stops wake-word
+  capture briefly, speaks **“Hello Master”**, listens for the next command, and then rearms the
+  wake-word listener. The greeting can be changed with `voice.wake_word_greeting`.
 
 ## What JARVIS Cannot Reliably Do Yet
 
