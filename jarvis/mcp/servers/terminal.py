@@ -11,6 +11,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent, ServerCapabilities
 
 from jarvis.utils.logger import get_logger
+from jarvis.mcp.compat import serialize_tools
 
 logger = get_logger(__name__)
 
@@ -67,7 +68,7 @@ class TerminalMCPServer:
         )
 
     async def _list_tools(self, context: Any, params: Any) -> dict[str, Any]:
-        return {"tools": _build_tools()}
+        return {"tools": serialize_tools(_build_tools())}
 
     async def _call_tool(self, context: Any, params: Any) -> dict[str, Any]:
         try:

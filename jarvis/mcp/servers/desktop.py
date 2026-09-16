@@ -10,6 +10,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent, ServerCapabilities
 
 from jarvis.utils.logger import get_logger
+from jarvis.mcp.compat import serialize_tools
 
 logger = get_logger(__name__)
 
@@ -125,7 +126,7 @@ class DesktopMCPServer:
         return self._pillow
 
     async def _list_tools(self, context: Any, params: Any) -> dict[str, Any]:
-        return {"tools": _build_tools()}
+        return {"tools": serialize_tools(_build_tools())}
 
     async def _call_tool(self, context: Any, params: Any) -> dict[str, Any]:
         try:
@@ -181,8 +182,11 @@ class DesktopMCPServer:
         return {"content": [TextContent(type="text", text=f"![Screenshot](data:image/png;base64,{b64[:200]}...)")]}
 
     async def _close(self):
-        self.pyautogui.moveTo(0, 0)
-        logger.info("Desktop MCP closed - cursor returned to origin")
+        try:
+            self.pyautogui.moveTo(0, 0)
+            logger.info("Desktop MCP closed - cursor returned to origin")
+        except Exception as exc:
+            logger.warning("Could not reset cursor during desktop shutdown: %s", exc)
 
     async def run(self) -> None:
         options = InitializationOptions(

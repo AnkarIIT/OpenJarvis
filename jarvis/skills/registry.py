@@ -34,31 +34,30 @@ class SkillRegistry:
         await self._load_external_skills()
 
     async def _load_builtin_skills(self) -> None:
-        from jarvis.skills.builtin.system_monitor import SystemMonitorSkill
-        from jarvis.skills.builtin.code_assistant import CodeAssistantSkill
-        from jarvis.skills.builtin.memory import MemorySkill
-        from jarvis.skills.builtin.voice_control import VoiceControlSkill
-        from jarvis.skills.builtin.browser import BrowserSkill
-        from jarvis.skills.builtin.predictive import PredictiveSkill
-        from jarvis.skills.builtin.autonomous import AutonomousSkill
-        from jarvis.skills.builtin.traffic_camera import TrafficCameraSkill
-        from jarvis.skills.builtin.multisensory import MultiSensorySkill
-        from jarvis.skills.builtin.instant_learning import InstantLearningSkill
-        from jarvis.skills.builtin.emotional import EmotionalIntelligenceSkill
-
-        builtin_skills = [
-            SystemMonitorSkill(),
-            CodeAssistantSkill(),
-            MemorySkill(),
-            VoiceControlSkill(),
-            BrowserSkill(),
-            PredictiveSkill(),
-            AutonomousSkill(),
-            TrafficCameraSkill(),
-            MultiSensorySkill(),
-            InstantLearningSkill(),
-            EmotionalIntelligenceSkill(),
+        builtin_modules = [
+            ("system_monitor", "SystemMonitorSkill"),
+            ("code_assistant", "CodeAssistantSkill"),
+            ("memory", "MemorySkill"),
+            ("voice_control", "VoiceControlSkill"),
+            ("browser", "BrowserSkill"),
+            ("predictive", "PredictiveSkill"),
+            ("autonomous", "AutonomousSkill"),
+            ("traffic_camera", "TrafficCameraSkill"),
+            ("multisensory", "MultiSensorySkill"),
+            ("instant_learning", "InstantLearningSkill"),
+            ("emotional", "EmotionalIntelligenceSkill"),
         ]
+        builtin_skills = []
+        for module_name, class_name in builtin_modules:
+            try:
+                module = __import__(
+                    f"jarvis.skills.builtin.{module_name}",
+                    fromlist=[class_name],
+                )
+                skill_class = getattr(module, class_name)
+                builtin_skills.append(skill_class())
+            except ImportError as exc:
+                logger.warning("Skipping builtin skill %s: %s", module_name, exc)
 
         for skill in builtin_skills:
             if skill.name not in self.settings.skills.enabled:

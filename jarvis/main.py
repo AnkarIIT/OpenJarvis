@@ -11,6 +11,7 @@ from rich.console import Console
 from jarvis.config.settings import load_settings, Settings
 from jarvis.config.installer import install
 from jarvis.skills.skill_manager import SkillManager
+from jarvis.skills.registry import SkillRegistry
 from jarvis.mcp.client import MCPClient
 from jarvis.tui.app import JarvisApp
 from jarvis.utils.logger import setup_file_logging, get_logger

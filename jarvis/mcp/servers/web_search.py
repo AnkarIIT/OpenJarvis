@@ -8,6 +8,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent, ServerCapabilities
 
 from jarvis.utils.logger import get_logger
+from jarvis.mcp.compat import serialize_tools
 
 try:
     from duckduckgo_search import DDGS
@@ -20,7 +21,7 @@ logger = get_logger(__name__)
 
 async def _list_tools(context: Any, params: Any) -> Any:
     return {
-        "tools": [
+        "tools": serialize_tools([
             Tool(
                 name="web_search",
                 description="Search the web using DuckDuckGo and return top results.",
@@ -45,7 +46,7 @@ async def _list_tools(context: Any, params: Any) -> Any:
                     "required": ["query"],
                 },
             ),
-        ]
+        ])
     }
 
 

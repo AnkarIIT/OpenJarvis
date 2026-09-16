@@ -130,7 +130,7 @@ class MCPClient:
                 self.tools.append(MCPTool(
                     name=tool.name,
                     description=tool.description or "",
-                    input_schema=tool.inputSchema,
+                    input_schema=getattr(tool, "inputSchema", getattr(tool, "input_schema", {})),
                     server_name=name,
                 ))
 

@@ -128,7 +128,7 @@ class Settings(BaseSettings):
 
     @property
     def config_dir(self) -> Path:
-        return Path(os.path.expanduser("~/.jarvis"))
+        return (Path(os.path.expanduser("~")) / ".jarvis").resolve()
 
     @property
     def config_file(self) -> Path:
@@ -147,7 +147,7 @@ class Settings(BaseSettings):
         paths: list[Path] = []
         proj_root = Path(__file__).resolve().parent.parent.parent
         candidates = [
-            Path.home() / ".jarvis" / "skills",
+            Path(os.path.expanduser("~")) / ".jarvis" / "skills",
             Path.cwd() / ".jarvis" / "skills",
             proj_root / "jarvis" / "skills" / "external",
             proj_root / "skills",

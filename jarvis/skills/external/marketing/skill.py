@@ -66,10 +66,10 @@ class MarketingSkill:
                 self.playbook_dir = settings.project_root / "ai-marketing-skills" / "jaredrhod-marketing"
 
     async def _list_playbooks(self) -> str:
-        if not self.playbook_dir.exists():
-            return f"Marketing playbook directory not found: {self.playbook_dir}"
-
         lines = [f"Marketing playbooks at: {self.playbook_dir}", ""]
+        if not self.playbook_dir.exists():
+            lines.append(f"Source directory not found: {self.playbook_dir}")
+            lines.append("")
         for key, filename in PLAYBOOK_FILES.items():
             path = self.playbook_dir / filename
             status = "OK" if path.exists() else "MISSING"
@@ -101,7 +101,7 @@ class MarketingSkill:
 
     async def _status(self) -> str:
         if not self.playbook_dir.exists():
-            return f"Marketing playbook directory not found: {self.playbook_dir}"
+            return f"Marketing playbook status: 0/{len(PLAYBOOK_FILES)} files available at {self.playbook_dir}"
 
         total = len(PLAYBOOK_FILES)
         found = sum(1 for f in PLAYBOOK_FILES.values() if (self.playbook_dir / f).exists())
