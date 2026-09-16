@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -123,10 +124,16 @@ def setup():
 
 
 @app.command()
-def doctor():
+def doctor(json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON")):
     """Check system health"""
     from jarvis.utils.detectors import detect_all_local_ai, get_system_info
+    from jarvis.utils.health import build_health_report
     from rich.table import Table
+
+    settings = load_settings()
+    if json_output:
+        print(json.dumps(build_health_report(settings), indent=2, default=str))
+        return
 
     console.print("[bold]JARVIS System Diagnostics[/bold]\n")
 

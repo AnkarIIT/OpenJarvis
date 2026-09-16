@@ -234,6 +234,7 @@ jarvis list-mcp
 jarvis remove-mcp my-server
 jarvis list-tools
 jarvis permissions
+jarvis doctor --json
 ```
 
 Skills must contain `SKILL.md` or `skill.yaml`. User skills are installed under
