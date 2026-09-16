@@ -9,6 +9,7 @@ from jarvis.config.settings import Settings
 from jarvis.mcp.client import MCPClient
 from jarvis.utils.detectors import detect_all_local_ai, get_system_info
 from jarvis.agent.llm_client import LLMClient
+from jarvis.utils.vision import build_vision_report
 
 
 CORE_IMPORTS = {
@@ -57,4 +58,5 @@ def build_health_report(settings: Settings) -> dict[str, Any]:
             "enabled": sorted(settings.skills.enabled),
             "paths": [str(path) for path in settings.skills_paths],
         },
+        "vision": build_vision_report(),
     }
