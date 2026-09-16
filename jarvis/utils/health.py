@@ -49,6 +49,8 @@ def build_health_report(settings: Settings) -> dict[str, Any]:
             "eligible_servers": sorted(servers),
             "dangerous_enabled": settings.mcp.allow_dangerous,
             "require_confirmation": settings.mcp.require_confirmation,
+            "call_timeout": settings.mcp.call_timeout,
+            "max_retries": settings.mcp.max_retries,
             "server_health": mcp.server_health,
         },
         "skills": {

@@ -32,6 +32,9 @@ class MCPSettings(BaseSettings):
     enabled_servers: list[str] = Field(default_factory=list)
     require_confirmation: bool = True
     tool_policies: dict[str, Literal["allow", "confirm", "deny"]] = Field(default_factory=dict)
+    call_timeout: float = 30.0
+    max_retries: int = 1
+    retry_backoff: float = 0.5
     audit_enabled: bool = True
     audit_path: str = "~/.jarvis/audit.jsonl"
 

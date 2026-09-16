@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import time
 import sys
 import uuid
 from contextlib import AsyncExitStack
@@ -148,6 +149,8 @@ class MCPClient:
                 "healthy": True,
                 "failures": 0,
                 "last_error": None,
+                "last_latency_ms": None,
+                "retries": 0,
             }
             logger.info(f"Connected to MCP server: {name} ({len(tools_result.tools)} tools)")
             return True
@@ -163,14 +166,40 @@ class MCPClient:
             if tool.name == tool_name:
                 session = self.sessions.get(tool.server_name)
                 if session:
-                    try:
-                        result = await session.call_tool(tool_name, arguments)
-                    except Exception as e:
+                    health = self.server_health.setdefault(
+                        tool.server_name,
+                        {
+                            "healthy": True,
+                            "failures": 0,
+                            "last_error": None,
+                            "last_latency_ms": None,
+                            "retries": 0,
+                        },
+                    )
+                    last_error: Exception | None = None
+                    started = time.perf_counter()
+                    result = None
+                    for attempt in range(self.settings.mcp.max_retries + 1):
+                        try:
+                            result = await asyncio.wait_for(
+                                session.call_tool(tool_name, arguments),
+                                timeout=self.settings.mcp.call_timeout,
+                            )
+                            health["retries"] += attempt
+                            health["last_latency_ms"] = round(
+                                (time.perf_counter() - started) * 1000,
+                                2,
+                            )
+                            break
+                        except Exception as e:
+                            last_error = e
+                            if attempt >= self.settings.mcp.max_retries:
+                                break
+                            await asyncio.sleep(self.settings.mcp.retry_backoff * (attempt + 1))
+
+                    if result is None:
+                        e = last_error or RuntimeError("MCP tool call returned no result")
                         logger.error(f"Tool call failed: {e}")
-                        health = self.server_health.setdefault(
-                            tool.server_name,
-                            {"healthy": True, "failures": 0, "last_error": None},
-                        )
                         health["healthy"] = False
                         health["failures"] += 1
                         health["last_error"] = str(e)

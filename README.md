@@ -109,6 +109,7 @@ and diagnostics are implemented and covered by automated tests. The latest local
 | Memory | ChromaDB semantic memory with retention and secret filtering |
 | MCP discovery | Implemented with persistent sessions and compatibility serialization |
 | MCP recovery | One bounded reconnect attempt after a failed tool call; full supervision remains future work |
+| MCP call policy | Configurable timeout, bounded retries, backoff, health, and latency metrics |
 | Agent task state | Each run has an ID and reports running, completed, failed, or cancelled state |
 | Durable task state | Task lifecycle records persist in `~/.jarvis/tasks.jsonl` by default |
 | Action audit log | Enabled by default at `~/.jarvis/audit.jsonl`; sensitive argument keys are redacted |
@@ -150,8 +151,9 @@ and diagnostics are implemented and covered by automated tests. The latest local
 - It is not a production-grade autonomous supervisor: durable background tasks, approvals, rollback,
   crash recovery, resource limits, and runaway-action prevention are incomplete.
 - MCP lifecycle supervision is incomplete. The client now records basic server health and attempts
-  one bounded reconnect after a failed tool call, but restart limits, backoff, timeouts, and durable
-  per-server metrics are not yet production-ready.
+  one bounded reconnect after a failed tool call, with configurable call timeout, retries, backoff,
+  health, and latency metrics. Full restart limits and durable per-server supervision remain future
+  work.
 - Permissions retain safe server defaults, and can now be refined per tool. Configure
 `mcp.tool_policies` with `allow`, `confirm`, or `deny`, using keys such as `git:git_status`,
 `terminal:run_command`, a tool name, or a server name. Dangerous invocations still require an
