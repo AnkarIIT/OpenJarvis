@@ -31,6 +31,20 @@ python3 -m pip install --user pipx
 pipx install git+https://github.com/AnkarIIT/OpenJarvis.git
 ```
 
+### Option 1A: One-line Windows PowerShell bootstrap
+
+For a fresh Windows machine, open **PowerShell as Administrator** and run:
+
+```powershell
+irm https://raw.githubusercontent.com/AnkarIIT/OpenJarvis/main/scripts/install_windows.ps1 | iex
+```
+
+The bootstrapper finds or installs Python 3.10+, upgrades pip, installs OpenJarvis with its
+supported optional components, installs the Playwright Chromium runtime, and runs
+`jarvis doctor --json`. It does not silently install Ollama models, grant dangerous MCP
+permissions, or enable cloud services; those actions require an explicit choice and provider
+configuration.
+
 ### Option 2: From source with setup script
 
 ```powershell
