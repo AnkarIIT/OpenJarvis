@@ -173,7 +173,11 @@ def permissions():
         "Enabled MCP filter: "
         + (", ".join(settings.mcp.enabled_servers) if settings.mcp.enabled_servers else "all allowed by policy")
     )
+    console.print(
+        f"Action confirmation: {'required' if settings.mcp.require_confirmation else 'disabled'}"
+    )
     console.print("To explicitly enable dangerous servers, set mcp.allow_dangerous=true in config.json.")
+    console.print("Dangerous actions remain blocked until an execution confirmation interface is configured.")
 
 
 @app.command()

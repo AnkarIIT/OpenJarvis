@@ -30,6 +30,7 @@ class MCPSettings(BaseSettings):
     auto_discover: bool = True  # Auto-discover MCP servers from built-in implementations
     allow_dangerous: bool = False
     enabled_servers: list[str] = Field(default_factory=list)
+    require_confirmation: bool = True
 
 
 class VoiceSettings(BaseSettings):

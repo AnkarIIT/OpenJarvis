@@ -26,7 +26,8 @@ def build_health_report(settings: Settings) -> dict[str, Any]:
         name: importlib.util.find_spec(module) is not None
         for name, module in CORE_IMPORTS.items()
     }
-    servers = MCPClient(settings)._resolve_servers()
+    mcp = MCPClient(settings)
+    servers = mcp._resolve_servers()
     llm = LLMClient(settings)
     return {
         "status": "ok" if all(dependencies.values()) else "degraded",
@@ -47,6 +48,8 @@ def build_health_report(settings: Settings) -> dict[str, Any]:
             "configured": sorted(settings.mcp.servers),
             "eligible_servers": sorted(servers),
             "dangerous_enabled": settings.mcp.allow_dangerous,
+            "require_confirmation": settings.mcp.require_confirmation,
+            "server_health": mcp.server_health,
         },
         "skills": {
             "enabled": sorted(settings.skills.enabled),

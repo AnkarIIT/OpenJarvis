@@ -108,6 +108,7 @@ and diagnostics are implemented and covered by automated tests. The latest local
 | Skill manifests | Validates names, permissions, dependencies, and supported platforms |
 | Memory | ChromaDB semantic memory with retention and secret filtering |
 | MCP discovery | Implemented with persistent sessions and compatibility serialization |
+| MCP recovery | One bounded reconnect attempt after a failed tool call; full supervision remains future work |
 | MCP safety defaults | Memory and web search allowed by default; dangerous servers require explicit opt-in |
 | Voice imports | CI/headless-safe |
 | Real voice operation | Requires optional packages, native audio, models, and hardware testing |
@@ -143,8 +144,9 @@ and diagnostics are implemented and covered by automated tests. The latest local
 - It cannot produce answers without an active compatible LLM provider and model.
 - It is not a production-grade autonomous supervisor: durable background tasks, approvals, rollback,
   crash recovery, resource limits, and runaway-action prevention are incomplete.
-- MCP lifecycle supervision is incomplete. Automatic restart, health monitoring, bounded backoff, and
-  durable per-server metrics are not yet production-ready.
+- MCP lifecycle supervision is incomplete. The client now records basic server health and attempts
+  one bounded reconnect after a failed tool call, but restart limits, backoff, timeouts, and durable
+  per-server metrics are not yet production-ready.
 - Permissions are primarily server-level. Complete per-tool approval is not implemented; for example,
   Git status cannot yet be independently allowed while commits require confirmation.
 - Voice is not fully validated on real hardware. Microphone capture, speaker output, wake-word
@@ -314,6 +316,11 @@ MCP safety is server-level today. `memory` and `web_search` are allowed by defau
 `terminal`, `git`, `browser`, and `desktop` are disabled unless explicitly enabled with
 `mcp.allow_dangerous` and, optionally, `mcp.enabled_servers`. There is not yet a confirmation
 prompt for every individual write, delete, commit, or desktop action.
+
+When dangerous MCP servers are enabled, `mcp.require_confirmation` defaults to `true` and the
+agent blocks those actions unless an explicit confirmation interface approves them. This prevents
+an LLM from silently writing files, executing commands, committing changes, navigating a browser,
+or controlling the desktop.
 
 Skills must contain `SKILL.md` or `skill.yaml`. User skills are installed under
 `~/.jarvis/skills/` and can declare commands through a Python `skill.py` module.

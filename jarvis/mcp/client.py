@@ -67,6 +67,7 @@ class MCPClient:
         self._stacks: dict[str, AsyncExitStack] = {}
         self.tools: list[MCPTool] = []
         self.is_connected = False
+        self.server_health: dict[str, dict[str, Any]] = {}
 
     def _resolve_servers(self) -> dict[str, dict[str, Any]]:
         """Merge user-configured servers with auto-discovered built-ins."""
@@ -143,6 +144,11 @@ class MCPClient:
 
             self.sessions[name] = session
             self._stacks[name] = stack
+            self.server_health[name] = {
+                "healthy": True,
+                "failures": 0,
+                "last_error": None,
+            }
             logger.info(f"Connected to MCP server: {name} ({len(tools_result.tools)} tools)")
             return True
 
@@ -161,6 +167,14 @@ class MCPClient:
                         result = await session.call_tool(tool_name, arguments)
                     except Exception as e:
                         logger.error(f"Tool call failed: {e}")
+                        health = self.server_health.setdefault(
+                            tool.server_name,
+                            {"healthy": True, "failures": 0, "last_error": None},
+                        )
+                        health["healthy"] = False
+                        health["failures"] += 1
+                        health["last_error"] = str(e)
+                        await self._recover_server(tool.server_name)
                         return {"error": str(e)}
 
                     # MCP tool results may expose content as an attribute or dict key.
@@ -169,8 +183,28 @@ class MCPClient:
                         content = result.get("content")
                     if content is None:
                         content = result
+                    self.server_health.setdefault(
+                        tool.server_name,
+                        {"healthy": True, "failures": 0, "last_error": None},
+                    )["healthy"] = True
                     return content
         return {"error": f"Tool not found: {tool_name}"}
+
+    async def _recover_server(self, name: str) -> bool:
+        """Attempt one bounded reconnect after a failed tool call."""
+        config = self._resolve_servers().get(name)
+        if not config:
+            return False
+        stack = self._stacks.pop(name, None)
+        if stack:
+            try:
+                await stack.aclose()
+            except Exception as e:
+                logger.debug("MCP recovery cleanup failed for %s: %s", name, e)
+        self.sessions.pop(name, None)
+        self.tools = [tool for tool in self.tools if tool.server_name != name]
+        logger.info("Attempting one MCP recovery reconnect for %s", name)
+        return await self.connect_server(name, config)
 
     async def list_all_tools(self) -> list[MCPTool]:
         return self.tools
@@ -196,4 +230,5 @@ class MCPClient:
         self.sessions.clear()
         self._stacks.clear()
         self.tools.clear()
+        self.server_health.clear()
         self.is_connected = False

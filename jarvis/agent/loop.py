@@ -9,6 +9,7 @@ from jarvis.agent.system_prompt import get_system_prompt
 from jarvis.config.settings import Settings
 from jarvis.mcp.client import MCPClient
 from jarvis.memory.vector_store import VectorStore
+from jarvis.agent.permissions import confirmation_required_result, requires_confirmation
 from jarvis.skills.registry import SkillRegistry
 from jarvis.utils.logger import get_logger
 
@@ -232,6 +233,13 @@ class AgentLoop:
         skill_cmd = next((c for c in self.skill_registry.list_commands() if c.name == tool_name), None)
 
         if mcp_tool:
+            if requires_confirmation(self.settings, mcp_tool.server_name):
+                logger.warning(
+                    "Blocked MCP tool %s from %s pending explicit confirmation",
+                    tool_name,
+                    mcp_tool.server_name,
+                )
+                return confirmation_required_result(tool_name, mcp_tool.server_name)
             result = await self.mcp.call_tool(tool_name, arguments)
             if "error" in result:
                 return {"error": result["error"]}
