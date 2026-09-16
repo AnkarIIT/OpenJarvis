@@ -28,6 +28,8 @@ class MCPSettings(BaseSettings):
 
     servers: dict[str, dict[str, Any]] = Field(default_factory=dict)
     auto_discover: bool = True  # Auto-discover MCP servers from built-in implementations
+    allow_dangerous: bool = False
+    enabled_servers: list[str] = Field(default_factory=list)
 
 
 class VoiceSettings(BaseSettings):

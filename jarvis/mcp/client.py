@@ -57,6 +57,7 @@ _BUILTIN_MCP_SERVERS = {
         "args": ["-m", "jarvis.mcp.servers.desktop"],
     },
 }
+_DANGEROUS_MCP_SERVERS = {"filesystem", "terminal", "git", "browser", "desktop"}
 
 
 class MCPClient:
@@ -74,6 +75,12 @@ class MCPClient:
             for name, config in _BUILTIN_MCP_SERVERS.items():
                 if name not in servers:
                     servers[name] = config
+        if self.settings.mcp.enabled_servers:
+            servers = {name: config for name, config in servers.items()
+                       if name in self.settings.mcp.enabled_servers}
+        if not self.settings.mcp.allow_dangerous:
+            servers = {name: config for name, config in servers.items()
+                       if name not in _DANGEROUS_MCP_SERVERS}
         return servers
 
     @classmethod

@@ -233,12 +233,15 @@ jarvis add-mcp my-server python --arg -m --arg my_mcp_server
 jarvis list-mcp
 jarvis remove-mcp my-server
 jarvis list-tools
+jarvis permissions
 ```
 
 Skills must contain `SKILL.md` or `skill.yaml`. User skills are installed under
 `~/.jarvis/skills/` and can declare commands through a Python `skill.py` module.
 MCP servers are stored in `~/.jarvis/config.json`; dangerous servers should be
-added explicitly rather than enabled through automatic discovery.bash
+added explicitly rather than enabled through automatic discovery. Terminal,
+browser, and desktop MCP servers are disabled by default; set
+`"mcp": {"allow_dangerous": true}` only on a trusted machine.bash
 jarvis-mcp-filesystem --root /path/to/project
 jarvis-mcp-terminal --allow ls,cat,git
 jarvis-mcp-git --repo /path/to/repo

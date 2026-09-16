@@ -157,6 +157,19 @@ def doctor():
 
 
 @app.command()
+def permissions():
+    """Show the current safety policy for tools and MCP servers."""
+    settings = load_settings()
+    console.print("[bold]JARVIS Safety Policy[/bold]")
+    console.print(f"Dangerous MCP servers: {'enabled' if settings.mcp.allow_dangerous else 'disabled'}")
+    console.print(
+        "Enabled MCP filter: "
+        + (", ".join(settings.mcp.enabled_servers) if settings.mcp.enabled_servers else "all allowed by policy")
+    )
+    console.print("To explicitly enable dangerous servers, set mcp.allow_dangerous=true in config.json.")
+
+
+@app.command()
 def list_skills():
     """List all available skills with install status"""
     manager = SkillManager()
