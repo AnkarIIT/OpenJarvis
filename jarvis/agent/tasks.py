@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import json
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -31,3 +33,28 @@ class AgentTask:
             "completed_at": self.completed_at,
             "error": self.error,
         }
+
+
+class TaskStore:
+    def __init__(self, path: Path):
+        self.path = path
+
+    def save(self, task: AgentTask) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self.path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(task.as_dict(), ensure_ascii=True) + "\n")
+
+    def latest(self) -> AgentTask | None:
+        if not self.path.exists():
+            return None
+        lines = [line for line in self.path.read_text(encoding="utf-8").splitlines() if line]
+        if not lines:
+            return None
+        data = json.loads(lines[-1])
+        return AgentTask(
+            task_id=data["task_id"],
+            status=data["status"],
+            started_at=data.get("started_at"),
+            completed_at=data.get("completed_at"),
+            error=data.get("error"),
+        )

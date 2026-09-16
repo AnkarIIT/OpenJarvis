@@ -110,9 +110,11 @@ and diagnostics are implemented and covered by automated tests. The latest local
 | MCP discovery | Implemented with persistent sessions and compatibility serialization |
 | MCP recovery | One bounded reconnect attempt after a failed tool call; full supervision remains future work |
 | Agent task state | Each run has an ID and reports running, completed, failed, or cancelled state |
+| Durable task state | Task lifecycle records persist in `~/.jarvis/tasks.jsonl` by default |
 | Action audit log | Enabled by default at `~/.jarvis/audit.jsonl`; sensitive argument keys are redacted |
 | MCP safety defaults | Memory and web search allowed by default; dangerous servers require explicit opt-in |
 | Action approval UI | TUI modal approval for each dangerous MCP invocation; denial is fail-closed |
+| Per-tool policy | Supports `allow`, `confirm`, and `deny` policies by `server:tool`, tool, or server |
 | Voice imports | CI/headless-safe |
 | Real voice operation | Requires optional packages, native audio, models, and hardware testing |
 | Automated tests | 31 local tests passing; CI matrix covers Python 3.10–3.13 |
@@ -150,9 +152,25 @@ and diagnostics are implemented and covered by automated tests. The latest local
 - MCP lifecycle supervision is incomplete. The client now records basic server health and attempts
   one bounded reconnect after a failed tool call, but restart limits, backoff, timeouts, and durable
   per-server metrics are not yet production-ready.
-- Permissions are still primarily server-level, but dangerous MCP invocations now require an exact
-  TUI approval before execution. Fine-grained policies such as allowing Git status while denying
-  commits remain future work.
+- Permissions retain safe server defaults, and can now be refined per tool. Configure
+`mcp.tool_policies` with `allow`, `confirm`, or `deny`, using keys such as `git:git_status`,
+`terminal:run_command`, a tool name, or a server name. Dangerous invocations still require an
+exact TUI approval unless explicitly allowed by policy.
+
+Example:
+
+```json
+{
+  "mcp": {
+    "allow_dangerous": true,
+    "tool_policies": {
+      "git:git_status": "allow",
+      "git:git_commit": "confirm",
+      "terminal:run_command": "deny"
+    }
+  }
+}
+```
 - Voice is not fully validated on real hardware. Microphone capture, speaker output, wake-word
   reliability, noise handling, VAD, barge-in, and long-running sessions still need testing.
 - Vision and multimodal understanding are limited; screenshots, camera frames, documents, and video

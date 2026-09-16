@@ -178,6 +178,8 @@ def permissions():
     )
     console.print(f"Action audit log: {'enabled' if settings.mcp.audit_enabled else 'disabled'}")
     console.print(f"Audit path: {settings.mcp.audit_file}")
+    console.print(f"Tool policies: {len(settings.mcp.tool_policies)} configured")
+    console.print(f"Task state: {settings.task_state_file}")
     console.print("To explicitly enable dangerous servers, set mcp.allow_dangerous=true in config.json.")
     console.print("Dangerous actions remain blocked until an execution confirmation interface is configured.")
 

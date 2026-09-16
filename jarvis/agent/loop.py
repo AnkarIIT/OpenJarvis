@@ -10,8 +10,12 @@ from jarvis.agent.system_prompt import get_system_prompt
 from jarvis.config.settings import Settings
 from jarvis.mcp.client import MCPClient
 from jarvis.memory.vector_store import VectorStore
-from jarvis.agent.permissions import confirmation_required_result, requires_confirmation
-from jarvis.agent.tasks import AgentTask
+from jarvis.agent.permissions import (
+    action_policy,
+    confirmation_required_result,
+    requires_confirmation,
+)
+from jarvis.agent.tasks import AgentTask, TaskStore
 from jarvis.agent.audit import AuditLogger
 from jarvis.skills.registry import SkillRegistry
 from jarvis.utils.logger import get_logger
@@ -30,6 +34,8 @@ class AgentLoop:
         self.max_history = 20
         self.current_task: AgentTask | None = None
         self.last_task: AgentTask | None = None
+        self.task_store = TaskStore(self.settings.task_state_file)
+        self.last_task = self.task_store.latest()
         self.audit = AuditLogger(self.settings.mcp.audit_file)
         self.approval_handler: Callable[
             [str, str, dict[str, Any]], Awaitable[bool]
@@ -49,6 +55,7 @@ class AgentLoop:
     async def run(self, user_input: str, voice_mode: bool = False) -> AsyncGenerator[str, None]:
         task = AgentTask()
         task.start()
+        self.task_store.save(task)
         self.current_task = task
         try:
             async for chunk in self._run(user_input, voice_mode):
@@ -64,6 +71,7 @@ class AgentLoop:
         finally:
             self.last_task = task
             self.current_task = None
+            self.task_store.save(task)
 
     async def _run(self, user_input: str, voice_mode: bool = False) -> AsyncGenerator[str, None]:
         await self._add_user_message(user_input)
@@ -263,7 +271,15 @@ class AgentLoop:
         if mcp_tool:
             source = f"mcp:{mcp_tool.server_name}"
             self._audit_tool(tool_name, source, "requested", arguments)
-            if requires_confirmation(self.settings, mcp_tool.server_name):
+            policy = action_policy(self.settings, mcp_tool.server_name, tool_name)
+            if policy == "deny":
+                blocked = confirmation_required_result(tool_name, mcp_tool.server_name)
+                blocked["message"] = (
+                    f"Tool '{tool_name}' is denied by the configured policy and was not executed."
+                )
+                self._audit_tool(tool_name, source, "denied", arguments, blocked["message"])
+                return blocked
+            if requires_confirmation(self.settings, mcp_tool.server_name, tool_name):
                 approved = False
                 if self.approval_handler is not None:
                     approved = await self.approval_handler(

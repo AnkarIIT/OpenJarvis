@@ -7,11 +7,28 @@ from jarvis.config.settings import Settings
 
 
 _CONFIRMATION_SERVERS = {"filesystem", "terminal", "git", "browser", "desktop"}
+_READ_ONLY_HINTS = ("list", "read", "get", "status", "diff", "search", "info", "inspect")
 
 
-def requires_confirmation(settings: Settings, server_name: str) -> bool:
-    """Return whether an MCP action must be approved before execution."""
-    return settings.mcp.require_confirmation and server_name in _CONFIRMATION_SERVERS
+def action_policy(settings: Settings, server_name: str, tool_name: str) -> str:
+    """Resolve an explicit per-tool policy, with a conservative server fallback."""
+    for key in (f"{server_name}:{tool_name}", tool_name, server_name):
+        configured = settings.mcp.tool_policies.get(key)
+        if configured:
+            return configured
+    if server_name in _CONFIRMATION_SERVERS:
+        normalized = tool_name.lower().replace("-", "_")
+        if any(
+            normalized.startswith(hint) or f"_{hint}" in normalized
+            for hint in _READ_ONLY_HINTS
+        ):
+            return "allow"
+        return "confirm" if settings.mcp.require_confirmation else "allow"
+    return "allow"
+
+
+def requires_confirmation(settings: Settings, server_name: str, tool_name: str = "") -> bool:
+    return action_policy(settings, server_name, tool_name) == "confirm"
 
 
 def confirmation_required_result(

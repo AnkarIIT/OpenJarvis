@@ -31,6 +31,7 @@ class MCPSettings(BaseSettings):
     allow_dangerous: bool = False
     enabled_servers: list[str] = Field(default_factory=list)
     require_confirmation: bool = True
+    tool_policies: dict[str, Literal["allow", "confirm", "deny"]] = Field(default_factory=dict)
     audit_enabled: bool = True
     audit_path: str = "~/.jarvis/audit.jsonl"
 
@@ -130,6 +131,7 @@ class Settings(BaseSettings):
     ui: UISettings = Field(default_factory=UISettings)
     skills: SkillsSettings = Field(default_factory=SkillsSettings)
     external: ExternalSkillsSettings = Field(default_factory=ExternalSkillsSettings)
+    task_state_path: str = "~/.jarvis/tasks.jsonl"
 
     @field_validator("llm", "mcp", "voice", "memory", "ui", "skills", "external", mode="before")
     @classmethod
@@ -145,6 +147,10 @@ class Settings(BaseSettings):
     @property
     def config_file(self) -> Path:
         return self.config_dir / "config.json"
+
+    @property
+    def task_state_file(self) -> Path:
+        return Path(os.path.expanduser(self.task_state_path))
 
     @property
     def memory_path(self) -> Path:
