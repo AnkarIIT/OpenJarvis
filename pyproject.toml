@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: Terminals",
 ]
 dependencies = [
-    "textual>=0.52",
+    "textual>=0.89",
     "ollama>=0.3",
     "mcp>=1.0",
     "chromadb>=0.5",
