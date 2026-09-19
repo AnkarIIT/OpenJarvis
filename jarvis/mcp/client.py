@@ -207,11 +207,36 @@ class MCPClient:
                         return {"error": str(e)}
 
                     # MCP tool results may expose content as an attribute or dict key.
+                    # In mcp >= 2.x, call_tool returns a CallToolResult Pydantic
+                    # model whose .content is a list of TextContent / ImageContent
+                    # objects.  Serialize to a plain dict so downstream code that
+                    # calls json.dumps() on the result works correctly.
+                    if hasattr(result, "model_dump"):
+                        result = result.model_dump()
+
                     content = getattr(result, "content", None)
                     if content is None and isinstance(result, dict):
                         content = result.get("content")
-                    if content is None:
+
+                    # Extract text from content blocks
+                    if isinstance(content, list):
+                        texts = []
+                        for block in content:
+                            if isinstance(block, dict):
+                                if block.get("type") == "text":
+                                    texts.append(block.get("text", ""))
+                                elif block.get("type") == "image":
+                                    texts.append(f"[image:{block.get('data', '')[:20]}...]")
+                                else:
+                                    texts.append(str(block))
+                            elif hasattr(block, "text"):
+                                texts.append(block.text)
+                            else:
+                                texts.append(str(block))
+                        content = "\n".join(texts) if texts else ""
+                    elif content is None:
                         content = result
+
                     self.server_health.setdefault(
                         tool.server_name,
                         {"healthy": True, "failures": 0, "last_error": None},
