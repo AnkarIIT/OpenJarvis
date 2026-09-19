@@ -219,6 +219,7 @@ policies; starting the worker does not bypass MCP permissions or TUI approval re
 ## Requirements
 
 - Python 3.10+
+- **Windows only:** [Microsoft Visual C++ Redistributable x64](https://aka.ms/vs/17/release/vc_redist.x64.exe) — some bundled audio/native wheels need the VC++ runtime; without it, `jarvis` fails to start with a DLL load error (e.g. `OSError: [WinError 1114]` or missing `vcruntime140.dll`). Installing the redistributable fixes it.
 - 8GB+ RAM (for Llama 3.1 8B) or GPU (for faster inference)
 - Ollama (for LLM) — auto-installed by `jarvis --install`
 - Optional: Local LLM model (GGUF for `llama_cpp` provider mode)
