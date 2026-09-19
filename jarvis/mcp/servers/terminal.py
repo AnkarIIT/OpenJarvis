@@ -8,10 +8,10 @@ from typing import Any
 
 from mcp.server import Server, InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent, ServerCapabilities
+from mcp.types import Tool, ServerCapabilities
 
 from jarvis.utils.logger import get_logger
-from jarvis.mcp.compat import serialize_tools
+from jarvis.mcp.compat import serialize_tools, text_result
 
 logger = get_logger(__name__)
 
@@ -80,10 +80,10 @@ class TerminalMCPServer:
                 )
             elif name == "run_background":
                 return await self._run_background(arguments["command"], arguments.get("cwd", "."))
-            return {"content": [TextContent(type="text", text=f"Unknown tool: {name}")]}
+            return text_result(f"Unknown tool: {name}")
         except Exception as e:
             logger.error(f"Terminal tool error: {e}")
-            return {"content": [TextContent(type="text", text=f"Error: {str(e)}")]}
+            return text_result(f"Error: {str(e)}")
 
     def _is_allowed(self, command: str) -> bool:
         if any(token in command for token in (";", "&", "|", ">", "<", "`", "$", "\n", "\r")):
@@ -109,7 +109,7 @@ class TerminalMCPServer:
 
     async def _run_command(self, command: str, cwd: str, timeout: int) -> dict[str, Any]:
         if not self._is_allowed(command):
-            return {"content": [TextContent(type="text", text=f"Command not allowed: {command}")]}
+            return text_result(f"Command not allowed: {command}")
 
         try:
             parts = shlex.split(command, posix=os.name != "nt")
@@ -125,7 +125,7 @@ class TerminalMCPServer:
             except asyncio.TimeoutError:
                 process.kill()
                 await process.wait()
-                return {"content": [TextContent(type="text", text=f"Command timed out after {timeout}s")]}
+                return text_result(f"Command timed out after {timeout}s")
 
             output = []
             if stdout:
@@ -135,14 +135,14 @@ class TerminalMCPServer:
             output.append(f"Exit code: {process.returncode}")
 
             joined = chr(10).join(output)
-            return {"content": [TextContent(type="text", text=joined)]}
+            return text_result(joined)
 
         except Exception as e:
-            return {"content": [TextContent(type="text", text=f"Execution error: {str(e)}")]}
+            return text_result(f"Execution error: {str(e)}")
 
     async def _run_background(self, command: str, cwd: str) -> dict[str, Any]:
         if not self._is_allowed(command):
-            return {"content": [TextContent(type="text", text=f"Command not allowed: {command}")]}
+            return text_result(f"Command not allowed: {command}")
 
         try:
             parts = shlex.split(command, posix=os.name != "nt")
@@ -154,10 +154,10 @@ class TerminalMCPServer:
                 start_new_session=True,
             )
             self.processes[process.pid] = process
-            return {"content": [TextContent(type="text", text=f"Started background process (PID: {process.pid})")]}
+            return text_result(f"Started background process (PID: {process.pid})")
 
         except Exception as e:
-            return {"content": [TextContent(type="text", text=f"Background execution error: {str(e)}")]}
+            return text_result(f"Background execution error: {str(e)}")
 
     async def run(self) -> None:
         options = InitializationOptions(

@@ -7,10 +7,10 @@ from typing import Any
 
 from mcp.server import Server, InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent, ServerCapabilities
+from mcp.types import Tool, ServerCapabilities
 
 from jarvis.utils.logger import get_logger
-from jarvis.mcp.compat import serialize_tools
+from jarvis.mcp.compat import serialize_tools, text_result
 
 logger = get_logger(__name__)
 
@@ -146,56 +146,56 @@ class BrowserMCPServer:
             arguments = params.arguments or {}
             handler = getattr(self, f"_tool_{name}", None)
             if handler is None:
-                return {"content": [TextContent(type="text", text=f"Unknown tool: {name}")]}
+                return text_result(f"Unknown tool: {name}")
             result = await handler(**arguments)
             return result
         except Exception as e:
             logger.error(f"Browser tool error: {e}")
-            return {"content": [TextContent(type="text", text=f"Error: {str(e)}")]}
+            return text_result(f"Error: {str(e)}")
 
     async def _tool_browser_navigate(self, url: str) -> dict[str, Any]:
         await self._page.goto(url, wait_until="networkidle")
-        return {"content": [TextContent(type="text", text=f"Navigated to: {url}")]}
+        return text_result(f"Navigated to: {url}")
 
     async def _tool_browser_click(self, selector: str) -> dict[str, Any]:
         await self._page.click(selector)
-        return {"content": [TextContent(type="text", text=f"Clicked: {selector}")]}
+        return text_result(f"Clicked: {selector}")
 
     async def _tool_browser_type(self, selector: str, text: str, clear: bool = True) -> dict[str, Any]:
         if clear:
             await self._page.fill(selector, "")
         await self._page.fill(selector, text)
-        return {"content": [TextContent(type="text", text=f"Typed into {selector}: {text[:50]}...")]}
+        return text_result(f"Typed into {selector}: {text[:50]}...")
 
     async def _tool_browser_screenshot(self, full_page: bool = False) -> dict[str, Any]:
         img_bytes = await self._page.screenshot(full_page=full_page)
         b64 = base64.b64encode(img_bytes).decode()
-        return {"content": [TextContent(type="text", text=f"![Screenshot](data:image/png;base64,{b64[:200]}...)")]}
+        return text_result(f"![Screenshot](data:image/png;base64,{b64[:200]}...)")
 
     async def _tool_browser_scroll(self, direction: str, amount: float = 500) -> dict[str, Any]:
         delta = amount if direction == "down" else -amount
         await self._page.mouse.wheel(0, delta)
-        return {"content": [TextContent(type="text", text=f"Scrolled {direction} by {amount}px")]}
+        return text_result(f"Scrolled {direction} by {amount}px")
 
     async def _tool_browser_go_back(self) -> dict[str, Any]:
         await self._page.go_back()
-        return {"content": [TextContent(type="text", text="Went back")]}
+        return text_result("Went back")
 
     async def _tool_browser_go_forward(self) -> dict[str, Any]:
         await self._page.go_forward()
-        return {"content": [TextContent(type="text", text="Went forward")]}
+        return text_result("Went forward")
 
     async def _tool_browser_get_content(self) -> dict[str, Any]:
         content = await self._page.inner_text("body")
-        return {"content": [TextContent(type="text", text=content[:5000])]}
+        return text_result(content[:5000])
 
     async def _tool_browser_get_title(self) -> dict[str, Any]:
         title = await self._page.title()
-        return {"content": [TextContent(type="text", text=title)]}
+        return text_result(title)
 
     async def _tool_browser_wait(self, selector: str, timeout: float = 5000) -> dict[str, Any]:
         await self._page.wait_for_selector(selector, timeout=timeout)
-        return {"content": [TextContent(type="text", text=f"Waited for: {selector}")]}
+        return text_result(f"Waited for: {selector}")
 
     async def _close(self):
         if self._browser and not self._browser.is_closed:

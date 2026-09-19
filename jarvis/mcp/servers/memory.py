@@ -5,12 +5,12 @@ from typing import Any
 
 from mcp.server import Server, InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent, ServerCapabilities
+from mcp.types import Tool, ServerCapabilities
 
 from jarvis.memory.vector_store import VectorStore
 from jarvis.config.settings import Settings
 from jarvis.utils.logger import get_logger
-from jarvis.mcp.compat import serialize_tools
+from jarvis.mcp.compat import serialize_tools, text_result
 
 logger = get_logger(__name__)
 
@@ -92,36 +92,36 @@ class MemoryMCPServer:
                 return await self._list_memories(arguments.get("limit", 10))
             elif name == "delete_memory":
                 return await self._delete_memory(arguments["id"])
-            return {"content": [TextContent(type="text", text=f"Unknown tool: {name}")]}
+            return text_result(f"Unknown tool: {name}")
         except Exception as e:
             logger.error(f"Memory tool error: {e}")
-            return {"content": [TextContent(type="text", text=f"Error: {str(e)}")]}
+            return text_result(f"Error: {str(e)}")
 
     async def _add_memory(self, content: str, metadata: dict) -> dict[str, Any]:
         memory_id = await self.vector_store.add_memory(content, metadata)
-        return {"content": [TextContent(type="text", text=f"Memory added with ID: {memory_id}")]}
+        return text_result(f"Memory added with ID: {memory_id}")
 
     async def _search_memory(self, query: str, limit: int) -> dict[str, Any]:
         results = await self.vector_store.search(query, limit)
         if not results:
-            return {"content": [TextContent(type="text", text="No memories found")]}
+            return text_result("No memories found")
         output = []
         for r in results:
             output.append(f"[{r['id']}] {r['content'][:200]}... (score: {r['score']:.2f})")
-        return {"content": [TextContent(type="text", text="\n".join(output))]}
+        return text_result("\n".join(output))
 
     async def _list_memories(self, limit: int) -> dict[str, Any]:
         memories = await self.vector_store.list_memories(limit)
         if not memories:
-            return {"content": [TextContent(type="text", text="No memories stored")]}
+            return text_result("No memories stored")
         output = []
         for m in memories:
             output.append(f"[{m['id']}] {m['content'][:200]}... ({m['timestamp']})")
-        return {"content": [TextContent(type="text", text="\n".join(output))]}
+        return text_result("\n".join(output))
 
     async def _delete_memory(self, memory_id: str) -> dict[str, Any]:
         await self.vector_store.delete_memory(memory_id)
-        return {"content": [TextContent(type="text", text=f"Memory {memory_id} deleted")]}
+        return text_result(f"Memory {memory_id} deleted")
 
     async def run(self) -> None:
         options = InitializationOptions(

@@ -6,10 +6,10 @@ from typing import Any
 
 from mcp.server import Server, InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent, ServerCapabilities
+from mcp.types import Tool, ServerCapabilities
 
 from jarvis.utils.logger import get_logger
-from jarvis.mcp.compat import serialize_tools
+from jarvis.mcp.compat import serialize_tools, text_result
 
 logger = get_logger(__name__)
 
@@ -101,10 +101,10 @@ class FilesystemMCPServer:
                 return await self._glob(arguments["pattern"], arguments.get("path", "."))
             elif name == "file_exists":
                 return await self._file_exists(arguments["path"])
-            return {"content": [TextContent(type="text", text=f"Unknown tool: {name}")]}
+            return text_result(f"Unknown tool: {name}")
         except Exception as e:
             logger.error(f"Filesystem tool error: {e}")
-            return {"content": [TextContent(type="text", text=f"Error: {str(e)}")]}
+            return text_result(f"Error: {str(e)}")
 
     def _resolve_path(self, path: str) -> Path:
         target = (self.root / path).resolve()
@@ -115,35 +115,35 @@ class FilesystemMCPServer:
     async def _read_file(self, path: str) -> dict[str, Any]:
         file_path = self._resolve_path(path)
         if not file_path.exists():
-            return {"content": [TextContent(type="text", text=f"File not found: {path}")]}
+            return text_result(f"File not found: {path}")
         content = file_path.read_text(encoding="utf-8", errors="replace")
-        return {"content": [TextContent(type="text", text=content)]}
+        return text_result(content)
 
     async def _write_file(self, path: str, content: str) -> dict[str, Any]:
         file_path = self._resolve_path(path)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_text(content, encoding="utf-8")
-        return {"content": [TextContent(type="text", text=f"Written to {path}")]}
+        return text_result(f"Written to {path}")
 
     async def _list_directory(self, path: str) -> dict[str, Any]:
         dir_path = self._resolve_path(path)
         if not dir_path.is_dir():
-            return {"content": [TextContent(type="text", text=f"Not a directory: {path}")]}
+            return text_result(f"Not a directory: {path}")
         items = []
         for item in sorted(dir_path.iterdir()):
             prefix = "📁" if item.is_dir() else "📄"
             items.append(f"{prefix} {item.name}")
-        return {"content": [TextContent(type="text", text="\n".join(items))]}
+        return text_result("\n".join(items))
 
     async def _glob(self, pattern: str, path: str) -> dict[str, Any]:
         base_path = self._resolve_path(path)
         matches = list(base_path.rglob(pattern))
         items = [str(m.relative_to(self.root)) for m in matches]
-        return {"content": [TextContent(type="text", text="\n".join(items) if items else "No matches")]}
+        return text_result("\n".join(items) if items else "No matches")
 
     async def _file_exists(self, path: str) -> dict[str, Any]:
         file_path = self._resolve_path(path)
-        return {"content": [TextContent(type="text", text=str(file_path.exists()))]}
+        return text_result(str(file_path.exists()))
 
     async def run(self) -> None:
         options = InitializationOptions(

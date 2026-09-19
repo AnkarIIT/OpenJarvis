@@ -7,10 +7,10 @@ from typing import Any
 
 from mcp.server import Server, InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent, ServerCapabilities
+from mcp.types import Tool, ServerCapabilities
 
 from jarvis.utils.logger import get_logger
-from jarvis.mcp.compat import serialize_tools
+from jarvis.mcp.compat import serialize_tools, text_result
 
 logger = get_logger(__name__)
 
@@ -134,30 +134,30 @@ class DesktopMCPServer:
             arguments = params.arguments or {}
             handler = getattr(self, f"_tool_{name}", None)
             if handler is None:
-                return {"content": [TextContent(type="text", text=f"Unknown tool: {name}")]}
+                return text_result(f"Unknown tool: {name}")
             result = await handler(**arguments)
             return result
         except Exception as e:
             logger.error(f"Desktop tool error: {e}")
-            return {"content": [TextContent(type="text", text=f"Error: {str(e)}")]}
+            return text_result(f"Error: {str(e)}")
 
     async def _tool_mouse_move(self, x: float, y: float) -> dict[str, Any]:
         self.pyautogui.moveTo(x, y)
-        return {"content": [TextContent(type="text", text=f"Mouse moved to ({x}, {y})")]}
+        return text_result(f"Mouse moved to ({x}, {y})")
 
     async def _tool_mouse_click(self, x: float = None, y: float = None, button: str = "left", clicks: int = 1) -> dict[str, Any]:
         if x is None or y is None:
             x, y = self.pyautogui.position()
         self.pyautogui.click(x, y, button=button, clicks=clicks)
-        return {"content": [TextContent(type="text", text=f"Clicked {button} at ({x}, {y})")]}
+        return text_result(f"Clicked {button} at ({x}, {y})")
 
     async def _tool_mouse_scroll(self, dx: float = 0, dy: float = 3) -> dict[str, Any]:
         self.pyautogui.scroll(dy, dx=dx)
-        return {"content": [TextContent(type="text", text=f"Scrolled dx={dx}, dy={dy}")]}
+        return text_result(f"Scrolled dx={dx}, dy={dy}")
 
     async def _tool_keyboard_type(self, text: str, interval: float = 0.05) -> dict[str, Any]:
         self.pyautogui.typewrite(text, interval=interval)
-        return {"content": [TextContent(type="text", text=f"Typed: {text[:50]}...")]}
+        return text_result(f"Typed: {text[:50]}...")
 
     async def _tool_keyboard_press(self, key: str) -> dict[str, Any]:
         keys = key.split("+")
@@ -165,11 +165,11 @@ class DesktopMCPServer:
             self.pyautogui.hotkey(*[k.strip() for k in keys])
         else:
             self.pyautogui.press(key.strip())
-        return {"content": [TextContent(type="text", text=f"Pressed: {key}")]}
+        return text_result(f"Pressed: {key}")
 
     async def _tool_get_screen_size(self) -> dict[str, Any]:
         w, h = self.pyautogui.size()
-        return {"content": [TextContent(type="text", text=f"Screen: {w}x{h}")]}
+        return text_result(f"Screen: {w}x{h}")
 
     async def _tool_screenshot(self, region: dict[str, float] = None) -> dict[str, Any]:
         if region:
@@ -179,7 +179,7 @@ class DesktopMCPServer:
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         b64 = base64.b64encode(buf.getvalue()).decode()
-        return {"content": [TextContent(type="text", text=f"![Screenshot](data:image/png;base64,{b64[:200]}...)")]}
+        return text_result(f"![Screenshot](data:image/png;base64,{b64[:200]}...)")
 
     async def _close(self):
         try:

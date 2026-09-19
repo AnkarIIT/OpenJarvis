@@ -6,10 +6,10 @@ from typing import Any
 
 from mcp.server import Server, InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent, ServerCapabilities
+from mcp.types import Tool, ServerCapabilities
 
 from jarvis.utils.logger import get_logger
-from jarvis.mcp.compat import serialize_tools
+from jarvis.mcp.compat import serialize_tools, text_result
 
 logger = get_logger(__name__)
 
@@ -99,10 +99,10 @@ class GitMCPServer:
                 return await self._git_add(arguments["files"])
             elif name == "git_commit":
                 return await self._git_commit(arguments["message"])
-            return {"content": [TextContent(type="text", text=f"Unknown tool: {name}")]}
+            return text_result(f"Unknown tool: {name}")
         except Exception as e:
             logger.error(f"Git tool error: {e}")
-            return {"content": [TextContent(type="text", text=f"Error: {str(e)}")]}
+            return text_result(f"Error: {str(e)}")
 
     async def _run_git(self, *args: str) -> tuple[str, str, int]:
         process = await asyncio.create_subprocess_exec(
@@ -117,8 +117,8 @@ class GitMCPServer:
     async def _git_status(self) -> dict[str, Any]:
         stdout, stderr, code = await self._run_git("status", "--short")
         if code != 0:
-            return {"content": [TextContent(type="text", text=f"Error: {stderr}")]}
-        return {"content": [TextContent(type="text", text=stdout or "Working tree clean")]}
+            return text_result(f"Error: {stderr}")
+        return text_result(stdout or "Working tree clean")
 
     async def _git_diff(self, staged: bool) -> dict[str, Any]:
         args = ["diff"]
@@ -126,32 +126,32 @@ class GitMCPServer:
             args.append("--cached")
         stdout, stderr, code = await self._run_git(*args)
         if code != 0:
-            return {"content": [TextContent(type="text", text=f"Error: {stderr}")]}
-        return {"content": [TextContent(type="text", text=stdout or "No changes")]}
+            return text_result(f"Error: {stderr}")
+        return text_result(stdout or "No changes")
 
     async def _git_log(self, limit: int) -> dict[str, Any]:
         stdout, stderr, code = await self._run_git("log", f"-{limit}", "--oneline", "--graph", "--decorate")
         if code != 0:
-            return {"content": [TextContent(type="text", text=f"Error: {stderr}")]}
-        return {"content": [TextContent(type="text", text=stdout)]}
+            return text_result(f"Error: {stderr}")
+        return text_result(stdout)
 
     async def _git_branch(self) -> dict[str, Any]:
         stdout, stderr, code = await self._run_git("branch", "-a")
         if code != 0:
-            return {"content": [TextContent(type="text", text=f"Error: {stderr}")]}
-        return {"content": [TextContent(type="text", text=stdout)]}
+            return text_result(f"Error: {stderr}")
+        return text_result(stdout)
 
     async def _git_add(self, files: list[str]) -> dict[str, Any]:
         stdout, stderr, code = await self._run_git("add", *files)
         if code != 0:
-            return {"content": [TextContent(type="text", text=f"Error: {stderr}")]}
-        return {"content": [TextContent(type="text", text=f"Staged: {', '.join(files)}")]}
+            return text_result(f"Error: {stderr}")
+        return text_result(f"Staged: {', '.join(files)}")
 
     async def _git_commit(self, message: str) -> dict[str, Any]:
         stdout, stderr, code = await self._run_git("commit", "-m", message)
         if code != 0:
-            return {"content": [TextContent(type="text", text=f"Error: {stderr}")]}
-        return {"content": [TextContent(type="text", text=stdout)]}
+            return text_result(f"Error: {stderr}")
+        return text_result(stdout)
 
     async def run(self) -> None:
         options = InitializationOptions(
