@@ -73,7 +73,7 @@ class MemorySettings(BaseSettings):
     enabled: bool = True
     provider: Literal["chroma"] = "chroma"
     path: str = "~/.jarvis/memory"
-    embedding_model: str = "nomic-embed-text"
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     collection_name: str = "jarvis_memory"
     max_results: int = 5
     retention_days: int = 0
