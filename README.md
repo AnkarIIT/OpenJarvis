@@ -76,13 +76,16 @@ pip install -e .
 ### Start JARVIS
 
 ```powershell
-jarvis
-# First time? Run: jarvis --install  (auto-detects AI providers + downloads voice models)
+jarvis main
+# Talk to JARVIS. (Note: bare `jarvis` only lists commands — `main` starts the agent.)
+
+# First time? Run setup first (auto-detects AI providers + downloads voice models):
+jarvis setup
 ```
 
-> **First time?** Run `jarvis --install` after installing to detect providers and configure optional components.
+> **First time?** Run `jarvis setup` after installing to detect providers and configure optional components.
 >
-> **Friends having trouble?** See `scripts/setup_friend.sh` for a guided step-by-step setup that handles pipx installation, PATH configuration, and initial setup automatically.
+> **New to Python tooling?** `scripts/setup_friend.sh` provides a guided step-by-step setup that handles pipx installation, PATH configuration, and initial setup automatically.
 
 The installer detects available AI providers and installs selected optional dependencies. Voice models
 and native audio backends are optional and may require additional downloads and hardware.
@@ -220,7 +223,7 @@ policies; starting the worker does not bypass MCP permissions or TUI approval re
 
 - Python 3.10+
 - 8GB+ RAM (for Llama 3.1 8B) or GPU (for faster inference)
-- Ollama (for LLM) — auto-installed by `jarvis --install`
+- Ollama (for LLM) — auto-installed by `jarvis setup`
 - Optional: Local LLM model (GGUF for `llama_cpp` provider mode)
 
 ### Full Offline Mode
@@ -420,9 +423,10 @@ All settings can be configured via environment variables (prefix `JARVIS_`):
 ### Model Management
 
 ```bash
-jarvis --install          # Auto-detect providers + download all models
-jarvis --models           # List available models from all providers
-jarvis --pull MODEL       # Download a specific model
+jarvis main --install     # Auto-detect providers + download all models
+jarvis main --models      # List available models from all providers
+jarvis main --pull MODEL  # Download a specific model
+# (or simply run `jarvis setup` for the guided first-time setup)
 ```
 
 ### Auto-Detection Priority
