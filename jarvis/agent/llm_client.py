@@ -393,6 +393,22 @@ async def _chat_fallback(
         yield "[Error: No LLM provider available. Configure Ollama, LM Studio, LocalAI, or set an API key.]"
 
 
+def _resolve_model_name(model_obj: Any) -> str:
+    """Extract the model name from an Ollama Model object or dict.
+
+    Newer versions of the ollama Python library return Pydantic model objects
+    with a ``model`` attribute (not ``name``).  Older versions returned dicts
+    with a ``name`` key.  This helper handles both transparently.
+    """
+    # Pydantic model objects and dicts both support .get()
+    if hasattr(model_obj, "get"):
+        name = model_obj.get("model") or model_obj.get("name") or model_obj.get("id")
+        if name:
+            return name
+    # Fall back to attribute access
+    return getattr(model_obj, "model", getattr(model_obj, "name", getattr(model_obj, "id", ""))) or ""
+
+
 async def _probe_provider(settings: Settings, provider: str) -> bool:
     """Probe whether a provider is reachable and has a usable model."""
     try:
@@ -401,7 +417,7 @@ async def _probe_provider(settings: Settings, provider: str) -> bool:
                 import ollama
                 client = ollama.AsyncClient(host=settings.llm.base_url, timeout=5)
                 tags = await asyncio.wait_for(client.list(), timeout=5.0)
-                model_names = [m.get("name", "") for m in tags.get("models", [])]
+                model_names = [_resolve_model_name(m) for m in tags.get("models", [])]
                 if model_names:
                     # Try to use the configured model, or fall back to first available
                     if settings.llm.model not in model_names:
@@ -730,7 +746,7 @@ class LLMClient:
                 import ollama
                 client = ollama.AsyncClient(host=self.settings.llm.base_url)
                 models = await client.list()
-                return [m["name"] for m in models.get("models", [])]
+                return [_resolve_model_name(m) for m in models.get("models", [])]
             except Exception:
                 return []
         elif provider in ("lm_studio", "localai", "openai"):
