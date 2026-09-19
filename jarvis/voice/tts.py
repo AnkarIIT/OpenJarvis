@@ -47,7 +47,7 @@ async def _ensure_piper_model(voice_name: str, onnx_path: Path, config_path: Pat
             logger.info(f"Downloading Piper voice model from {url}...")
             onnx_path.parent.mkdir(parents=True, exist_ok=True)
             import httpx
-            async with httpx.AsyncClient(timeout=300) as http:
+            async with httpx.AsyncClient(timeout=300, follow_redirects=True) as http:
                 async with http.stream("GET", url) as resp:
                     with open(str(onnx_path), "wb") as f:
                         async for chunk in resp.aiter_bytes(8192):
