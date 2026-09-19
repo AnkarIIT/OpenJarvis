@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import json
 import asyncio
+from pathlib import Path
 from typing import Any, AsyncGenerator, Awaitable, Callable
 
 from jarvis.agent.llm_client import LLMClient
@@ -133,7 +134,10 @@ class AgentLoop:
             if not tool_calls:
                 await self._add_assistant_message(full_response)
                 if self.memory:
-                    await self.memory.add_memory(user_input, full_response)
+                    try:
+                        await self.memory.add_memory(user_input, {"response": full_response})
+                    except Exception as e:
+                        logger.warning(f"Failed to add memory (non-fatal): {e}")
                 break
 
             messages.append({
@@ -155,6 +159,12 @@ class AgentLoop:
             for call in tool_calls:
                 tool_name = call["name"]
                 tool_args = call.get("arguments", {})
+                # Ollama may return arguments as a JSON string instead of a dict
+                if isinstance(tool_args, str):
+                    try:
+                        tool_args = json.loads(tool_args)
+                    except json.JSONDecodeError:
+                        tool_args = {}
                 if self.current_task:
                     self.current_task.add_step("execute", f"Run tool {tool_name}", "running")
                 result = await self._execute_tool(tool_name, tool_args)
@@ -279,6 +289,12 @@ class AgentLoop:
 
     async def _execute_tool(self, tool_name: str, arguments: dict[str, Any] | None = None) -> Any:
         arguments = arguments or {}
+        # Defense-in-depth: parse string arguments (Ollama may return JSON strings)
+        if isinstance(arguments, str):
+            try:
+                arguments = json.loads(arguments)
+            except json.JSONDecodeError:
+                arguments = {}
         # Check which tool source has this tool name first (avoids MCP timeout for local skills)
         mcp_tool = next((t for t in self.mcp.tools if t.name == tool_name), None)
         skill_cmd = next((c for c in self.skill_registry.list_commands() if c.name == tool_name), None)
