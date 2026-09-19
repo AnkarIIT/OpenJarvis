@@ -33,8 +33,8 @@ app = typer.Typer(
 def main(
     install_mode: bool = typer.Option(False, "--install", "-i", help="Run installer"),
     list_models: bool = typer.Option(False, "--models", "-m", help="List available LLM models from all providers"),
-    pull_model: str = typer.Option(None, "--pull", "-p", help="Pull/download a specific model (Ollama name or GGUF URL)"),
-    config_path: str = typer.Option(None, "--config", "-c", help="Custom config path"),
+    pull_model: str | None = typer.Option(None, "--pull", "-p", help="Pull/download a specific model (Ollama name or GGUF URL)"),
+    config_path: str | None = typer.Option(None, "--config", "-c", help="Custom config path"),
     debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode"),
 ):
     """JARVIS Terminal Agent"""
