@@ -30,17 +30,17 @@ import json, os, sys, time, argparse, urllib.request, urllib.error, urllib.parse
 UA = "python-httpx/0.27"  # CF blocks default urllib UA on many providers
 
 
-def _hermes_home():
+def _jarvis_home():
     # Prefer Hermes' own resolver (profile-safe); fall back to env then ~/.hermes.
     try:
-        from hermes_constants import get_hermes_home
-        return str(get_hermes_home())
+        from jarvis_constants import get_jarvis_home
+        return str(get_jarvis_home())
     except Exception:
         return os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
 
 
 def _tokens_dir():
-    return os.path.join(_hermes_home(), "mcp-tokens")
+    return os.path.join(_jarvis_home(), "mcp-tokens")
 
 
 def _post(url, data=None, headers=None, form=False, timeout=30):
