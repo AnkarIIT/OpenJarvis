@@ -25,7 +25,7 @@ from typing import Any, List, NoReturn, Optional, Tuple
 
 from packaging.requirements import Requirement
 
-from hermes_constants import display_hermes_home, get_hermes_home
+from jarvis_constants import display_jarvis_home, get_jarvis_home
 from utils import atomic_write_text
 
 # Pinned legacy logger name so operator log filters keep matching (see adapter.py).
@@ -66,22 +66,22 @@ def _token_rel(email: Optional[str]) -> str:
 
 
 def _user_tokens_dir() -> Path:
-    return get_hermes_home() / "google_chat_user_tokens"
+    return get_jarvis_home() / "google_chat_user_tokens"
 
 
 def _token_path(email: Optional[str] = None) -> Path:
     """Per-user token path for ``email``, or the legacy single-user path."""
-    return get_hermes_home() / _token_rel(email)
+    return get_jarvis_home() / _token_rel(email)
 
 
 def _client_secret_path() -> Path:
-    return get_hermes_home() / "google_chat_user_client_secret.json"
+    return get_jarvis_home() / "google_chat_user_client_secret.json"
 
 
 def _pending_auth_path(email: Optional[str] = None) -> Path:
     if email:
-        return get_hermes_home() / "google_chat_user_oauth_pending" / f"{_sanitize_email(email)}.json"
-    return get_hermes_home() / "google_chat_user_oauth_pending.json"
+        return get_jarvis_home() / "google_chat_user_oauth_pending" / f"{_sanitize_email(email)}.json"
+    return get_jarvis_home() / "google_chat_user_oauth_pending.json"
 
 
 # -- Library API — called from the adapter at runtime -------------------------
@@ -195,8 +195,8 @@ def _chmod_quiet(path: Path, mode: int) -> None:
 
 def _write_private_json(path: Path, data: Any) -> None:
     """Atomically write JSON with 0o600 permissions (0o700 parent) where supported."""
-    from hermes_constants import mkdir_under_hermes_home
-    mkdir_under_hermes_home(path.parent)
+    from jarvis_constants import mkdir_under_jarvis_home
+    mkdir_under_jarvis_home(path.parent)
     _chmod_quiet(path.parent, 0o700)
     # mkstemp's 0o600 temp + atomic rename never exposes the token at process umask.
     atomic_write_text(path, json.dumps(data, indent=2, ensure_ascii=False), create_mode=0o600)
@@ -386,7 +386,7 @@ def exchange_auth_code(code: str, email: Optional[str] = None) -> None:
     _write_private_json(token_path, token_payload)
     _pending_auth_path(email).unlink(missing_ok=True)
     print(f"OK: Authenticated. Token saved to {token_path}")
-    print(f"Profile path: {display_hermes_home()}/{_token_rel(email)}")
+    print(f"Profile path: {display_jarvis_home()}/{_token_rel(email)}")
 
 
 def revoke(email: Optional[str] = None) -> None:
@@ -470,7 +470,7 @@ def __getattr__(name):  # PEP 562 — lazy so no import cycles
     if target is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     import importlib
-    from hermes_cli.plugin_compat import warn_once
+    from jarvis_cli.plugin_compat import warn_once
     warn_once(__name__, name, *target)
     return getattr(importlib.import_module(target[0]), target[1])
 # ---- END PLUGIN-COMPAT ----
