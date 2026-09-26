@@ -103,7 +103,7 @@ class GatewayStartupMixin:
     def _start_free_tier_bootstrap() -> None:
         """One bootstrap per process. `run_bootstrap` already records its own failure in the boot record
         and never raises, so this is a plain call; it exists as a method so tests can seam it."""
-        from hermes_cli.free_tier_bootstrap import run_bootstrap
+        from jarvis_cli.free_tier_bootstrap import run_bootstrap
         run_bootstrap(announce=False)
 
     def _start_startup_warmup(self) -> None:
@@ -124,9 +124,9 @@ class GatewayStartupMixin:
         loop = asyncio.get_running_loop()
         if getattr(self.config, "multiplex_profiles", False):
             from gateway.run import _async_profile_runtime_scope
-            from hermes_constants import get_hermes_home
+            from jarvis_constants import get_jarvis_home
             try:
-                async with _async_profile_runtime_scope(get_hermes_home()):
+                async with _async_profile_runtime_scope(get_jarvis_home()):
                     return await loop.run_in_executor(None, copy_context().run, fn)
             except Exception:
                 # Same fallback as load_gateway_config_for_runner: a scope that cannot be built must not
@@ -749,8 +749,8 @@ class GatewayStartupMixin:
 
     def _open_faulthandler_log(self):
         """Open (append) ``<log_dir>/gateway_faulthandler.log``, creating the directory."""
-        from gateway.run import get_hermes_home
-        log_dir = getattr(self.config, "log_dir", None) or os.path.join(str(get_hermes_home()), "logs")
+        from gateway.run import get_jarvis_home
+        log_dir = getattr(self.config, "log_dir", None) or os.path.join(str(get_jarvis_home()), "logs")
         os.makedirs(log_dir, exist_ok=True)
         return open(os.path.join(log_dir, "gateway_faulthandler.log"), "a", encoding="utf-8")
 
@@ -787,7 +787,7 @@ class GatewayStartupMixin:
             # Loop live: the loop-liveness watchdog takes over from the startup watchdog. Disarm even
             # when loop guards are config-disabled; only inside this branch (no live loop = stay armed).
             with _log_suppressed(logging.DEBUG, "Startup watchdog disarm failed", exc_info=True):
-                from hermes_startup_watchdog import disarm_startup_watchdog
+                from jarvis_startup_watchdog import disarm_startup_watchdog
                 disarm_startup_watchdog()
         logger.info("Session storage: %s", self.config.sessions_dir)
         self._start_log_systemd_timing_alignment()
@@ -815,20 +815,20 @@ class GatewayStartupMixin:
                     "in config.yaml to re-enable.", _redact_raw,
                 )
         with suppress(Exception):
-            from hermes_cli.profiles import get_active_profile_name
+            from jarvis_cli.profiles import get_active_profile_name
             _profile = get_active_profile_name()  # launch profile, pre-identity (boot log)
             if _profile and _profile != "default":
                 logger.info("Active profile: %s", _profile)
         _write_runtime_status_quiet(gateway_state="starting", exit_reason=None, clear_profile_platforms=True)
         with _log_suppressed(logging.DEBUG, "gateway health OTLP export startup failed", exc_info=True):
-            from hermes_cli.config import load_config
+            from jarvis_cli.config import load_config
             from agent.monitoring.gateway_health_export import start_gateway_health_export
             self._gateway_health_export_runtime = start_gateway_health_export(load_config())
             if getattr(self._gateway_health_export_runtime, "enabled", False):
                 logger.info("Gateway health OTLP export: enabled")
         # Supply-chain advisories: log only (never block startup or surface to users; only the operator can act).
         with _log_suppressed(logging.DEBUG, "security advisory check failed at gateway startup", exc_info=True):
-            from hermes_cli.security_advisories import detect_compromised, gateway_log_message
+            from jarvis_cli.security_advisories import detect_compromised, gateway_log_message
             _adv_msg = gateway_log_message(detect_compromised())
             if _adv_msg:
                 logger.warning("%s", _adv_msg)
@@ -912,7 +912,7 @@ class GatewayStartupMixin:
         # Discover plugins before shell hooks (plugin block decisions win ties). Explicit: the gateway
         # lazily imports run_agent, so model_tools' discover_plugins() side-effect may not have run.
         with _log_suppressed(logging.WARNING, "plugin discovery failed at gateway startup", exc_info=True):
-            from hermes_cli.plugins import discover_plugins
+            from jarvis_cli.plugins import discover_plugins
             discover_plugins()
         # Relay entrypoints share the effective profile opt-out, including when a
         # deployment injects a URL. No URL or explicitly disabled -> no side effects.
@@ -944,8 +944,8 @@ class GatewayStartupMixin:
                 "shell-hook/webhook registration failed at gateway startup", level=logging.WARNING)
             return
         from gateway.run import _profile_runtime_scope
-        from hermes_constants import get_process_hermes_home
-        with _profile_runtime_scope(get_process_hermes_home()):
+        from jarvis_constants import get_process_jarvis_home
+        with _profile_runtime_scope(get_process_jarvis_home()):
             GatewayStartupMixin._register_config_hooks(
                 "shell-hook/webhook registration failed at gateway startup", level=logging.WARNING)
 
@@ -958,7 +958,7 @@ class GatewayStartupMixin:
         Never raises (logged at ``level``).
         """
         try:
-            from hermes_cli.config import load_config
+            from jarvis_cli.config import load_config
             from agent.shell_hooks import register_from_config
             from agent.outbound_webhooks import register_from_config as register_outbound_webhooks
             _hooks_cfg = load_config()
@@ -973,8 +973,8 @@ class GatewayStartupMixin:
         if not getattr(self.config, "multiplex_profiles", False):
             return 0
         from gateway.run import _multiplex_profile_homes, _profile_runtime_scope
-        from hermes_constants import get_hermes_home
-        launch_home = get_hermes_home().resolve()
+        from jarvis_constants import get_jarvis_home
+        launch_home = get_jarvis_home().resolve()
         recovered = 0
         for profile_name, profile_home in _multiplex_profile_homes(self.config):
             if Path(profile_home).resolve() == launch_home:
@@ -988,7 +988,7 @@ class GatewayStartupMixin:
 
     async def _start_recover_previous_run(self) -> None:
         """Plugins, relay, hooks, then crash/clean-exit recovery of processes and sessions."""
-        from gateway.run import _hermes_home
+        from gateway.run import _jarvis_home
         self._start_register_plugins_relay_hooks()
         self.hooks.discover_and_load()
         # Recover background processes from checkpoint (crash recovery). ``_checkpoint_path`` is
@@ -1002,7 +1002,7 @@ class GatewayStartupMixin:
                 logger.info("Recovered %s background process(es) from previous run", recovered)
         # Recover sessions active at last exit (exact turn markers + 120s recency fallback for
         # marker-less older turns). SKIP after a clean exit — the previous process already drained.
-        _clean_marker = _hermes_home / ".clean_shutdown"
+        _clean_marker = _jarvis_home / ".clean_shutdown"
         if _clean_marker.exists():
             logger.info("Previous gateway exited cleanly — skipping session suspension")
             try:
@@ -1303,7 +1303,7 @@ class GatewayStartupMixin:
 
     async def _start_post_connect_services(self, connected_count: int) -> None:
         """Room worker, heartbeat, gateway:startup hook, channel directory, /update notice."""
-        from gateway.run import _hermes_home
+        from gateway.run import _jarvis_home
         try:
             await self._ensure_hosted_room_worker()
         except Exception:
@@ -1331,7 +1331,7 @@ class GatewayStartupMixin:
         # Restarting after a /update still in progress: keep watching so we notify when it finishes.
         notified = await self._send_update_notification()
         if not notified and any(
-            (_hermes_home / name).exists()
+            (_jarvis_home / name).exists()
             for name in (".update_pending.json", ".update_pending.claimed.json")
         ):
             self._schedule_update_notification_watch()
