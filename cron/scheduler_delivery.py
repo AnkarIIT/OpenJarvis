@@ -22,7 +22,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, List, Optional
 
-from hermes_cli._subprocess_compat import windows_hide_flags
+from jarvis_cli._subprocess_compat import windows_hide_flags
 
 # Log-record parity with the origin module.
 logger = logging.getLogger("cron.scheduler")
@@ -410,7 +410,7 @@ def _cron_job_origin_log_suffix(job: dict) -> str:
 def _plugin_cron_env_var(platform_name: str) -> str:
     """Cron home-channel env var registered by a plugin ``PlatformEntry.cron_deliver_env_var``."""
     with contextlib.suppress(Exception):
-        from hermes_cli.plugins import discover_plugins
+        from jarvis_cli.plugins import discover_plugins
         discover_plugins()  # idempotent
         from gateway.platform_registry import platform_registry
         entry = platform_registry.get(platform_name.lower())
@@ -520,7 +520,7 @@ def _iter_home_target_platforms():
     """Iterate built-in + plugin platform names that expose a home channel."""
     yield from _HOME_TARGET_ENV_VARS
     with contextlib.suppress(Exception):
-        from hermes_cli.plugins import discover_plugins
+        from jarvis_cli.plugins import discover_plugins
         discover_plugins()  # idempotent
         from gateway.platform_registry import platform_registry
         for entry in platform_registry.plugin_entries():
@@ -567,7 +567,7 @@ def cron_delivery_targets() -> list[dict]:
 
     # Bot Chat targets: one per local profile (machine-local; no gateway config or home channel).
     try:
-        from hermes_cli.profiles import list_profile_names
+        from jarvis_cli.profiles import list_profile_names
         for profile_name in list_profile_names():
             targets.append({
                 "id": f"{BOT_CHAT_PLATFORM}:{profile_name}",
@@ -714,7 +714,7 @@ _BOT_CHAT_EXIT_GRACE_SECONDS = 2.0
 def _run_bot_chat_turn(argv: list, env: dict, report_path: str, timeout: float) -> subprocess.CompletedProcess:
     """Run one ``hermes chat -Q`` delivery child; the cap bounds the TURN, not the process.
 
-    The child records its turn outcome at *report_path* (``hermes_cli.quiet_single_query``)
+    The child records its turn outcome at *report_path* (``jarvis_cli.quiet_single_query``)
     the moment the turn ends, then runs the one-shot exit linger for nested
     ``notify_on_complete`` replies — bounded by ``terminal.oneshot_completion_wait_seconds``,
     whose default equals this lane's cap, so waiting for process exit booked every delivered
@@ -722,7 +722,7 @@ def _run_bot_chat_turn(argv: list, env: dict, report_path: str, timeout: float) 
     report exists the delivery is booked from it and the still-lingering child is left
     running (a daemon thread drains and reaps it); only a turn that never ends is killed.
     """
-    from hermes_cli.quiet_single_query import read_turn_report
+    from jarvis_cli.quiet_single_query import read_turn_report
 
     proc = subprocess.Popen(
         argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
@@ -792,8 +792,8 @@ def _deliver_to_bot_chat(job: dict, content: str, profile: str, *, deferred: Opt
     import json
     import tempfile
     import uuid
-    from hermes_constants import get_hermes_home
-    from hermes_cli.profiles import get_profile_dir
+    from jarvis_constants import get_jarvis_home
+    from jarvis_cli.profiles import get_profile_dir
     from tools.bot_live_delivery import (
         deliver_to_live_owner, find_canonical_live_owner, read_delivery_result,
     )
@@ -811,13 +811,13 @@ def _deliver_to_bot_chat(job: dict, content: str, profile: str, *, deferred: Opt
         f"summarize for the chat.]\n\n{content}"
     )
     try:
-        source_home = get_hermes_home().resolve()
+        source_home = get_jarvis_home().resolve()
         from pathlib import Path
         home = (Path(deferred["home"]) if deferred is not None else
                 get_profile_dir(profile) if profile else source_home).resolve()
         for_failure = for_failure or bool((deferred or {}).get("for_failure"))
         from gateway.warning_notifications import warning_notifications_enabled
-        from hermes_cli.config_effective import load_user_config_effective
+        from jarvis_cli.config_effective import load_user_config_effective
         suppress_notification = for_failure and not warning_notifications_enabled(
             BOT_CHAT_POLICY_PLATFORM, load_user_config_effective(home / "config.yaml"))
         if deferred is not None and not (home / "state.db").is_file():
@@ -885,11 +885,11 @@ def _deliver_to_bot_chat(job: dict, content: str, profile: str, *, deferred: Opt
     # to whatever `hermes` PATH names — another install, or a planted one — instead of this one.
     try:
         import importlib.util as _ilu
-        found = _ilu.find_spec("hermes_cli") is not None
+        found = _ilu.find_spec("jarvis_cli") is not None
     except Exception:
         found = False
     if found:
-        argv = [sys.executable, "-m", "hermes_cli.main"]
+        argv = [sys.executable, "-m", "jarvis_cli.main"]
     else:
         hermes_bin = shutil.which("hermes")
         if not hermes_bin:
@@ -924,7 +924,7 @@ def _deliver_to_bot_chat(job: dict, content: str, profile: str, *, deferred: Opt
             "chat", "--in", "~", "-c", "Bot Chat", "--create-if-missing",
             "-Q", "--query-file", query_file,
         ]
-        from hermes_cli.quiet_single_query import TURN_REPORT_FILE_ENV
+        from jarvis_cli.quiet_single_query import TURN_REPORT_FILE_ENV
         report_file = f"{query_file}.turn.json"
         env[TURN_REPORT_FILE_ENV] = report_file
         result = _run_bot_chat_turn(argv, env, report_file, _get_bot_chat_delivery_timeout())
@@ -1002,7 +1002,7 @@ def _resolve_bot_chat_target(job: dict, profile_arg: str) -> Optional[dict]:
     if not profile_arg:
         return {"platform": BOT_CHAT_PLATFORM, "chat_id": "", "thread_id": None}
     try:
-        from hermes_cli.profiles import normalize_profile_name, profile_exists
+        from jarvis_cli.profiles import normalize_profile_name, profile_exists
         canon = normalize_profile_name(profile_arg)
         if not profile_exists(canon):
             logger.warning(
