@@ -4,7 +4,7 @@ import math
 import os
 from collections.abc import Mapping
 
-from hermes_cli.config import DEFAULT_CONFIG
+from jarvis_cli.config import DEFAULT_CONFIG
 
 # EX_TEMPFAIL (sysexits.h): ask the service manager to restart after a graceful drain/reload.
 GATEWAY_SERVICE_RESTART_EXIT_CODE = 75
@@ -94,7 +94,7 @@ def is_supervised_gateway_launch(environ: Mapping[str, str] | None = None) -> bo
 
     Superset of :func:`is_gateway_supervisor_process` that also honours ``HERMES_SUPERVISED_CHILD``,
     the marker every generated launcher exports (systemd unit, launchd plist, s6 run script, Windows
-    Scheduled Task — see ``hermes_cli.main._apply_profile_override``). This is the identity the
+    Scheduled Task — see ``jarvis_cli.main._apply_profile_override``). This is the identity the
     self-targeting guards key on: a kill or lifecycle command issued from inside such a gateway takes
     down the process hosting the caller with nobody at a terminal to bring it back (#113667).
     """
