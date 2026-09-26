@@ -40,7 +40,7 @@ from urllib.parse import urlparse
 import httpx
 
 from agent.web_search_provider import WebSearchProvider
-from hermes_cli import __version__ as _HERMES_VERSION
+from jarvis_cli import __version__ as _HERMES_VERSION
 
 logger = logging.getLogger(__name__)
 
