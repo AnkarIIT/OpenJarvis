@@ -99,7 +99,7 @@ def routed_model_rejects_vision_tool_messages(provider: str, model: str) -> bool
     # Routing aggregators accept a ``vendor/model`` identifier while the request is sent
     # to the aggregator; the target provider can have stricter message-shape support than
     # the aggregator's generic OpenAI-compatible transport profile.
-    from hermes_cli.providers import is_routing_aggregator
+    from jarvis_cli.providers import is_routing_aggregator
     if not is_routing_aggregator(provider_name):
         return False
 
@@ -132,9 +132,9 @@ def list_providers() -> list[ProviderProfile]:
 def _user_plugins_dir() -> Path | None:
     """Return ``$HERMES_HOME/plugins/model-providers/`` if it exists."""
     try:
-        from hermes_constants import get_hermes_home
+        from jarvis_constants import get_jarvis_home
 
-        d = get_hermes_home() / "plugins" / "model-providers"
+        d = get_jarvis_home() / "plugins" / "model-providers"
         return d if d.is_dir() else None
     except Exception:
         return None
@@ -148,9 +148,9 @@ def _installed_plugins_dir() -> Path | None:
     :func:`_discover_installed_provider_plugins`.
     """
     try:
-        from hermes_constants import get_hermes_home
+        from jarvis_constants import get_jarvis_home
 
-        d = get_hermes_home() / "plugins"
+        d = get_jarvis_home() / "plugins"
         return d if d.is_dir() else None
     except Exception:
         return None
@@ -270,7 +270,7 @@ def _discover_entry_point_providers() -> None:
     # Same opt-in gate as the general PluginManager: only entry points named
     # in ``plugins.enabled`` load, and ``plugins.disabled`` always wins.
     try:
-        from hermes_cli.plugins import _get_disabled_plugins, _get_enabled_plugins
+        from jarvis_cli.plugins import _get_disabled_plugins, _get_enabled_plugins
 
         enabled = _get_enabled_plugins()  # None = nothing enabled yet (opt-in default)
         disabled = _get_disabled_plugins()
@@ -462,7 +462,7 @@ def __getattr__(name):  # PEP 562 — lazy so no import cycles
     if target is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     import importlib
-    from hermes_cli.plugin_compat import warn_once
+    from jarvis_cli.plugin_compat import warn_once
     warn_once(__name__, name, *target)
     return getattr(importlib.import_module(target[0]), target[1])
 # ---- END PLUGIN-COMPAT ----
