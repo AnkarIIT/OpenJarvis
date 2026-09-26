@@ -314,7 +314,7 @@ def _tagged(resp: dict, tag: Optional[str]) -> dict:
 
 class SupermemoryMemoryProvider(MemoryProvider):
     def __init__(self):
-        self._api_key = self._session_id = self._hermes_home = ""
+        self._api_key = self._session_id = self._jarvis_home = ""
         self._client: Optional[_SupermemoryClient] = None
         self._container_tag, self._turn_count, self._write_enabled, self._active = _DEFAULT_CONTAINER_TAG, 0, True, False
         self._prefetch_thread = self._sync_thread = self._write_thread = None  # only _write_thread is ever started
@@ -351,12 +351,12 @@ class SupermemoryMemoryProvider(MemoryProvider):
         _save_supermemory_config(sanitized, hermes_home)
 
     def get_status_config(self, provider_config: dict) -> dict:
-        from hermes_constants import get_hermes_home
-        return {"summary": _format_connection_summary(_probe_supermemory_connection(get_secret("SUPERMEMORY_API_KEY", "") or "", str(get_hermes_home())))}
+        from jarvis_constants import get_jarvis_home
+        return {"summary": _format_connection_summary(_probe_supermemory_connection(get_secret("SUPERMEMORY_API_KEY", "") or "", str(get_jarvis_home())))}
 
     def post_setup(self, hermes_home: str, config: dict) -> None:
-        from hermes_cli.config import save_config
-        from hermes_cli.memory_setup import _prompt, _write_env_vars
+        from jarvis_cli.config import save_config
+        from jarvis_cli.memory_setup import _prompt, _write_env_vars
         print(f"\n  Configuring supermemory:\n\n  Get your API key at {_API_KEY_URL}\n")
         existing = os.environ.get("SUPERMEMORY_API_KEY", "")
         masked = f"...{existing[-4:]}" if len(existing) > 4 else "set"
@@ -378,10 +378,10 @@ class SupermemoryMemoryProvider(MemoryProvider):
         print("\n  Start a new session to activate.\n")
 
     def initialize(self, session_id: str, **kwargs) -> None:
-        from hermes_constants import get_hermes_home
-        self._hermes_home = kwargs.get("hermes_home") or str(get_hermes_home())
+        from jarvis_constants import get_jarvis_home
+        self._jarvis_home = kwargs.get("hermes_home") or str(get_jarvis_home())
         self._session_id, self._turn_count, self._pending_turns = session_id, 0, []
-        config = _load_supermemory_config(self._hermes_home)
+        config = _load_supermemory_config(self._jarvis_home)
         self._api_key = get_secret("SUPERMEMORY_API_KEY", "") or ""
         self._container_tag = _resolve_container_tag(config["container_tag"], kwargs.get("agent_identity", "default"))
         self._apply_config(config)
