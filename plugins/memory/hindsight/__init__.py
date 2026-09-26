@@ -26,9 +26,9 @@ from typing import Any, Callable, Dict, List, Optional
 
 from agent.memory_provider import MemoryProvider, RecallStatus, spawn_context_thread
 from agent.secret_scope import UnscopedSecretError, get_secret
-from hermes_cli.config import cfg_get
-from hermes_constants import get_hermes_home
-from hermes_time import now as _hermes_now
+from jarvis_cli.config import cfg_get
+from jarvis_constants import get_jarvis_home
+from jarvis_time import now as _hermes_now
 from tools.registry import tool_error
 from utils import read_json_or_empty
 
@@ -258,7 +258,7 @@ REFLECT_SCHEMA = {
 def _load_config() -> dict:
     """$HERMES_HOME/hindsight/config.json (profile-scoped), else ~/.hindsight/config.json
     (legacy, shared), else environment variables."""
-    for path in (get_hermes_home() / "hindsight" / "config.json", Path.home() / ".hindsight" / "config.json"):
+    for path in (get_jarvis_home() / "hindsight" / "config.json", Path.home() / ".hindsight" / "config.json"):
         # A corrupt (or empty) file falls through to the next source, as before the dedup.
         if path.exists() and (data := read_json_or_empty(path)):
             return data
@@ -831,7 +831,7 @@ class HindsightMemoryProvider(MemoryProvider):
 
     def _daemon_start_worker(self) -> None:
         import traceback
-        log_path = get_hermes_home() / "logs" / "hindsight-embed.log"
+        log_path = get_jarvis_home() / "logs" / "hindsight-embed.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
         def _log(text: str) -> None:
