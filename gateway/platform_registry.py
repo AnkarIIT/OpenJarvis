@@ -13,7 +13,7 @@ import threading
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Optional
 
-from hermes_constants import hermes_home_key
+from jarvis_constants import jarvis_home_key
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +126,7 @@ class PlatformRegistry:
 
     @staticmethod
     def current_scope_key() -> str:
-        return hermes_home_key()
+        return jarvis_home_key()
 
     def _scope_maps(
         self, scope: Optional[str], *, create: bool = False
