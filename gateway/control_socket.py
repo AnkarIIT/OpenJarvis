@@ -127,8 +127,8 @@ class GatewayControlServer:
     def __init__(self, home: Optional[Path] = None, *,
                  verb_handlers: Optional[dict[str, Callable[..., dict[str, Any]]]] = None) -> None:
         if home is None:
-            from gateway.status import _get_process_hermes_home
-            home = _get_process_hermes_home()
+            from gateway.status import _get_process_jarvis_home
+            home = _get_process_jarvis_home()
         self._home = Path(home)
         self._server: Optional[asyncio.AbstractServer] = None
         self._pipe_server: Any = None  # Windows proactor pipe server
