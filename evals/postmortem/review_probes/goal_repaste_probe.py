@@ -33,7 +33,7 @@ os.environ['TZ'] = 'UTC'
 # Fail closed: these probes must never invoke a provider or external network.
 socket.socket.connect = lambda *a, **k: (_ for _ in ()).throw(RuntimeError('network prohibited in review probe'))
 from cli import HermesCLI
-from hermes_cli import cli_commands_mixin, goals
+from jarvis_cli import cli_commands_mixin, goals
 from gateway.slash_commands_goals import GatewayGoalCommandsMixin
 from gateway.config import Platform
 from gateway.platforms.event import MessageEvent, MessageType
@@ -42,7 +42,7 @@ from tui_gateway import server
 
 assert str(Path(cli_commands_mixin.__file__).resolve()).startswith(repo)
 assert str(Path(goals.__file__).resolve()).startswith(repo)
-server._hermes_home = Path(home.name)
+server._jarvis_home = Path(home.name)
 goals._DB_CACHE.clear()
 goals._get_session_db()
 source_db = os.environ.get('RF_STATE_COPY') or str(Path(tempfile.gettempdir()) / 'rf' / 'state_copy.db')
@@ -86,7 +86,7 @@ output['selection_ui'] = cli_case(options, 'ship the UI', tag+'-ui')
 output['different_selected_goals_same_model_prompt'] = output['selection_api']['prompt'] == output['selection_ui']['prompt']
 # /goal draft invokes its only paid dependency as an explicit unavailable stub.
 c = make_cli(history, tag+'-draft')
-with patch('hermes_cli.goals.draft_contract', return_value=None), contextlib.redirect_stdout(io.StringIO()):
+with patch('jarvis_cli.goals.draft_contract', return_value=None), contextlib.redirect_stdout(io.StringIO()):
     assert c.process_command('/goal draft ' + original)
 output['draft_fallback_prompt'] = c._pending_input.get_nowait()
 
