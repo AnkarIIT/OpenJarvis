@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, NamedTuple, Optional
 
-from hermes_constants import _get_platform_default_hermes_home, get_hermes_home, get_process_hermes_home
+from jarvis_constants import _get_platform_default_jarvis_home, get_jarvis_home, get_process_jarvis_home
 from utils import atomic_json_write
 
 if sys.platform == "win32":
@@ -60,7 +60,7 @@ def record_start_and_check_storm(
     """Record this start; :class:`StormInfo` when > ``max_starts`` landed in ``window_s``.
     Best-effort: a broken ``gateway-starts.log`` ledger is logged and swallowed, never fatal."""
     try:
-        path = get_hermes_home() / "gateway-starts.log"
+        path = get_jarvis_home() / "gateway-starts.log"
         path.parent.mkdir(parents=True, exist_ok=True)
         now = datetime.now(timezone.utc).timestamp()
         existing: list[float] = []
@@ -84,11 +84,11 @@ def record_start_and_check_storm(
         return None
 
 
-def _get_process_hermes_home() -> Path:
+def _get_process_jarvis_home() -> Path:
     """Launch-home HERMES_HOME for identity files (PID, lock, status, markers):
-    ``get_hermes_home()`` honors the per-session ``_HERMES_HOME_OVERRIDE`` and would misroute
+    ``get_jarvis_home()`` honors the per-session ``_HERMES_HOME_OVERRIDE`` and would misroute
     them."""
-    return get_process_hermes_home()
+    return get_process_jarvis_home()
 
 
 def _canonical_hermes_home(path: Path | str) -> Path:
@@ -113,13 +113,13 @@ def recorded_gateway_home_conflicts(
     if not isinstance(recorded_home, str) or not recorded_home.strip():
         return False
     try:
-        base = expected_home if expected_home is not None else _get_process_hermes_home()
+        base = expected_home if expected_home is not None else _get_process_jarvis_home()
         return not _same_hermes_home(recorded_home, base)
     except Exception:
         return True
 
 
-# Mirrors hermes_cli.profiles._PROFILE_ID_RE -- duplicated so gateway identity code
+# Mirrors jarvis_cli.profiles._PROFILE_ID_RE -- duplicated so gateway identity code
 # stays import-light (hermes_constants + stdlib only).
 _PROFILE_LABEL_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
@@ -132,7 +132,7 @@ def _profile_label_for_home(home: Path | str) -> Optional[str]:
         return None
     if canonical.parent.name == "profiles" and _PROFILE_LABEL_RE.match(canonical.name):
         return canonical.name
-    import hermes_constants
+    import jarvis_constants
     default_homes = (hermes_constants.get_default_hermes_root, _get_platform_default_hermes_home)
     for default_home in default_homes:
         with contextlib.suppress(Exception):
@@ -154,7 +154,7 @@ def scoped_lock_owner_label(record: Optional[dict[str, Any]]) -> Optional[str]:
 
 
 def _get_pid_path() -> Path:
-    return _get_process_hermes_home() / "gateway.pid"
+    return _get_process_jarvis_home() / "gateway.pid"
 
 
 def _get_gateway_lock_path(pid_path: Optional[Path] = None) -> Path:
@@ -162,7 +162,7 @@ def _get_gateway_lock_path(pid_path: Optional[Path] = None) -> Path:
 
 
 def _get_runtime_status_path() -> Path:
-    return _get_process_hermes_home() / _RUNTIME_STATUS_FILE
+    return _get_process_jarvis_home() / _RUNTIME_STATUS_FILE
 
 
 def _get_lock_dir() -> Path:
@@ -262,7 +262,7 @@ def terminate_pid(
         os.kill(pid, signal.SIGTERM if not force else getattr(signal, "SIGKILL", signal.SIGTERM))
         return
     # Hide flags: a bare taskkill spawn from windowless pythonw.exe would flash a conhost window.
-    from hermes_cli._subprocess_compat import windows_hide_flags
+    from jarvis_cli._subprocess_compat import windows_hide_flags
 
     try:
         result = subprocess.run(
@@ -354,7 +354,7 @@ def _gateway_command_subcommand(command: str | None) -> str | None:
     if any(b in ("hermes-gateway", "hermes-gateway.exe") for b in basenames):
         return "run"
     joined = " ".join(tokens)
-    if "hermes_cli.main" not in joined and "hermes_cli/main.py" not in joined and not any(
+    if "jarvis_cli.main" not in joined and "jarvis_cli/main.py" not in joined and not any(
         b in ("hermes", "hermes.exe") for b in basenames
     ):
         return None
@@ -420,7 +420,7 @@ def profile_flag_value(command: str) -> Optional[str]:
 
 def _command_line_belongs_to_profile(command: str, profile_home: Path) -> bool:
     """True when a gateway command line belongs to ``profile_home`` (mirrors
-    ``hermes_cli.gateway._matches_current_profile``): a stale state file can record a PID recycled
+    ``jarvis_cli.gateway._matches_current_profile``): a stale state file can record a PID recycled
     onto ANOTHER profile's live gateway. Named profiles carry ``-p``/``--profile <name>`` or
     ``HERMES_HOME=`` on argv; the default gateway runs bare. Separators normalized."""
     command_lc = command.lower().replace("\\", "/")
@@ -457,13 +457,13 @@ def _build_pid_record() -> dict:
         "start_time": _get_process_start_time(os.getpid()),
         # Scoped locks are machine-global; the owner's home lets a cross-profile
         # --replace place its takeover marker where the target will read it.
-        "hermes_home": str(_canonical_hermes_home(_get_process_hermes_home())),
+        "hermes_home": str(_canonical_hermes_home(_get_process_jarvis_home())),
     }
 
 
 def _get_code_identity_fields() -> dict[str, Any]:
     """Code identity of THIS process for ``gateway_state.json`` (restart picked up new code?).
-    Lazy import keeps ``gateway.status`` free of ``hermes_cli`` at import time. Never raises.
+    Lazy import keeps ``gateway.status`` free of ``jarvis_cli`` at import time. Never raises.
 
     A gateway keeps serving the module versions it imported at startup, so stamping the identity into
     ``gateway_state.json`` lets `hermes update` (and the dashboard) prove whether a running gateway actually
@@ -471,7 +471,7 @@ def _get_code_identity_fields() -> dict[str, Any]:
     degrades to absent fields.
     """
     try:
-        from hermes_cli.build_info import get_code_identity
+        from jarvis_cli.build_info import get_code_identity
         identity = get_code_identity()
         return {"code_sha": identity.get("sha"), "code_version": identity.get("version")}
     except Exception:
@@ -484,7 +484,7 @@ def _pid_record_belongs_to_current_profile(record: Optional[dict[str, Any]]) -> 
     if not isinstance(record, dict):
         return False
     record_home = record.get("hermes_home")
-    return not record_home or _same_hermes_home(record_home, _get_process_hermes_home())
+    return not record_home or _same_hermes_home(record_home, _get_process_jarvis_home())
 
 
 def _build_runtime_status_record() -> dict[str, Any]:
@@ -989,15 +989,15 @@ def multiplexer_liveness_for_profile(profile_dir: Path) -> Optional[tuple[int, d
     name = _profile_name_for_home(Path(profile_dir))
     if not name:
         return None
-    from hermes_cli.gateway import named_profile_served_by_running_multiplexer
-    from hermes_cli.gateway_multiplex_served import live_default_gateway_pid
-    from hermes_constants import get_default_hermes_root
+    from jarvis_cli.gateway import named_profile_served_by_running_multiplexer
+    from jarvis_cli.gateway_multiplex_served import live_default_gateway_pid
+    from jarvis_constants import get_default_jarvis_root
     if not named_profile_served_by_running_multiplexer(name):
         return None
     pid = live_default_gateway_pid()
     if pid is None:
         return None
-    return pid, read_runtime_status(get_default_hermes_root() / "gateway_state.json") or {}
+    return pid, read_runtime_status(get_default_jarvis_root() / "gateway_state.json") or {}
 
 
 def shared_listener_mirror_platforms(runtime: Optional[dict[str, Any]], profile: str) -> dict[str, Any]:
@@ -1105,7 +1105,7 @@ def resolve_gateway_liveness(
     # question is about the process's OWN home — which is a named profile inside a pooled
     # `hermes --profile X serve` (the Desktop's per-profile backend answers its REST without
     # `?profile=`), so it takes the same rung instead of reporting the served profile stopped.
-    own_home = profile_dir if scoped else _get_process_hermes_home()
+    own_home = profile_dir if scoped else _get_process_jarvis_home()
     served = guarded(multiplexer_liveness_for_profile, own_home)
     if served is not None:
         mux_pid, mux_runtime = served
@@ -1212,7 +1212,7 @@ def acquire_scoped_lock(
     }
     # Profile label for cross-profile conflict diagnostics ("token already in use (PID 559)" alone
     # does not say WHICH profile). Omitted when not inferable; readers fall back to hermes_home.
-    profile = _profile_label_for_home(_get_process_hermes_home())
+    profile = _profile_label_for_home(_get_process_jarvis_home())
     if profile:
         record["profile"] = profile
     existing = _read_json_file(lock_path)
@@ -1295,12 +1295,12 @@ _PLANNED_STOP_MARKER_TTL_S = 60
 
 def _get_takeover_marker_path(hermes_home: Optional[Path] = None) -> Path:
     """Takeover marker path; ``hermes_home`` is given only for a verified cross-home handoff."""
-    home = _canonical_hermes_home(hermes_home or _get_process_hermes_home())
+    home = _canonical_hermes_home(hermes_home or _get_process_jarvis_home())
     return home / _TAKEOVER_MARKER_FILENAME
 
 
 def _get_planned_stop_marker_path() -> Path:
-    return _get_process_hermes_home() / _PLANNED_STOP_MARKER_FILENAME
+    return _get_process_jarvis_home() / _PLANNED_STOP_MARKER_FILENAME
 
 
 def _marker_is_stale(written_at: str, ttl_s: int) -> bool:
@@ -1345,8 +1345,8 @@ def _consume_pid_marker_for_self(path: Path, *, ttl_s: int) -> bool:
     # cross-HERMES_HOME --replace while ignoring a marker accidentally written into another
     # profile's directory. Legacy markers have no target field: keep the same-replacer-home rule.
     # See #29092.
-    our_home = _get_process_hermes_home()
-    target_home = record.get("target_hermes_home")
+    our_home = _get_process_jarvis_home()
+    target_home = record.get("target_jarvis_home")
     if target_home is not None:
         if not isinstance(target_home, str) or not _same_hermes_home(target_home, our_home):
             return False
@@ -1367,13 +1367,13 @@ def write_takeover_marker(
     passes ``target_home`` + validated ``target_start_time`` so the marker lands in the target's
     home; such callers must fail closed on False (the target's supervisor could revive it)."""
     try:
-        marker_home = _canonical_hermes_home(target_home or _get_process_hermes_home())
+        marker_home = _canonical_hermes_home(target_home or _get_process_jarvis_home())
         if target_start_time is _UNSET:
             target_start_time = _get_process_start_time(target_pid)
         return _write_marker(_get_takeover_marker_path(marker_home), {
             "target_pid": target_pid, "target_start_time": target_start_time,
-            "target_hermes_home": str(marker_home), "replacer_pid": os.getpid(),
-            "replacer_hermes_home": str(_canonical_hermes_home(_get_process_hermes_home())),
+            "target_jarvis_home": str(marker_home), "replacer_pid": os.getpid(),
+            "replacer_hermes_home": str(_canonical_hermes_home(_get_process_jarvis_home())),
             "written_at": _utc_now_iso(),
         })
     except OSError:
