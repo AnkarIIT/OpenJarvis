@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional
 
-from hermes_state_ids import new_session_id
+from jarvis_state_ids import new_session_id
 
 if TYPE_CHECKING:
     from gateway.session import SessionEntry, SessionSource
