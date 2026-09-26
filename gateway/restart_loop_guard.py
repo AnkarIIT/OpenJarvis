@@ -17,7 +17,7 @@ import logging
 import time
 from typing import List, Optional
 
-from hermes_constants import get_hermes_home
+from jarvis_constants import get_jarvis_home
 
 logger = logging.getLogger("gateway.run")
 
@@ -35,7 +35,7 @@ _MAX_STORED_BOOTS = 50
 
 
 def _state_path():
-    return get_hermes_home() / "gateway" / "restart_loop.json"
+    return get_jarvis_home() / "gateway" / "restart_loop.json"
 
 
 def _load_boots() -> List[float]:
