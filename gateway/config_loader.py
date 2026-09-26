@@ -394,8 +394,8 @@ def read_yaml_layers(home: Path) -> dict:
             yaml_cfg = yaml.safe_load(f) or {}
 
     # Managed scope: overlay administrator-pinned values (this loader bypasses
-    # hermes_cli.config.load_config, so managed quick_commands / stt would otherwise be ignored).
-    from hermes_cli import managed_scope
+    # jarvis_cli.config.load_config, so managed quick_commands / stt would otherwise be ignored).
+    from jarvis_cli import managed_scope
     return managed_scope.apply_managed_overlay(yaml_cfg)
 
 
@@ -411,7 +411,7 @@ def load_yaml_layer(home: Path, gw_data: dict) -> None:
     platforms_data = merge_platform_sections(yaml_cfg, gateway_section, gw_data)
 
     try:
-        from hermes_cli.plugins import discover_plugins
+        from jarvis_cli.plugins import discover_plugins
         discover_plugins()  # idempotent
         from gateway.platform_registry import platform_registry as registry
     except Exception as e:
