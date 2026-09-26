@@ -6,7 +6,7 @@ survive process restarts and appear in ``session_search``; ``load_session`` /
 """
 from __future__ import annotations
 
-from hermes_constants import get_hermes_home, translate_cwd_for_wsl_backend, windows_path_to_wsl
+from jarvis_constants import get_jarvis_home, translate_cwd_for_wsl_backend, windows_path_to_wsl
 
 import copy
 import json
@@ -284,8 +284,8 @@ class SessionManager:
         acquire, so the ACP server holds ONE writer on state.db instead of two (#100896)."""
         if self._db_instance is None:
             try:
-                from hermes_state_registry import acquire
-                self._db_instance = acquire(get_hermes_home() / "state.db")
+                from jarvis_state_registry import acquire
+                self._db_instance = acquire(get_jarvis_home() / "state.db")
             except Exception:
                 logger.debug("SessionDB unavailable for ACP persistence", exc_info=True)
         return self._db_instance
@@ -389,9 +389,9 @@ class SessionManager:
             return self._agent_factory()
 
         from run_agent import AIAgent
-        from hermes_cli.config import load_config
-        from hermes_cli.runtime_provider import resolve_runtime_provider
-        from hermes_constants import resolve_reasoning_config
+        from jarvis_cli.config import load_config
+        from jarvis_cli.runtime_provider import resolve_runtime_provider
+        from jarvis_constants import resolve_reasoning_config
 
         config = load_config()
         model_cfg = config.get("model")
@@ -440,7 +440,7 @@ class SessionManager:
         # Bounded by ``mcp_discovery_timeout`` (config.yaml, ~1.5s); late servers are
         # picked up by HermesACPAgent._schedule_mcp_late_refresh.
         try:
-            from hermes_cli.mcp_startup import ensure_mcp_discovery_before_agent_build
+            from jarvis_cli.mcp_startup import ensure_mcp_discovery_before_agent_build
 
             ensure_mcp_discovery_before_agent_build(logger=logger, thread_name="acp-mcp-discovery")
         except Exception:
