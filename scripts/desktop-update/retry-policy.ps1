@@ -1,4 +1,4 @@
-function Test-HermesUpdateShouldRetry {
+function Test-JarvisUpdateShouldRetry {
     param(
         [int]$ExitCode,
         [string]$InstallRoot
