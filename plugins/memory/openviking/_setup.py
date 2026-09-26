@@ -321,8 +321,8 @@ def _mirror_manual_config_to_openviking_store(*, prompt, select, cancelled, valu
             return _SETUP_CANCELLED
         if replace is False:
             continue
-        from hermes_constants import mkdir_under_hermes_home
-        mkdir_under_hermes_home(path.parent)
+        from jarvis_constants import mkdir_under_jarvis_home
+        mkdir_under_jarvis_home(path.parent)
         # atomic_json_write creates the temp file 0600 and os.replace()s it: no
         # half-written config on crash, no chmod-after-write window for the keys.
         ov.atomic_json_write(path, ov._ovcli_data_from_connection_values(values), mode=0o600)
@@ -365,8 +365,8 @@ def _run_create_profile_setup(*, prompt, select, cancelled, config: dict, provid
 
 def run_setup(hermes_home: str, config: dict) -> None:
     """Entry point for ``OpenVikingMemoryProvider.post_setup``."""
-    from hermes_cli.config import save_config
-    from hermes_cli.memory_setup import _CANCELLED, _curses_select, _print_cancelled_setup, _prompt
+    from jarvis_cli.config import save_config
+    from jarvis_cli.memory_setup import _CANCELLED, _curses_select, _print_cancelled_setup, _prompt
 
     env_path = Path(hermes_home) / ".env"
     if not isinstance(config.get("memory"), dict):
