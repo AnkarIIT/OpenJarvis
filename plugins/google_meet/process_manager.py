@@ -19,14 +19,14 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from hermes_constants import get_hermes_home
+from jarvis_constants import get_jarvis_home
 
 from plugins.google_meet._jsonfile import read_json
 from utils import atomic_json_write
 
 
 def _root() -> Path:
-    return Path(get_hermes_home()) / "workspace" / "meetings"
+    return Path(get_jarvis_home()) / "workspace" / "meetings"
 
 
 def _read_active() -> Optional[Dict[str, Any]]:
