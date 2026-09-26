@@ -70,7 +70,7 @@ logger = logging.getLogger(__name__)
 
 # AUTH_BIND / sign-token header values
 try:
-    from hermes_cli import __version__ as _HERMES_VERSION
+    from jarvis_cli import __version__ as _HERMES_VERSION
 except ImportError:
     _HERMES_VERSION = "0.0.0"
 _APP_VERSION = _BOT_VERSION = _HERMES_VERSION
@@ -2597,22 +2597,22 @@ class YuanbaoAdapter(BasePlatformAdapter):
 
     @classmethod
     def get_active(cls) -> Optional["YuanbaoAdapter"]:
-        from hermes_constants import get_hermes_home_override, hermes_home_key
+        from jarvis_constants import get_jarvis_home_override, hermes_home_key
 
-        if get_hermes_home_override() is None:
+        if get_jarvis_home_override() is None:
             return cls._active_instance
-        return cls._active_instances.get(hermes_home_key())
+        return cls._active_instances.get(jarvis_home_key())
 
     @classmethod
     def set_active(cls, adapter: Optional["YuanbaoAdapter"]) -> None:
-        from hermes_constants import get_hermes_home_override, hermes_home_key
+        from jarvis_constants import get_jarvis_home_override, hermes_home_key
 
-        if get_hermes_home_override() is None:
+        if get_jarvis_home_override() is None:
             cls._active_instance = adapter
         elif adapter is None:
-            cls._active_instances.pop(hermes_home_key(), None)
+            cls._active_instances.pop(jarvis_home_key(), None)
         else:
-            cls._active_instances[hermes_home_key()] = adapter
+            cls._active_instances[jarvis_home_key()] = adapter
 
     def __init__(self, config: PlatformConfig, **kwargs: Any) -> None:
         super().__init__(config, Platform.YUANBAO)
