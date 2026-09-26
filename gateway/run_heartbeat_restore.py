@@ -28,8 +28,8 @@ async def restore_heartbeat_watches(runner) -> None:
     """
     from gateway.run import _profile_runtime_scope
     from gateway.run_idle_gates import profile_has_active_heartbeat
-    from hermes_cli.heartbeat import HeartbeatManager
-    from hermes_constants import get_hermes_home
+    from jarvis_cli.heartbeat import HeartbeatManager
+    from jarvis_constants import get_jarvis_home
 
     store = runner.session_store
 
@@ -37,7 +37,7 @@ async def restore_heartbeat_watches(runner) -> None:
         restored = []
         # The poller may have been spawned by a named profile's /heartbeat command.
         # Anchor even default origins to the gateway home, not inherited context.
-        home = getattr(store, "_routing_home", None) or get_hermes_home()
+        home = getattr(store, "_routing_home", None) or get_jarvis_home()
         # Cheap gate: with no heartbeat persisted in any served profile there is nothing to
         # restore — skip the per-origin profile-scope re-parse over every routed session.
         if not any(profile_has_active_heartbeat(h) for h in _watched_homes(runner, home)):
