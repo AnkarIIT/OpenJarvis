@@ -197,24 +197,24 @@ def _validate_langfuse_key(env_name: str, value: str) -> Optional[str]:
 def _settled_client() -> Any:
     """The active profile's settled client slot value (client, ``_INIT_FAILED`` or ``None`` = never
     built). Never initializes."""
-    from hermes_constants import get_hermes_home_override, hermes_home_key
+    from jarvis_constants import get_jarvis_home_override, hermes_home_key
 
-    if get_hermes_home_override() is None:
+    if get_jarvis_home_override() is None:
         return _LANGFUSE_CLIENT
-    return _LANGFUSE_CLIENT_BY_HOME.get(hermes_home_key())
+    return _LANGFUSE_CLIENT_BY_HOME.get(jarvis_home_key())
 
 
 def _settle_client() -> Any:
     """Build once and store for the active profile. Caller holds ``_LANGFUSE_CLIENT_LOCK``."""
     global _LANGFUSE_CLIENT
-    from hermes_constants import get_hermes_home_override, hermes_home_key
+    from jarvis_constants import get_jarvis_home_override, hermes_home_key
 
     client = _build_client()
     settled = _INIT_FAILED if client is None else client
-    if get_hermes_home_override() is None:
+    if get_jarvis_home_override() is None:
         _LANGFUSE_CLIENT = settled
     else:
-        _LANGFUSE_CLIENT_BY_HOME[hermes_home_key()] = settled
+        _LANGFUSE_CLIENT_BY_HOME[jarvis_home_key()] = settled
     if client is not None:
         # atexit is LIFO: registering AFTER the SDK's constructor means our
         # finalizer runs first, so root spans ended there still get flushed
