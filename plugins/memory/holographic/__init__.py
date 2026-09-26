@@ -17,7 +17,7 @@ from tools.registry import tool_error
 from utils import is_truthy_value
 from .store import MemoryStore
 from .retrieval import FactRetriever
-from hermes_cli.config import cfg_get
+from jarvis_cli.config import cfg_get
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ _EXTRACT_CATEGORIES = (
 
 def _load_plugin_config() -> dict:
     try:
-        from hermes_cli.config import load_config_readonly  # canonical: managed-scope overlay + ${VAR} expansion
+        from jarvis_cli.config import load_config_readonly  # canonical: managed-scope overlay + ${VAR} expansion
         return cfg_get(load_config_readonly(), "plugins", "hermes-memory-store", default={}) or {}
     except Exception:
         return {}
@@ -115,24 +115,24 @@ class HolographicMemoryProvider(MemoryProvider):
         """Write config to config.yaml under plugins.hermes-memory-store."""
         # The canonical writer: config lock, managed-mode refusal, default stripping, atomic replace.
         # ``merge_existing`` keeps every other section; *hermes_home* is the active profile already.
-        from hermes_cli.config import save_config
+        from jarvis_cli.config import save_config
         save_config({"plugins": {"hermes-memory-store": dict(values)}}, merge_existing=True)
 
     def get_config_schema(self):
-        from hermes_constants import display_hermes_home
+        from jarvis_constants import display_jarvis_home
         return [
-            {"key": "db_path", "description": "SQLite database path", "default": f"{display_hermes_home()}/memory_store.db"},
+            {"key": "db_path", "description": "SQLite database path", "default": f"{display_jarvis_home()}/memory_store.db"},
             {"key": "auto_extract", "description": "Auto-extract facts at session end", "default": "false", "choices": ["true", "false"]},
             {"key": "default_trust", "description": "Default trust score for new facts", "default": "0.5"},
             {"key": "hrr_dim", "description": "HRR vector dimensions", "default": "1024"},
         ]
 
     def initialize(self, session_id: str, **kwargs) -> None:
-        from hermes_constants import get_hermes_home
-        _hermes_home = str(get_hermes_home())
-        db_path = self._config.get("db_path", _hermes_home + "/memory_store.db")
+        from jarvis_constants import get_jarvis_home
+        _jarvis_home = str(get_jarvis_home())
+        db_path = self._config.get("db_path", _jarvis_home + "/memory_store.db")
         if isinstance(db_path, str):  # expand $HERMES_HOME so paths resolve to the active profile
-            db_path = db_path.replace("$HERMES_HOME", _hermes_home).replace("${HERMES_HOME}", _hermes_home)
+            db_path = db_path.replace("$HERMES_HOME", _jarvis_home).replace("${HERMES_HOME}", _jarvis_home)
         hrr_dim = int(self._config.get("hrr_dim", 1024))
         self._store = MemoryStore(db_path=db_path, default_trust=float(self._config.get("default_trust", 0.5)), hrr_dim=hrr_dim)
         self._retriever = FactRetriever(store=self._store, hrr_dim=hrr_dim, hrr_weight=float(self._config.get("hrr_weight", 0.3)),
