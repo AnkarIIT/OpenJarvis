@@ -13,7 +13,7 @@ import logging
 import re
 from typing import Set
 
-from hermes_constants import get_hermes_dir
+from jarvis_constants import get_jarvis_dir
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ def expand_whatsapp_aliases(identifier: str) -> Set[str]:
     normalized = normalize_whatsapp_identifier(identifier)
     if not normalized:
         return set()
-    session_dir = get_hermes_dir("platforms/whatsapp/session", "whatsapp/session")
+    session_dir = get_jarvis_dir("platforms/whatsapp/session", "whatsapp/session")
     resolved: Set[str] = set()
     queue = [normalized]
     while queue:
