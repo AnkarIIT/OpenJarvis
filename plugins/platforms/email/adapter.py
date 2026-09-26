@@ -159,7 +159,7 @@ def _send_imap_id(imap: "imaplib.IMAP4") -> None:
         return
     try:
         try:
-            from hermes_cli import __version__ as _hermes_version
+            from jarvis_cli import __version__ as _hermes_version
         except Exception:  # noqa: BLE001 — keep ID best-effort if import fails
             _hermes_version = "0"
         imap.xatom("ID", f'("name" "hermes-agent" "version" "{_hermes_version}" '
@@ -800,7 +800,7 @@ def _is_connected(config) -> bool:
     """Connected when an address is configured (PlatformConfig.extra or EMAIL_ADDRESS)."""
     if (getattr(config, "extra", {}) or {}).get("address"):
         return True
-    import hermes_cli.gateway as gateway_mod
+    import jarvis_cli.gateway as gateway_mod
     return bool((gateway_mod.get_env_value("EMAIL_ADDRESS") or "").strip())
 
 
