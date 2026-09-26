@@ -14,7 +14,7 @@ from acp_adapter.session import SessionState, _expand_acp_enabled_toolsets
 logger = logging.getLogger("acp_adapter.server")
 
 try:
-    from hermes_cli import __version__ as HERMES_VERSION
+    from jarvis_cli import __version__ as HERMES_VERSION
 except Exception:
     HERMES_VERSION = "0.0.0"
 
