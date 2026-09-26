@@ -405,8 +405,8 @@ class GoogleChatAdapter(BasePlatformAdapter):
         # Last inbound thread per space: DMs get a NEW thread per top-level message but users
         # see one conversation, so thread_id leaves the source (stable session key) and is cached here.
         self._last_inbound_thread: Dict[str, str] = {}
-        from hermes_constants import get_hermes_home as _get_hermes_home
-        self._thread_count_store = _ThreadCountStore(_get_hermes_home() / "google_chat_thread_counts.json")
+        from jarvis_constants import get_jarvis_home as _get_jarvis_home
+        self._thread_count_store = _ThreadCountStore(_get_jarvis_home() / "google_chat_thread_counts.json")
         # In-flight typing-card creates per chat_id: reserved BEFORE the API call so
         # concurrent _keep_typing calls wait instead of duplicating cards.
         self._typing_card_inflight: Dict[str, asyncio.Event] = {}
@@ -520,8 +520,8 @@ class GoogleChatAdapter(BasePlatformAdapter):
     # -- bot identity --------------------------------------------------------
     def _bot_id_cache_path(self) -> _Path:
         """Resolved at call time so multiplexed profiles don't share one cache file."""
-        from hermes_constants import get_hermes_home as _get_hermes_home
-        return _get_hermes_home() / "google_chat_bot_id.json"
+        from jarvis_constants import get_jarvis_home as _get_jarvis_home
+        return _get_jarvis_home() / "google_chat_bot_id.json"
 
     def _load_cached_bot_id(self) -> Optional[str]:
         try:
@@ -1613,9 +1613,9 @@ Full guide: website/docs/user-guide/messaging/google_chat.md
 
 def interactive_setup() -> None:
     """``hermes setup`` wizard: print GCP instructions, prompt for env vars, persist to ``~/.hermes/.env``."""
-    from hermes_cli.cli_output import print_info, print_success, print_warning, prompt, prompt_yes_no
-    from hermes_cli.config import get_env_value, save_env_value
-    from hermes_cli.setup_platforms import declines_reconfigure
+    from jarvis_cli.cli_output import print_info, print_success, print_warning, prompt, prompt_yes_no
+    from jarvis_cli.config import get_env_value, save_env_value
+    from jarvis_cli.setup_platforms import declines_reconfigure
     if declines_reconfigure("Google Chat", "Reconfigure Google Chat?", "GOOGLE_CHAT_SUBSCRIPTION_NAME"):
         return
     for line in _SETUP_WALKTHROUGH.splitlines():
