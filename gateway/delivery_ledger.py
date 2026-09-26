@@ -22,8 +22,8 @@ import time
 from typing import Any, Dict, List, Optional
 
 from gateway.dead_targets import classify_dead_error
-from hermes_cli.sqlite_util import add_column_if_missing
-from hermes_constants import get_hermes_home
+from jarvis_cli.sqlite_util import add_column_if_missing
+from jarvis_constants import get_jarvis_home
 
 logger = logging.getLogger(__name__)
 _DB_LOCK = threading.Lock()
@@ -169,11 +169,11 @@ def retry_not_before(updated_at: Any, last_error: Any, attempts: Any) -> Optiona
 
 
 def _db_path():
-    return get_hermes_home() / "state.db"
+    return get_jarvis_home() / "state.db"
 
 
 def _connect() -> sqlite3.Connection:
-    from hermes_cli.sqlite_util import open_db
+    from jarvis_cli.sqlite_util import open_db
 
     # Shared state.db: SessionDB owns the durable PRAGMA set; this opener keeps the plain-tuple rows
     # and the 10 s busy timeout it always had.
@@ -205,7 +205,7 @@ def _initialize_schema(conn: sqlite3.Connection) -> None:
 
 
 def _transaction():
-    from hermes_cli.sqlite_util import transaction
+    from jarvis_cli.sqlite_util import transaction
 
     return transaction(_connect())
 
@@ -528,7 +528,7 @@ def ledger_enabled(config: Optional[Dict[str, Any]] = None) -> bool:
     """Read the ``gateway.delivery_ledger`` config gate (default on)."""
     try:
         if config is None:
-            from hermes_cli.config import load_config
+            from jarvis_cli.config import load_config
             config = load_config()
         value = (config.get("gateway") or {}).get("delivery_ledger", True)
         return value.strip().lower() not in {"false", "0", "no", "off"} if isinstance(value, str) else bool(value)
