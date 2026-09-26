@@ -2,7 +2,7 @@
 
 Skill scripts may run outside the Hermes process (e.g. system Python,
 nix env, CI) where ``hermes_constants`` is not importable.  This module
-provides the same ``get_hermes_home()`` and ``display_hermes_home()``
+provides the same ``get_jarvis_home()`` and ``display_jarvis_home()``
 contracts as ``hermes_constants`` without requiring it on ``sys.path``.
 
 When ``hermes_constants`` IS available it is used directly so that any
@@ -20,22 +20,22 @@ import os
 from pathlib import Path
 
 try:
-    from hermes_constants import display_hermes_home as display_hermes_home
-    from hermes_constants import get_hermes_home as get_hermes_home
+    from jarvis_constants import display_jarvis_home as display_hermes_home
+    from jarvis_constants import get_jarvis_home as get_jarvis_home
 except (ModuleNotFoundError, ImportError):
 
-    def get_hermes_home() -> Path:
+    def get_jarvis_home() -> Path:
         """Return the Hermes home directory (default: ~/.hermes).
 
-        Mirrors ``hermes_constants.get_hermes_home()``."""
+        Mirrors ``hermes_constants.get_jarvis_home()``."""
         val = os.environ.get("HERMES_HOME", "").strip()
         return Path(val) if val else Path.home() / ".hermes"
 
-    def display_hermes_home() -> str:
+    def display_jarvis_home() -> str:
         """Return a user-friendly ``~/``-shortened display string.
 
-        Mirrors ``hermes_constants.display_hermes_home()``."""
-        home = get_hermes_home()
+        Mirrors ``hermes_constants.display_jarvis_home()``."""
+        home = get_jarvis_home()
         try:
             return "~/" + home.relative_to(Path.home()).as_posix()
         except ValueError:
