@@ -25,7 +25,7 @@ from gateway.config import Platform
 from gateway.media_repair import repair_explicit_computer_use_media_paths
 from gateway.platforms.base import BasePlatformAdapter
 from gateway.turn_context import TurnContext
-from hermes_cli.config import cfg_get
+from jarvis_cli.config import cfg_get
 from utils import is_truthy_value
 
 if TYPE_CHECKING:  # string annotations only; never imported at runtime (cycle)
@@ -214,7 +214,7 @@ class TurnRunner:
     def _progress_onboarding_hint(self, kwargs: dict) -> None:
         """First-touch onboarding: the first time a tool exceeds _LONG_TOOL_THRESHOLD_S while
         streaming every tool (progress_mode == "all"), append a one-time /verbose hint."""
-        from gateway.run import _hermes_home, _load_gateway_config
+        from gateway.run import _jarvis_home, _load_gateway_config
         ctx = self._ctx
         try:
             if (kwargs.get("duration") or 0) >= ctx._LONG_TOOL_THRESHOLD_S and ctx.progress_mode == "all":
@@ -224,7 +224,7 @@ class TurnRunner:
                 if gate_on and not is_seen(cfg, TOOL_PROGRESS_FLAG):
                     ctx.long_tool_hint_fired[0] = True
                     ctx.progress_queue.put(tool_progress_hint_gateway())
-                    mark_seen(_hermes_home / "config.yaml", TOOL_PROGRESS_FLAG)
+                    mark_seen(_jarvis_home / "config.yaml", TOOL_PROGRESS_FLAG)
         except Exception as err:
             logger.debug("tool-progress onboarding hint failed: %s", err)
 
@@ -1909,7 +1909,7 @@ class TurnRunner:
             # Model/credential resolution failed before the turn began; the raw text (URLs, status
             # codes) belongs in the log, and the chat gets the commands that fix it.
             logger.warning("Model resolution failed for session %s: %s", ctx.session_key or "", exc)
-            from hermes_cli.auth import is_rate_limited_auth_error
+            from jarvis_cli.auth import is_rate_limited_auth_error
             if is_rate_limited_auth_error(exc.__cause__):
                 # Quota cap with valid credentials: /login cannot help; name the reset window (#89401).
                 from gateway.run import _gateway_provider_error_reply
