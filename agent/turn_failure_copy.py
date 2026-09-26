@@ -13,7 +13,7 @@ import time
 from typing import Any, Dict, NamedTuple, Optional, Tuple
 
 from agent.error_classifier import FailoverReason
-from hermes_constants import display_hermes_home
+from jarvis_constants import display_jarvis_home
 
 # Failure codes minted by loop sites that are not provider verdicts (see module docstring).
 SITE_FAILURE_CODES = frozenset({
@@ -30,7 +30,7 @@ def stamp_failure(result: Dict[str, Any], reason: str, retryable: bool) -> Dict[
 
 
 # ---- failed-turn transcript boundary ----------------------------------------------------------
-# The Hermes-authored assistant row that closes a durable turn which ended without one. A
+# The Jarvis-authored assistant row that closes a durable turn which ended without one. A
 # transcript boundary, NOT the model's answer: no provider/model error or refusal detail is
 # ever interpolated (that rides ``final_response``). Owned here so the core closer
 # (``agent/conversation_loop.py::run_conversation``) and the gateway's own writer
@@ -57,7 +57,7 @@ def failed_turn_notice(turn_messages: Any) -> str:
 
 def provider_label_for(provider: Any) -> str:
     """Human-friendly provider name for chat copy (``"OpenRouter"``, ``"Nous Portal"``…)."""
-    from hermes_cli.models import provider_label
+    from jarvis_cli.models import provider_label
 
     return provider_label(str(provider or ""))
 
@@ -132,7 +132,7 @@ def exit_reason_failure(turn_exit_reason: Any) -> Optional[ExitFailure]:
 _NEXT_STEPS_RETRY = "Wait a minute and send /retry, or switch models with /model."
 _NEXT_STEPS_LOOP = (
     "Your message is saved. Send `continue` to try again, or start a new session with /new. "
-    "If it happens again, run `hermes doctor` and share the error details."
+    "If it happens again, run `jarvis doctor` and share the error details."
 )
 
 # Lead sentence per classifier reason once retries and fallback are exhausted.
@@ -149,18 +149,18 @@ _EXHAUSTED_DEFAULT_LEAD = "{label} didn't answer after {attempts} attempts"
 _NONRETRYABLE_COPY: Dict[str, str] = {
     FailoverReason.model_not_found.value: (
         "Model '{model}' isn't available on {label}. Pick a different model with /model "
-        "(or `hermes model` in a terminal).{prefix_hint}"
+        "(or `jarvis model` in a terminal).{prefix_hint}"
     ),
     FailoverReason.format_error.value: (
         "{label} rejected this request as malformed, so the model didn't answer. Start a clean "
-        "session with /new or switch models with /model; if it keeps happening, run `hermes doctor`."
+        "session with /new or switch models with /model; if it keeps happening, run `jarvis doctor`."
     ),
     FailoverReason.role_alternation.value: (
         "{label} requires user and assistant turns to strictly alternate and rejected this "
         "conversation's shape. Start a clean session with /new or switch models with /model."
     ),
     FailoverReason.ssl_cert_verification.value: (
-        "Hermes couldn't verify {label}'s security certificate, so the connection was refused. "
+        "Jarvis couldn't verify {label}'s security certificate, so the connection was refused. "
         "This is usually a corporate proxy or an outdated certificate store on this computer — "
         "see the terminal or `{home}/logs/agent.log` for the exact fix, or try another provider "
         "with /model."
@@ -183,7 +183,7 @@ _AUTH_COPY: Dict[str, str] = {
     "oauth": "{label} rejected your sign-in, so the model can't be reached. Sign in again: `{relogin}`.",
     "api_key": (
         "{label} rejected your API key, so the model can't be reached. Update it in "
-        "Settings → Providers, or run `hermes setup` in a terminal."
+        "Settings → Providers, or run `jarvis setup` in a terminal."
     ),
 }
 
@@ -228,13 +228,13 @@ def failure_cause_gloss(reason: Any, *, subject: str = "it", possessive: str = "
 # (``empty_response`` is worded by agent/turn_explainers.py, ``session_busy`` by the lease).
 _FAILURE_CODE_COPY: Dict[str, str] = {
     "context_overflow": (
-        "This conversation has grown too long for {model} to read, and Hermes couldn't shrink "
+        "This conversation has grown too long for {model} to read, and Jarvis couldn't shrink "
         "it enough automatically. Start a new session with /new (your history is kept), or try "
         "/compress once more. Switching to a model with a bigger context window also works."
     ),
     "truncated": (
         "The model's reply was cut off before it finished (it hit its output length limit), so "
-        "Hermes didn't run the incomplete action. Nothing was changed. Send `continue`, ask for "
+        "Jarvis didn't run the incomplete action. Nothing was changed. Send `continue`, ask for "
         "the work in smaller steps, or raise max_tokens for this model."
     ),
     "invalid_response": (
@@ -242,11 +242,11 @@ _FAILURE_CODE_COPY: Dict[str, str] = {
         "or rate-limiting you. " + _NEXT_STEPS_RETRY + "\n\nDetails: {detail}"
     ),
     "loop_error": (
-        "Hermes hit repeated errors and stopped this turn so it wouldn't keep retrying. "
+        "Jarvis hit repeated errors and stopped this turn so it wouldn't keep retrying. "
         + _NEXT_STEPS_LOOP + "\n\nDetails: {detail}"
     ),
     "interpreter_shutdown": (
-        "Hermes was shutting down and stopped this turn. Your conversation is saved — reopen "
+        "Jarvis was shutting down and stopped this turn. Your conversation is saved — reopen "
         "it{resume} and send your message again."
     ),
 }
@@ -256,7 +256,7 @@ _FAILURE_CODE_COPY: Dict[str, str] = {
 _ONE_OFF_COPY: Dict[str, str] = {
     "payload_too_large": (
         "This conversation (including attachments) has grown too large to send to {model}, and "
-        "Hermes couldn't shrink it enough automatically. Start a new session with /new (your "
+        "Jarvis couldn't shrink it enough automatically. Start a new session with /new (your "
         "history is kept), or try /compress once more."
     ),
     "compression_disabled": (
@@ -269,10 +269,10 @@ _ONE_OFF_COPY: Dict[str, str] = {
     # message must stay in the transcript and the session must not be auto-reset.
     "server_context_rejection": (
         "The model server rejected this request as too large, but this conversation is only "
-        "about {tokens:,} tokens — well under the {window:,}-token window Hermes knows for "
+        "about {tokens:,} tokens — well under the {window:,}-token window Jarvis knows for "
         "{model} — so shrinking it would not help. Another request on the same server (for "
         "example a background memory review from an earlier session) was probably holding its "
-        "capacity, or the server runs {model} with a smaller window than Hermes assumes. Wait a "
+        "capacity, or the server runs {model} with a smaller window than Jarvis assumes. Wait a "
         "moment and send /retry; if it keeps happening, check the server's context setting."
     ),
     "stream_dropped_tool_call": (
@@ -282,7 +282,7 @@ _ONE_OFF_COPY: Dict[str, str] = {
     ),
     # Rides failure_reason="loop_error" (advisory; the turn is incomplete, not failed).
     "local_processing_error": (
-        "Hermes hit an internal error while handling the model's reply and stopped this turn. "
+        "Jarvis hit an internal error while handling the model's reply and stopped this turn. "
         + _NEXT_STEPS_LOOP + "\n\nDetails: {detail}"
     ),
     "reasoning_only": (
@@ -296,7 +296,7 @@ _ONE_OFF_COPY: Dict[str, str] = {
     ),
     "nous_rate_limit": (
         "Wait for the reset and send /retry, or switch models with /model. To avoid waits, add "
-        "a backup provider with `hermes fallback add`."
+        "a backup provider with `jarvis fallback add`."
     ),
 }
 _SITE_COPY: Dict[str, str] = {**_FAILURE_CODE_COPY, **_ONE_OFF_COPY}
@@ -304,7 +304,7 @@ _SITE_COPY: Dict[str, str] = {**_FAILURE_CODE_COPY, **_ONE_OFF_COPY}
 
 def site_copy(code: str, **fields: Any) -> str:
     """Chat copy for a failure code or one-off loop outcome; unknown fields default to empty strings."""
-    fields.setdefault("home", display_hermes_home())
+    fields.setdefault("home", display_jarvis_home())
     return _SITE_COPY[code].format_map(_Defaults(fields))
 
 
@@ -320,7 +320,7 @@ def exhausted_copy(reason: str, *, label: str, attempts: int, summary: str, rese
         situation = f"it looks temporarily unavailable. {_NEXT_STEPS_RETRY}"
     return (
         f"{lead} — {situation} To avoid this in future, "
-        f"add a backup provider with `hermes fallback add`.\n\nProvider said: {summary}"
+        f"add a backup provider with `jarvis fallback add`.\n\nProvider said: {summary}"
     )
 
 
@@ -339,32 +339,32 @@ def limit_reset_copy(resets_at: float, now: Optional[float] = None) -> str:
 
 def oauth_relogin_command(provider: Any) -> str:
     """The exact re-login command for a rejected OAuth grant, naming the provider slug and the active
-    named profile: a profile's credentials are its own (93889b770da), so a bare ``hermes auth`` from
+    named profile: a profile's credentials are its own (93889b770da), so a bare ``jarvis auth`` from
     the root profile re-signs the wrong store and the goal judge, reading a bare 401, guesses which
     service revoked the token (#114012)."""
-    from hermes_constants import profile_cli_selector
+    from jarvis_constants import profile_cli_selector
 
     slug = str(provider or "").strip().lower()
     if slug == "nous":
-        return f"hermes {profile_cli_selector()}portal"
-    return f"hermes {profile_cli_selector()}auth add {slug} --type oauth"
+        return f"jarvis {profile_cli_selector()}portal"
+    return f"jarvis {profile_cli_selector()}auth add {slug} --type oauth"
 
 
 def relogin_command_hint(provider: Any) -> str:
     """Re-sign-in command for a rejected credential on surfaces that may not know the provider:
-    the exact OAuth command for a known OAuth slug, ``hermes auth add <slug>`` for a known API-key
+    the exact OAuth command for a known OAuth slug, ``jarvis auth add <slug>`` for a known API-key
     slug, and the ``<provider>`` placeholder when the slug is unknown — always carrying the
     ``-p <profile>`` selector so a profile user never re-signs the ROOT store (#114012)."""
-    from hermes_constants import profile_cli_selector
+    from jarvis_constants import profile_cli_selector
 
     slug = str(provider or "").strip().lower()
     if not slug:
-        return f"hermes {profile_cli_selector()}auth add <provider>"
+        return f"jarvis {profile_cli_selector()}auth add <provider>"
     from agent.error_surface import auth_kind
 
     if auth_kind(slug) == "oauth":
         return oauth_relogin_command(slug)
-    return f"hermes {profile_cli_selector()}auth add {slug}"
+    return f"jarvis {profile_cli_selector()}auth add {slug}"
 
 
 def nonretryable_copy(
@@ -383,7 +383,7 @@ def nonretryable_copy(
         f"'{prefix_suggestion}'?"
         if prefix_suggestion else ""
     )
-    body = template.format(label=label, model=model, home=display_hermes_home(), prefix_hint=prefix_hint,
+    body = template.format(label=label, model=model, home=display_jarvis_home(), prefix_hint=prefix_hint,
                            relogin=oauth_relogin_command(provider))
     return f"{body}\n\nProvider said: {summary}"
 
