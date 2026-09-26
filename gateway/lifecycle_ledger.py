@@ -24,16 +24,16 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 
-def _process_hermes_home() -> Path:
+def _process_jarvis_home() -> Path:
     """HERMES_HOME for process-level identity files (ignore task overrides)."""
-    from hermes_constants import get_hermes_home, get_process_hermes_home
+    from jarvis_constants import get_jarvis_home, get_process_jarvis_home
 
     # get_process_hermes_home expands ``~``/``$VAR`` (python -m gateway.run skips the CLI normalizer).
-    return get_process_hermes_home() if os.environ.get("HERMES_HOME", "").strip() else get_hermes_home()
+    return get_process_jarvis_home() if os.environ.get("HERMES_HOME", "").strip() else get_jarvis_home()
 
 
 def _home_path(home: Optional[Path], *relative: str) -> Path:
-    return (_process_hermes_home() if home is None else home).joinpath(*relative)
+    return (_process_jarvis_home() if home is None else home).joinpath(*relative)
 
 
 def get_lifecycle_sentinel_path(home: Optional[Path] = None) -> Path:
@@ -87,9 +87,9 @@ def _write_sentinel(payload: Dict[str, Any], home: Optional[Path]) -> None:
         from utils import atomic_json_write
 
         path = get_lifecycle_sentinel_path(home)
-        from hermes_constants import mkdir_under_hermes_home
+        from jarvis_constants import mkdir_under_jarvis_home
 
-        mkdir_under_hermes_home(path.parent)
+        mkdir_under_jarvis_home(path.parent)
         atomic_json_write(path, payload, indent=None)
     except Exception:
         logger.debug("Failed to write lifecycle sentinel", exc_info=True)
@@ -99,9 +99,9 @@ def _append_exit_diag(record: Dict[str, Any], home: Optional[Path]) -> None:
     """Append a JSON line to gateway-exit-diag.log (same format as the CLI's ``_exit_diag``)."""
     try:
         path = _home_path(home, "logs", "gateway-exit-diag.log")
-        from hermes_constants import mkdir_under_hermes_home
+        from jarvis_constants import mkdir_under_jarvis_home
 
-        mkdir_under_hermes_home(path.parent)
+        mkdir_under_jarvis_home(path.parent)
         with path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(record, default=str) + "\n")
     except OSError:
@@ -128,7 +128,7 @@ def _pid_is_sentinel_owner(pid: Any, start_time: Any, create_time: Any) -> bool:
             return False
     except Exception:
         return False
-    from hermes_cli.process_identity import _process_create_time
+    from jarvis_cli.process_identity import _process_create_time
 
     actual = _process_create_time(pid_int)
     if actual is None:
@@ -234,7 +234,7 @@ def record_startup(home: Optional[Path] = None) -> Optional[Dict[str, Any]]:
         claim: Dict[str, Any] = {"phase": "running", "pid": os.getpid(), "start_time": time.time(), "started_at": _now_iso()}
         # Process birth (psutil), distinct from ``start_time`` (the ledger claim, seconds later once
         # imports finish): the Windows start attestation binds PIDs to birth time (#110020 review).
-        from hermes_cli.process_identity import _process_create_time
+        from jarvis_cli.process_identity import _process_create_time
 
         create_time = _process_create_time(os.getpid())
         if create_time is not None:

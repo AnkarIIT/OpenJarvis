@@ -339,7 +339,7 @@ def proxy_kwargs_for_bot(proxy_url: str | None) -> dict:
 def _config_section(name: str) -> dict:
     """Read-only ``config.yaml`` section ``name``; ``{}`` when unreadable/missing/not a dict."""
     try:
-        from hermes_cli.config import load_config_readonly as _load_config
+        from jarvis_cli.config import load_config_readonly as _load_config
         cfg = _load_config()  # read-only: .get() only, never mutated
     except Exception:
         return {}
@@ -390,7 +390,7 @@ from gateway.platforms.event import MessageEvent, MessageType, ProcessingOutcome
 from gateway.warning_notifications import diagnostic_wake_muted
 from gateway.session import SessionSource, build_session_key
 from gateway.session_transcript import TranscriptReadError
-from hermes_constants import get_default_hermes_root, get_hermes_dir, get_hermes_home
+from jarvis_constants import get_default_jarvis_root, get_jarvis_dir, get_jarvis_home
 
 if TYPE_CHECKING:
     from agent.display import ToolPreview
@@ -442,7 +442,7 @@ GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE = (
 
 # One sentence for every "you may not press/run this" refusal on every platform (slash commands,
 # approval buttons, pickers, prompts). ``{platform}`` is the ``Platform.value`` for the
-# ``hermes pairing approve`` command (hermes_cli/subcommands/pairing.py) that lets the owner fix it.
+# ``hermes pairing approve`` command (jarvis_cli/subcommands/pairing.py) that lets the owner fix it.
 # Kept under 200 chars: Telegram's answerCallbackQuery truncates longer text.
 UNAUTHORIZED_ACTION_NOTICE = (
     "This bot is private and you're not on its allowed list. If you own it, run "
@@ -487,7 +487,7 @@ async def _ssrf_redirect_guard(response):
 
 # Inbound images are cached locally for the vision tool (platform URLs are ephemeral).
 # Import-time default; tests monkeypatch it, getters re-resolve per call.
-IMAGE_CACHE_DIR = get_hermes_dir("cache/images", "image_cache")
+IMAGE_CACHE_DIR = get_jarvis_dir("cache/images", "image_cache")
 
 
 # Inbound media cap (``gateway.max_inbound_media_bytes``): payloads are buffered fully in memory,
@@ -547,7 +547,7 @@ def _cache_dir_accessors(kind: str, constant_name: str, new_subpath: str, old_na
     its import-time default, and creates the directory; ``cleanup(max_age_hours=24)`` deletes
     older files and returns the count."""
     def get_dir() -> Path:
-        d = get_hermes_dir(new_subpath, old_name)
+        d = get_jarvis_dir(new_subpath, old_name)
         current = globals().get(constant_name)
         default = _CACHE_DIR_IMPORT_DEFAULTS.get(constant_name)
         if current is not None and default is not None and current != default:
@@ -645,7 +645,7 @@ def _cleanup_cache_dir(cache_dir: Path, max_age_hours: int) -> int:
 
 
 # Audio cache utilities (same pattern as images; feeds the STT tool).
-AUDIO_CACHE_DIR = get_hermes_dir("cache/audio", "audio_cache")
+AUDIO_CACHE_DIR = get_jarvis_dir("cache/audio", "audio_cache")
 get_audio_cache_dir, cleanup_audio_cache = _cache_dir_accessors(
     "audio", "AUDIO_CACHE_DIR", "cache/audio", "audio_cache")
 
@@ -671,7 +671,7 @@ async def cache_audio_from_url(url: str, ext: str = ".ogg", retries: int = 2) ->
 
 
 # Video cache utilities (same pattern; referenced by local path).
-VIDEO_CACHE_DIR = get_hermes_dir("cache/videos", "video_cache")
+VIDEO_CACHE_DIR = get_jarvis_dir("cache/videos", "video_cache")
 get_video_cache_dir, cleanup_video_cache = _cache_dir_accessors(
     "video", "VIDEO_CACHE_DIR", "cache/videos", "video_cache")
 
@@ -692,8 +692,8 @@ async def cache_video_from_bytes_async(data: bytes, ext: str = ".mp4") -> str:
 
 
 # Document / screenshot cache utilities (same pattern; referenced by local path).
-DOCUMENT_CACHE_DIR = get_hermes_dir("cache/documents", "document_cache")
-SCREENSHOT_CACHE_DIR = get_hermes_dir("cache/screenshots", "browser_screenshots")
+DOCUMENT_CACHE_DIR = get_jarvis_dir("cache/documents", "document_cache")
+SCREENSHOT_CACHE_DIR = get_jarvis_dir("cache/screenshots", "browser_screenshots")
 get_document_cache_dir, cleanup_document_cache = _cache_dir_accessors(
     "document", "DOCUMENT_CACHE_DIR", "cache/documents", "document_cache")
 get_screenshot_cache_dir, cleanup_screenshot_cache = _cache_dir_accessors(
@@ -707,8 +707,8 @@ _CACHE_DIR_IMPORT_DEFAULTS = {
 
 # Launch-time homes: fine for the static ALLOW roots below (per-profile cache roots are
 # enumerated at check time), never for the credential DENY side — see _credential_home_roots.
-_HERMES_HOME = get_hermes_home()
-_HERMES_ROOT = get_default_hermes_root()
+_HERMES_HOME = get_jarvis_home()
+_HERMES_ROOT = get_default_jarvis_root()
 MEDIA_DELIVERY_ALLOW_DIRS_ENV = "HERMES_MEDIA_ALLOW_DIRS"
 MEDIA_DELIVERY_TRUST_RECENT_ENV = "HERMES_MEDIA_TRUST_RECENT_FILES"
 MEDIA_DELIVERY_TRUST_RECENT_SECONDS_ENV = "HERMES_MEDIA_TRUST_RECENT_SECONDS"
@@ -785,7 +785,7 @@ def _credential_home_roots() -> List[Path]:
     and every ``<root>/profiles/*``. Enumerated at check time like ``_profile_cache_roots`` on
     the allow side — a denylist frozen at import covers only the launch profile, so a
     ``MEDIA:<root>/profiles/<other>/.env`` emitted in any profile's turn would upload it."""
-    return list(dict.fromkeys((get_hermes_home(), _HERMES_ROOT, *_profile_dirs())))
+    return list(dict.fromkeys((get_jarvis_home(), _HERMES_ROOT, *_profile_dirs())))
 
 
 def _kanban_root() -> Path:
@@ -945,7 +945,7 @@ def _docker_sandbox_dir_candidates(session_key: str = "") -> List[str]:
     except Exception:
         return ["default"]
     try:
-        from hermes_cli.profiles import get_active_profile_name
+        from jarvis_cli.profiles import get_active_profile_name
         profile = get_active_profile_name() or "default"
     except Exception:
         profile = "default"
@@ -2192,7 +2192,7 @@ class BasePlatformAdapter(ABC):
         with ``(native, adapter)``; adapters call this from ``connect()`` once the native
         client exists. Each factory is isolated so a bad plugin can't block connecting."""
         try:
-            from hermes_cli.plugins import get_plugin_manager
+            from jarvis_cli.plugins import get_plugin_manager
             factories = get_plugin_manager().get_platform_handler_factories(
                 getattr(self.platform, "value", str(self.platform)))
         except Exception as e:  # pragma: no cover - defensive
@@ -3899,7 +3899,7 @@ class BasePlatformAdapter(ABC):
         # runner. Without this, they are queued as pending messages and either: See #4926.
         self._canonicalize(event.source)  # identity FIRST (direct callers may skip handle_message)
         cmd = event.get_command()
-        from hermes_cli.commands import (is_interrupt_then_dispatch, should_bypass_active_session)
+        from jarvis_cli.commands import (is_interrupt_then_dispatch, should_bypass_active_session)
         if should_bypass_active_session(cmd):
             try:
                 # /stop, /new, /reset: cancel + response + drain; other bypasses don't cancel.
