@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from hermes_constants import get_hermes_home
+from jarvis_constants import get_jarvis_home
 
 from plugins.google_meet import process_manager as pm
 from plugins.google_meet.meet_bot import _is_safe_meet_url
@@ -29,7 +29,7 @@ from plugins.google_meet.tools import resolve_node
 
 
 def _auth_state_path() -> Path:
-    return Path(get_hermes_home()) / "workspace" / "meetings" / "auth.json"
+    return Path(get_jarvis_home()) / "workspace" / "meetings" / "auth.json"
 
 
 # ``hermes meet <sub>`` in help order.
@@ -146,7 +146,7 @@ def _cmd_install(*, realtime: bool, assume_yes: bool) -> int:
     pip_pkgs = ["playwright", "websockets"]
     print(f"\n[1/3] pip install: {' '.join(pip_pkgs)}")
     try:
-        from hermes_cli.tools_config import _pip_install
+        from jarvis_cli.tools_config import _pip_install
         if _pip_install(["--upgrade", *pip_pkgs], capture_output=False).returncode != 0:
             print("  pip install failed")
             return 1
