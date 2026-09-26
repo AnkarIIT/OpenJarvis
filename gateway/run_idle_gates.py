@@ -17,17 +17,17 @@ logger = logging.getLogger("gateway.run")
 
 def _profile_session_db_probe(profile_home: Path) -> Optional[Any]:
     """The goals-cached SessionDB for *profile_home*; None when unavailable."""
-    from hermes_cli.goals import _get_session_db
-    from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+    from jarvis_cli.goals import _get_session_db
+    from jarvis_constants import reset_jarvis_home_override, set_jarvis_home_override
 
-    token = set_hermes_home_override(str(profile_home))
+    token = set_jarvis_home_override(str(profile_home))
     try:
         return _get_session_db()
     except Exception:
         logger.debug("session-db probe failed for %s", profile_home, exc_info=True)
         return None
     finally:
-        reset_hermes_home_override(token)
+        reset_jarvis_home_override(token)
 
 
 def _gate(profile_home: Path, store_has_work: Callable[[Any], bool]) -> bool:
@@ -42,13 +42,13 @@ def _gate(profile_home: Path, store_has_work: Callable[[Any], bool]) -> bool:
 
 
 def profile_has_active_heartbeat(profile_home: Path) -> bool:
-    from hermes_cli.heartbeat import store_has_active_heartbeat
+    from jarvis_cli.heartbeat import store_has_active_heartbeat
 
     return _gate(profile_home, store_has_active_heartbeat)
 
 
 def profile_has_active_loop(profile_home: Path) -> bool:
-    from hermes_cli.loops import store_has_active_loop
+    from jarvis_cli.loops import store_has_active_loop
 
     return _gate(profile_home, store_has_active_loop)
 
