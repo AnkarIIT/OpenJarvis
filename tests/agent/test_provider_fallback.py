@@ -228,7 +228,7 @@ class TestFallbackChainAdvancement:
         Anthropic client — otherwise the turn POSTs /chat/completions. The wire
         is opt-in since 2026-09-06 (``nous.anthropic_wire``, see ``nous_api_mode``).
         """
-        from hermes_cli import providers as _providers
+        from jarvis_cli import providers as _providers
         monkeypatch.setattr(_providers, "_nous_anthropic_wire", lambda: "native")
         portal = "https://inference-api.nousresearch.com/v1"
         fbs = [
@@ -259,7 +259,7 @@ class TestFallbackChainAdvancement:
                 ),
             ),
             patch(
-                "hermes_cli.model_normalize.normalize_model_for_provider",
+                "jarvis_cli.model_normalize.normalize_model_for_provider",
                 side_effect=lambda m, p: m,
             ),
             patch(
@@ -280,7 +280,7 @@ class TestFallbackChainAdvancement:
 
     def test_nous_non_anthropic_fallback_stays_on_chat_completions(self):
         portal = "https://inference-api.nousresearch.com/v1"
-        fbs = [{"provider": "nous", "model": "hermes-4-405b"}]
+        fbs = [{"provider": "nous", "model": "jarvis-4-405b"}]
         agent = _make_agent(fallback_model=fbs)
         with (
             patch(
@@ -291,11 +291,11 @@ class TestFallbackChainAdvancement:
                 "agent.auxiliary_client.resolve_provider_client",
                 return_value=(
                     _mock_client(base_url=portal, api_key="portal-jwt"),
-                    "hermes-4-405b",
+                    "jarvis-4-405b",
                 ),
             ),
             patch(
-                "hermes_cli.model_normalize.normalize_model_for_provider",
+                "jarvis_cli.model_normalize.normalize_model_for_provider",
                 side_effect=lambda m, p: m,
             ),
             patch(
@@ -360,7 +360,7 @@ class TestFallbackChainDedup:
             called.append((provider, model))
             return _mock_client(), model
         with patch("agent.auxiliary_client.resolve_provider_client", side_effect=_resolve):
-            with patch("hermes_cli.model_normalize.normalize_model_for_provider", side_effect=lambda m, p: m):
+            with patch("jarvis_cli.model_normalize.normalize_model_for_provider", side_effect=lambda m, p: m):
                 ok = agent._try_activate_fallback()
 
         assert ok is True
@@ -413,7 +413,7 @@ class TestFallbackChainDedup:
 
         with patch("agent.auxiliary_client.resolve_provider_client", side_effect=_resolve):
             with patch(
-                "hermes_cli.model_normalize.normalize_model_for_provider",
+                "jarvis_cli.model_normalize.normalize_model_for_provider",
                 side_effect=lambda m, p: m,
             ):
                 ok = agent._try_activate_fallback()
@@ -516,10 +516,10 @@ class TestFallbackExtraBodyReResolution:
 
 
 def _write_moa_home(tmp_path, monkeypatch):
-    """Real config.yaml with a MoA preset under a temp HERMES_HOME (genuine preset resolution)."""
+    """Real config.yaml with a MoA preset under a temp JARVIS_HOME (genuine preset resolution)."""
     import yaml
 
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".jarvis"
     home.mkdir(exist_ok=True)
     (home / "config.yaml").write_text(yaml.safe_dump({
         "moa": {"default_preset": "default", "presets": {"default": {
@@ -528,7 +528,7 @@ def _write_moa_home(tmp_path, monkeypatch):
             "aggregator": {"provider": "xai", "model": "grok-4.6"},
         }}},
     }))
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("JARVIS_HOME", str(home))
     return home
 
 
