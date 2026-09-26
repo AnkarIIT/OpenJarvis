@@ -30,7 +30,7 @@ from gateway.slash_commands_model import GatewayModelCommandsMixin
 from gateway.slash_commands_session import GatewaySessionCommandsMixin
 from gateway.slash_commands_login import GatewayLoginCommandsMixin
 from gateway.slash_commands_status import HISTORY_UNREADABLE, GatewayStatusCommandsMixin
-from hermes_cli.config import atomic_config_write, cfg_get
+from jarvis_cli.config import atomic_config_write, cfg_get
 from utils import atomic_json_write, is_truthy_value
 
 logger = logging.getLogger("gateway.run")
@@ -98,7 +98,7 @@ def _preview(text: str, limit: int = 60) -> str:
 
 def _execute(command: str, **ctx_kwargs):
     """Run *command* through the shared slash executor on the gateway surface."""
-    from hermes_cli.slash_exec import CommandContext, execute_command
+    from jarvis_cli.slash_exec import CommandContext, execute_command
     return execute_command(command, CommandContext(surface="gateway", **ctx_kwargs))
 
 
@@ -128,10 +128,10 @@ def _spawn_detached_update(hermes_cmd, output_path, exit_code_path) -> None:
     import shutil
     import subprocess
     if sys.platform == "win32":
-        from hermes_cli._subprocess_compat import windows_detach_popen_kwargs
+        from jarvis_cli._subprocess_compat import windows_detach_popen_kwargs
         subprocess.Popen(
             [sys.executable, "-c", _WINDOWS_UPDATE_HELPER, str(output_path), str(exit_code_path),
-             sys.executable, "-m", "hermes_cli.main", "update", "--gateway"],
+             sys.executable, "-m", "jarvis_cli.main", "update", "--gateway"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **windows_detach_popen_kwargs())
         return
     hermes_cmd_str = " ".join(shlex.quote(part) for part in hermes_cmd)
@@ -203,7 +203,7 @@ class GatewaySlashCommandsMixin(
 
     @staticmethod
     def _session_db_unavailable_reply() -> str:
-        from hermes_state import format_session_db_unavailable
+        from jarvis_state import format_session_db_unavailable
         return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
 
     def _reply_metadata(self, event: MessageEvent):
@@ -239,7 +239,7 @@ class GatewaySlashCommandsMixin(
         from gateway.run import _gateway_config_home
         # Persist to config (default) unless --session opted out, mirroring the text /model command path
         # above so a picked model survives across sessions like a typed one (#49066).
-        from hermes_cli.config import read_user_config_raw
+        from jarvis_cli.config import read_user_config_raw
         config_path = _gateway_config_home() / "config.yaml"
         session_key = self._session_key_for_source(event.source)
 
@@ -296,7 +296,7 @@ class GatewaySlashCommandsMixin(
         gateway the process-level profile is the multiplexer's own ("default" in every chat), so
         with ``multiplex_profiles`` on report ``source.profile`` and resolve home under that
         profile's runtime scope; when off the stamp is ignored, mirroring ``_run_agent``."""
-        from hermes_constants import display_hermes_home
+        from jarvis_constants import display_jarvis_home
         source = getattr(event, "source", None)
         profile_name = display = ""
         if getattr(getattr(self, "config", None), "multiplex_profiles", False):
@@ -304,9 +304,9 @@ class GatewaySlashCommandsMixin(
             try:
                 from gateway.run import _profile_runtime_scope
                 with _profile_runtime_scope(self._resolve_profile_home_for_source(source)):
-                    display = display_hermes_home()
+                    display = display_jarvis_home()
             except Exception:
-                display = display_hermes_home()
+                display = display_jarvis_home()
 
         # Shared executor resolves process-level fallbacks; the multiplexed per-source overrides
         # (when any) ride in via options.
@@ -337,7 +337,7 @@ class GatewaySlashCommandsMixin(
     async def _handle_kanban_command(self, event: MessageEvent) -> str:
         """Handle /kanban — delegate to the shared kanban CLI (DB work in a thread pool). Allowed
         while an agent runs: the board is profile-agnostic and never touches agent state."""
-        from hermes_cli.kanban import run_slash
+        from jarvis_cli.kanban import run_slash
 
         # Strip the leading "/kanban" (with or without slash), leaving args.
         text = (event.text or "").strip().lstrip("/")
@@ -392,9 +392,9 @@ class GatewaySlashCommandsMixin(
             return False
 
         def _sub():
-            from hermes_cli import kanban_db as _kb
-            from hermes_cli import kanban_db_connect as _kbc
-            from hermes_cli import kanban_db_notify as _kbn
+            from jarvis_cli import kanban_db as _kb
+            from jarvis_cli import kanban_db_connect as _kbc
+            from jarvis_cli import kanban_db_notify as _kbn
             conn = _kbc.connect(board=requested_board)
             try:
                 _kbn.add_notify_sub(
@@ -523,7 +523,7 @@ class GatewaySlashCommandsMixin(
 
     async def _handle_restart_command(self, event: MessageEvent) -> Union[str, EphemeralReply]:
         """Handle /restart command - drain active work, then restart the gateway."""
-        from gateway.run import _hermes_home
+        from gateway.run import _jarvis_home
         # Idempotency check: if the previous gateway process recorded this same /restart (platform +
         # update_id) and we see it *again*, it's a redelivery from PTB's graceful-shutdown get_updates
         # ACK failing on the way out. Ignoring it prevents a loop where every fresh gateway re-restarts.
@@ -540,7 +540,7 @@ class GatewaySlashCommandsMixin(
 
         async def _write_marker(name: str, build, label: str) -> None:
             try:
-                await asyncio.to_thread(atomic_json_write, _hermes_home / name, build(), indent=None)
+                await asyncio.to_thread(atomic_json_write, _jarvis_home / name, build(), indent=None)
             except Exception as e:
                 logger.debug("Failed to write restart %s: %s", label, e)
 
@@ -627,7 +627,7 @@ class GatewaySlashCommandsMixin(
             return t("gateway.set_home.save_failed", error=e)
         # Preserve legacy home env vars for existing cron/setup consumers.
         try:
-            from hermes_cli.config import save_env_value
+            from jarvis_cli.config import save_env_value
             save_env_value(_home_target_env_var(platform_name), str(chat_id))
             save_env_value(_home_thread_env_var(platform_name), str(thread_id or ""))
         except Exception as e:
@@ -867,7 +867,7 @@ class GatewaySlashCommandsMixin(
     async def _handle_memory_command(self, event: MessageEvent) -> str:
         """Handle /memory — review pending memory writes + toggle the approval gate. Entries are small
         enough to review inline, so the full flow works on every platform."""
-        from hermes_cli.write_approval_commands import handle_pending_subcommand
+        from jarvis_cli.write_approval_commands import handle_pending_subcommand
         from tools import write_approval as wa
         from tools.memory_tool import load_on_disk_store
         # Apply approved writes against a fresh on-disk store (the gateway has no long-lived agent;
@@ -883,7 +883,7 @@ class GatewaySlashCommandsMixin(
         """Handle /skills on the gateway — pending skill-write review only (hub stays CLI-only). Gated
         by ``skills.write_approval`` but still answers when staged writes exist after the gate is off
         (never stranded). ``diff`` is truncated for chat."""
-        from hermes_cli.write_approval_commands import handle_pending_subcommand
+        from jarvis_cli.write_approval_commands import handle_pending_subcommand
         from tools import write_approval as wa
         args = event.get_command_args().strip().split()
         sub = args[0].lower() if args else ""
@@ -911,7 +911,7 @@ class GatewaySlashCommandsMixin(
     async def _handle_approvals_command(self, event: MessageEvent) -> str:
         """Show or persist the profile-wide dangerous-command approval mode."""
         from gateway.slash_access import policy_for_source
-        from hermes_cli.approval_mode import run_approval_mode_command
+        from jarvis_cli.approval_mode import run_approval_mode_command
         requested = event.get_command_args().strip() or None
         # This mutates profile-wide security policy. The central slash gate can allow selected
         # commands to non-admin users, so enforce admin again at this side-effect boundary.
@@ -1080,7 +1080,7 @@ class GatewaySlashCommandsMixin(
             from agent.skill_commands import reload_skills
 
             # _run_in_executor_with_context, not a bare hop: the rescan walks
-            # get_hermes_home()/skills, a contextvar override under multiplex.
+            # get_jarvis_home()/skills, a contextvar override under multiplex.
             result = await self._run_in_executor_with_context(reload_skills)
             added, removed = result.get("added", []), result.get("removed", [])  # [{"name", "description"}]
             total = result.get("total", 0)
@@ -1210,7 +1210,7 @@ class GatewaySlashCommandsMixin(
     async def _handle_debug_command(self, event: MessageEvent) -> str:
         """Handle /debug — upload ONLY the summary (system info + log tails), never full logs, to
         protect privacy; ``hermes debug share`` from the CLI does full uploads."""
-        from hermes_cli.debug import (_GATEWAY_PRIVACY_NOTICE, _best_effort_sweep_expired_pastes,
+        from jarvis_cli.debug import (_GATEWAY_PRIVACY_NOTICE, _best_effort_sweep_expired_pastes,
                                       _capture_dump, _is_dpaste_url, _schedule_auto_delete,
                                       collect_debug_report, upload_to_pastebin)
 
@@ -1233,7 +1233,7 @@ class GatewaySlashCommandsMixin(
                               t("gateway.debug.share_hint")])
 
         # _run_in_executor_with_context, not a bare hop: this collects the profile's logs/config off
-        # ``get_hermes_home()`` and uploads them to a public paste. Losing the contextvar override
+        # ``get_jarvis_home()`` and uploads them to a public paste. Losing the contextvar override
         # would publish the DEFAULT profile's diagnostics from another profile's chat.
         return await self._run_in_executor_with_context(_collect_and_upload)
 
@@ -1241,8 +1241,8 @@ class GatewaySlashCommandsMixin(
         """Handle /update — spawn ``hermes update`` detached (``setsid``) so it survives the gateway
         restart it may trigger; marker files let this or the next gateway process notify the user."""
         import json
-        from gateway.run import _hermes_home, _resolve_hermes_bin
-        from hermes_cli.config import is_managed, format_managed_message
+        from gateway.run import _jarvis_home, _resolve_hermes_bin
+        from jarvis_cli.config import is_managed, format_managed_message
         # Block non-messaging platforms (API server, webhooks, ACP); plugin platforms with
         # allow_update_command=True are also allowed.
         src = event.source
@@ -1261,9 +1261,9 @@ class GatewaySlashCommandsMixin(
         hermes_cmd = _resolve_hermes_bin()
         if not hermes_cmd:
             return t("gateway.update.hermes_cmd_not_found")
-        pending_path = _hermes_home / ".update_pending.json"
-        output_path = _hermes_home / ".update_output.txt"
-        exit_code_path = _hermes_home / ".update_exit_code"
+        pending_path = _jarvis_home / ".update_pending.json"
+        output_path = _jarvis_home / ".update_output.txt"
+        exit_code_path = _jarvis_home / ".update_exit_code"
         pending = {
             "platform": src.platform.value, "chat_id": src.chat_id, "chat_type": src.chat_type,
             "user_id": src.user_id, "session_key": self._session_key_for_source(src),
@@ -1300,7 +1300,7 @@ _PLUGIN_COMPAT_LAZY = {
     'SessionSource': ('gateway.session', 'SessionSource'),
     'base_url_host_matches': ('utils', 'base_url_host_matches'),
     'build_session_key': ('gateway.session', 'build_session_key'),
-    'clear_model_endpoint_credentials': ('hermes_cli.config', 'clear_model_endpoint_credentials'),
+    'clear_model_endpoint_credentials': ('jarvis_cli.config', 'clear_model_endpoint_credentials'),
     'extract_api_content_sidecar': ('agent.turn_context', 'extract_api_content_sidecar'),
     'fetch_account_usage': ('agent.account_usage', 'fetch_account_usage'),
     'is_shared_multi_user_session': ('gateway.session', 'is_shared_multi_user_session'),
@@ -1313,7 +1313,7 @@ def __getattr__(name):  # PEP 562 — lazy so no import cycles
     if target is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     import importlib
-    from hermes_cli.plugin_compat import warn_once
+    from jarvis_cli.plugin_compat import warn_once
     warn_once(__name__, name, *target)
     return getattr(importlib.import_module(target[0]), target[1])
 # ---- END PLUGIN-COMPAT ----
