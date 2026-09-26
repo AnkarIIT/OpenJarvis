@@ -90,7 +90,7 @@ from gateway.platforms.base import (
 )
 from gateway.platforms.event import MessageEvent, MessageType, ProcessingOutcome
 from gateway.status import acquire_scoped_lock, release_scoped_lock
-from hermes_constants import get_hermes_home
+from jarvis_constants import get_jarvis_home
 from utils import atomic_json_write, env_float, env_int
 
 from gateway.platforms._shared import (
@@ -1306,7 +1306,7 @@ class FeishuAdapter(BasePlatformAdapter):
         self._webhook_runner = self._webhook_site = self._event_handler = None
         self._seen_message_ids: Dict[str, float] = {}  # message_id → seen_at (time.time())
         self._seen_message_order: List[str] = []
-        self._dedup_state_path = get_hermes_home() / "feishu_seen_message_ids.json"
+        self._dedup_state_path = get_jarvis_home() / "feishu_seen_message_ids.json"
         self._dedup_lock = threading.Lock()
         # Serializes the offloaded dedup-state flushes so two concurrent
         # inbound messages cannot land their writes out of order.
@@ -1814,7 +1814,7 @@ class FeishuAdapter(BasePlatformAdapter):
 
     @staticmethod
     def _write_update_prompt_response(answer: str) -> None:
-        response_path = get_hermes_home() / ".update_response"
+        response_path = get_jarvis_home() / ".update_response"
         tmp_path = response_path.with_suffix(".tmp")
         tmp_path.write_text(answer, encoding="utf-8")
         tmp_path.replace(response_path)
@@ -3538,8 +3538,8 @@ class FeishuAdapter(BasePlatformAdapter):
 
     def _persist_seen_message_ids(self) -> None:
         try:
-            from hermes_constants import mkdir_under_hermes_home
-            mkdir_under_hermes_home(self._dedup_state_path.parent)
+            from jarvis_constants import mkdir_under_jarvis_home
+            mkdir_under_jarvis_home(self._dedup_state_path.parent)
             with self._dedup_lock:
                 recent = self._seen_message_order[-self._dedup_cache_size:]
                 # Save as {msg_id: timestamp} so TTL filtering works across restarts.
@@ -4233,7 +4233,7 @@ def _qr_register_inner(*, initial_domain: str, timeout_seconds: int) -> Optional
         print(f"\n  Scan the QR code above, or open this URL directly:\n  {qr_url}")
     else:
         print(f"  Open this URL in Feishu / Lark on your phone:\n\n  {qr_url}\n")
-        from hermes_cli.managed_uv import pip_install_hint
+        from jarvis_cli.managed_uv import pip_install_hint
         print(f"  Tip: {pip_install_hint('qrcode')}  to display a scannable QR code here next time")
     print()
     result = _poll_registration(
@@ -4256,7 +4256,7 @@ def _qr_register_inner(*, initial_domain: str, timeout_seconds: int) -> Optional
 # migrations: a register(ctx) entry point plus hook implementations that replace the per-platform core
 # touchpoints (the Platform.FEISHU elif in gateway/run.py, the feishu_cfg YAML→env block +
 # _PLATFORM_CONNECTED_CHECKERS entry in gateway/config.py, the _setup_feishu wizard + _PLATFORMS["feishu"]
-# static dict in hermes_cli/gateway.py, and the _send_feishu dispatch in tools/send_message_tool.py).
+# static dict in jarvis_cli/gateway.py, and the _send_feishu dispatch in tools/send_message_tool.py).
 # ──────────────────────────────────────────────────────────────────────────
 _MIGRATION_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 _MIGRATION_VIDEO_EXTS = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".3gp"}
@@ -4300,10 +4300,10 @@ async def _standalone_send(pconfig, chat_id, message, *, thread_id=None, media_f
 
 def interactive_setup() -> None:
     """Interactive setup for Feishu / Lark — scan-to-create or manual creds (CLI helpers lazy-imported)."""
-    from hermes_cli.config import remove_env_value, save_env_value
-    from hermes_cli.setup import prompt_choice
-    from hermes_cli.cli_output import prompt, print_header, print_info, print_success, print_warning
-    from hermes_cli.setup_platforms import declines_reconfigure
+    from jarvis_cli.config import remove_env_value, save_env_value
+    from jarvis_cli.setup import prompt_choice
+    from jarvis_cli.cli_output import prompt, print_header, print_info, print_success, print_warning
+    from jarvis_cli.setup_platforms import declines_reconfigure
 
     print_header("Feishu / Lark")
     if declines_reconfigure("Feishu / Lark", "Reconfigure Feishu / Lark?", "FEISHU_APP_ID"):
