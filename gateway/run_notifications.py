@@ -449,12 +449,12 @@ class GatewayNotificationsMixin:
 
     @classmethod
     def _update_paths(cls) -> "GatewayNotificationsMixin._UpdatePaths":
-        from gateway.run import _hermes_home
+        from gateway.run import _jarvis_home
         return cls._UpdatePaths(
-            pending=_hermes_home / ".update_pending.json",
-            claimed=_hermes_home / ".update_pending.claimed.json", output=_hermes_home / ".update_output.txt",
-            exit_code=_hermes_home / ".update_exit_code",
-            prompt=_hermes_home / ".update_prompt.json", response=_hermes_home / ".update_response",
+            pending=_jarvis_home / ".update_pending.json",
+            claimed=_jarvis_home / ".update_pending.claimed.json", output=_jarvis_home / ".update_output.txt",
+            exit_code=_jarvis_home / ".update_exit_code",
+            prompt=_jarvis_home / ".update_prompt.json", response=_jarvis_home / ".update_response",
         )
 
     @staticmethod
@@ -708,8 +708,8 @@ class GatewayNotificationsMixin:
     async def _send_restart_notification(self) -> Optional[tuple[str, str, Optional[str]]]:
         """Notify the chat that initiated /restart that the gateway is back."""
         from gateway.delivery import resolve_delivery_transport
-        from gateway.run import _hermes_home, _non_conversational_metadata
-        notify_path = _hermes_home / ".restart_notify.json"
+        from gateway.run import _jarvis_home, _non_conversational_metadata
+        notify_path = _jarvis_home / ".restart_notify.json"
         if not notify_path.exists():
             return None
         try:
@@ -803,8 +803,8 @@ class GatewayNotificationsMixin:
             # is only consulted when a free-tier identity already exists and its own free-tier rung
             # (which may mint on a fresh install, NS-829) answers from that identity without a network
             # call. No token refresh at boot either way.
-            from hermes_cli.auth import resolve_provider
-            from hermes_cli.anon_auth import guest_carries_inference
+            from jarvis_cli.auth import resolve_provider
+            from jarvis_cli.anon_auth import guest_carries_inference
             if not guest_carries_inference():
                 return None
             if resolve_provider("auto") != "nous":
@@ -907,29 +907,29 @@ class GatewayNotificationsMixin:
             if not error:
                 logger.info("state.db recovered before the home-channel warning went out; not broadcasting")
                 return
-        from hermes_constants import get_default_hermes_root, profile_cli_selector
-        from hermes_state import _default_db_path, classify_persistence_error
+        from jarvis_constants import get_default_jarvis_root, profile_cli_selector
+        from jarvis_state import _default_db_path, classify_persistence_error
         cause = classify_persistence_error(error)
-        # Copy-pasteable, so name the real store and pin the profile: a bare `hermes` follows
+        # Copy-pasteable, so name the real store and pin the profile: a bare `jarvis` follows
         # active_profile, which may be a different database (#105887).
         profile_arg = profile_cli_selector()
         if cause == "corrupt":
             db_path = _default_db_path()
-            backups_dir = get_default_hermes_root() / "backups"
+            backups_dir = get_default_jarvis_root() / "backups"
             message = (
                 "⚠️ Session database corruption detected. Messages may not be "
                 "persisted. Recovery options:\n"
-                f"1. Run `hermes {profile_arg}doctor --fix`\n"
+                f"1. Run `jarvis {profile_arg}doctor --fix`\n"
                 "2. Stop the gateway, then recover with:\n"
-                f"   hermes {profile_arg}sessions recover --source {db_path} "
+                f"   jarvis {profile_arg}sessions recover --source {db_path} "
                 "--inspect-only\n"
-                f"   (if it reports recoverable) hermes {profile_arg}sessions recover "
+                f"   (if it reports recoverable) jarvis {profile_arg}sessions recover "
                 f"--source {db_path} --output recovered-state.db\n"
                 "   — recovery snapshots the damaged file first; do NOT run "
-                "`sqlite3 ... \".recover\"` against the live state.db, a "
+                "`sqlite3 ... \\\".recover\"` against the live state.db, a "
                 "vulnerable sqlite3 CLI can corrupt it further\n"
                 f"3. Restore from a backup in {backups_dir}/\n"
-                f"Run `hermes {profile_arg}doctor` for sanitized diagnostics."
+                f"Run `jarvis {profile_arg}doctor` for sanitized diagnostics."
             )
         elif cause == "fts_index":
             # Index-scoped corruption: the message tables are not damaged, so the recover /
@@ -937,11 +937,11 @@ class GatewayNotificationsMixin:
             message = (
                 "⚠️ Session database reported a corruption error confined to the search index "
                 "(FTS5); the message tables are not damaged. Messages may not be persisted until "
-                f"it is repaired: run `hermes {profile_arg}doctor --fix`, then restart the gateway. Do not run "
-                f"recovery tools or restore a backup unless `hermes {profile_arg}doctor` confirms damage."
+                f"it is repaired: run `jarvis {profile_arg}doctor --fix`, then restart the gateway. Do not run "
+                f"recovery tools or restore a backup unless `jarvis {profile_arg}doctor` confirms damage."
             )
         else:
-            from hermes_state_user_copy import describe_storage_failure
+            from jarvis_state_user_copy import describe_storage_failure
             failure = describe_storage_failure(error)
             message = (
                 "⚠️ Session database unavailable — messages may not be saved and /resume will be "
@@ -1409,17 +1409,17 @@ class GatewayNotificationsMixin:
         event is the default profile's or the scope is already installed).
 
         The pre-flight (``_classify_completion_target`` → ``_session_db``) and every durable-ledger op
-        (``tools.async_delegation`` → ``get_hermes_home()/state.db``) resolve from the ambient scope.
+        (``tools.async_delegation`` → ``get_jarvis_home()/state.db``) resolve from the ambient scope.
         The supervised ``_async_delegation_watcher`` and startup-recovered process watchers run under
         the ROOT scope, so a secondary profile's completion was looked up in the DEFAULT profile's
         state.db — classified ``terminal`` and dropped, its ledger row stranded ``pending`` forever."""
         from gateway.run import _async_profile_runtime_scope
-        from hermes_constants import get_hermes_home_override
+        from jarvis_constants import get_jarvis_home_override
         source = self._build_process_event_source(evt)
         if source is None or not getattr(source, "profile", None):
             return contextlib.nullcontext()
         profile_home = self._resolve_profile_home_for_source(source)
-        if get_hermes_home_override() == str(profile_home):
+        if get_jarvis_home_override() == str(profile_home):
             return contextlib.nullcontext()
         return _async_profile_runtime_scope(profile_home)
 
