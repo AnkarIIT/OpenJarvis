@@ -66,7 +66,7 @@ def _resolve_gateway_exit_verdict(runner, signal_initiated_shutdown: bool) -> bo
 # exit (bounded), then spawns ``hermes gateway restart``.
 _WINDOWS_RESTART_WATCHER = """
 import os, subprocess, sys, time
-from hermes_cli._subprocess_compat import windows_detach_flags_without_breakaway
+from jarvis_cli._subprocess_compat import windows_detach_flags_without_breakaway
 pid = int(sys.argv[1])
 restart_after_s = float(sys.argv[2])
 cmd = sys.argv[3:]
@@ -1180,13 +1180,13 @@ class GatewayShutdownMixin:
     async def _finalize_session_off_loop(
         self, *, session_id: Any, platform: str, reason: str, session_key: Optional[str] = None, **extra: Any,
     ) -> None:
-        """Run hermes_cli.lifecycle.finalize_session off-loop, bounded; on timeout the worker is left alone.
+        """Run jarvis_cli.lifecycle.finalize_session off-loop, bounded; on timeout the worker is left alone.
         ``session_key`` lets an unscoped caller (shutdown) enter the owning profile's scope: plugin
         ``on_session_finalize`` observers and the Relay coordinator (``current_profile_key``) resolve
         profile state at call time."""
 
         def _call() -> None:
-            from hermes_cli.lifecycle import finalize_session
+            from jarvis_cli.lifecycle import finalize_session
             finalize_session(session_id=session_id, platform=platform, reason=reason, **extra)
 
         try:
@@ -1278,8 +1278,8 @@ class GatewayShutdownMixin:
 
     # Stuck-loop (restart failure) counters
     def _stuck_loop_counts_path(self) -> Path:
-        from gateway.run import _hermes_home
-        return _hermes_home / self._STUCK_LOOP_FILE
+        from gateway.run import _jarvis_home
+        return _jarvis_home / self._STUCK_LOOP_FILE
 
     @staticmethod
     def _read_json_counts(path: Path) -> Optional[dict]:
@@ -1357,7 +1357,7 @@ class GatewayShutdownMixin:
     def _spawn_windows_restart_watcher(hermes_cmd: list, current_pid: int, restart_after_s: float) -> None:
         """Spawn the detached Windows watcher (``python -c``), retrying once without job breakaway."""
         import subprocess
-        from hermes_cli._subprocess_compat import (
+        from jarvis_cli._subprocess_compat import (
             windows_detach_flags_without_breakaway, windows_detach_popen_kwargs
         )
         watcher_env = GatewayShutdownMixin._restart_watcher_env()
@@ -1945,7 +1945,7 @@ class GatewayShutdownMixin:
             # Shared SessionDB instances still held by the process-wide registry (tools, cron, mirror).
             # This is the safety net that guarantees no WAL write lock survives past gateway shutdown
             # (#90837).
-            from hermes_state_registry import close_all
+            from jarvis_state_registry import close_all
             closed = close_all()
             if closed:
                 logger.debug("Closed %d shared SessionDB instance(s) at shutdown", closed)
@@ -1955,7 +1955,7 @@ class GatewayShutdownMixin:
 
     def _stop_persist_exit_state(self, ctx: "GatewayShutdownMixin._StopContext") -> None:
         """PID/lock release, clean-shutdown marker, restart markers, terminal runtime status."""
-        from gateway.run import _hermes_home, _planned_restart_notification_path, _shutdown_gateway_health_export
+        from gateway.run import _jarvis_home, _planned_restart_notification_path, _shutdown_gateway_health_export
         from utils import atomic_json_write
         from gateway.status import remove_pid_file, release_gateway_runtime_lock
         remove_pid_file()
@@ -1964,7 +1964,7 @@ class GatewayShutdownMixin:
         # half-finished sessions, so no marker — the next startup suspends them.
         if not ctx.timed_out:
             with suppress(Exception):
-                (_hermes_home / ".clean_shutdown").touch()
+                (_jarvis_home / ".clean_shutdown").touch()
         else:
             logger.info(
                 "Skipping .clean_shutdown marker — drain timed out with "
