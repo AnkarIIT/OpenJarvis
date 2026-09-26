@@ -38,8 +38,8 @@ from agent.message_content import flatten_message_text
 from agent.memory_provider import MemoryProvider, spawn_context_thread
 from agent.secret_scope import get_secret
 from agent.skill_commands import extract_user_instruction_from_skill_message
-from hermes_cli import __version__ as _HERMES_VERSION
-from hermes_constants import get_hermes_home
+from jarvis_cli import __version__ as _HERMES_VERSION
+from jarvis_constants import get_jarvis_home
 from tools.registry import tool_error
 from utils import atomic_json_write, env_var_enabled
 
@@ -742,7 +742,7 @@ def _is_local_openviking_url(value: str) -> bool:
 
 def _load_hermes_openviking_config() -> dict:
     try:
-        from hermes_cli.config import load_config_readonly
+        from jarvis_cli.config import load_config_readonly
 
         config = load_config_readonly()
         memory_config = config.get("memory", {}) if isinstance(config, dict) else {}
@@ -968,7 +968,7 @@ def _start_local_openviking_server(endpoint: str) -> tuple[str, str]:
     server_cmd = shutil.which("openviking-server")
     if not server_cmd:
         return _LOCAL_SERVER_FAILED, "openviking-server was not found on PATH. Start it manually, then retry."
-    log_path = get_hermes_home() / _OPENVIKING_SERVER_LOG_RELATIVE_PATH
+    log_path = get_jarvis_home() / _OPENVIKING_SERVER_LOG_RELATIVE_PATH
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         # Strip PYTHONPATH: the Desktop backend puts the Hermes venv on it, which
@@ -1205,7 +1205,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
     def __init__(self):
         self._client: Optional[_VikingClient] = None
         self._endpoint = self._api_key = self._account = self._user = self._agent = ""
-        self._session_id, self._turn_count, self._hermes_home = "", 0, ""
+        self._session_id, self._turn_count, self._jarvis_home = "", 0, ""
         # (conn snapshot, user): keyed on the snapshot so every client built from it
         # shares the resolved user and a /reload invalidates it.
         # Server-asserted user space for explicit-uid URIs (#91995). Key the cache on the connection
@@ -1271,7 +1271,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
         if endpoint:
             normalized["endpoint"] = _normalize_openviking_url(endpoint)
 
-        from hermes_cli.config import load_config, save_config
+        from jarvis_cli.config import load_config, save_config
 
         config = load_config()
         if not isinstance(config.get("memory"), dict):
@@ -1403,7 +1403,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
         self._env_refresh_enabled = True
         self._session_id = session_id
         self._turn_count = 0
-        self._hermes_home = str(kwargs.get("hermes_home") or "").strip() or str(get_hermes_home())
+        self._jarvis_home = str(kwargs.get("hermes_home") or "").strip() or str(get_jarvis_home())
         self._acquire_run_lock()
         self._profile_prefetched_sessions.clear()
 
@@ -1428,7 +1428,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
             self._conn_snapshot = self._settings_tuple()
             self._recover_pending_sessions()
 
-        _active_providers_by_home[self._hermes_home] = self  # atexit safety net
+        _active_providers_by_home[self._jarvis_home] = self  # atexit safety net
 
     def _ensure_client(self) -> Optional["_VikingClient"]:
         """Active client, rebuilt if the resolved config changed.
@@ -2131,11 +2131,11 @@ class OpenVikingMemoryProvider(MemoryProvider):
         """Marker/lock file under HERMES_HOME: ``pending`` -> pending_sessions/<sid>.json,
         ``lock`` -> runs/<run_id>.lock; an empty run id maps to the legacy recovery lock."""
         name = str(name or "").strip()
-        if not self._hermes_home or (not name and kind != "lock"):
+        if not self._jarvis_home or (not name and kind != "lock"):
             return None
         if kind == "pending":
-            return Path(self._hermes_home) / _PENDING_SESSIONS_RELATIVE_DIR / f"{quote(name, safe='')}.json"
-        return Path(self._hermes_home) / _RUN_LOCKS_RELATIVE_DIR / (f"{quote(name, safe='')}.lock" if name else _LEGACY_RECOVERY_LOCK_FILENAME)
+            return Path(self._jarvis_home) / _PENDING_SESSIONS_RELATIVE_DIR / f"{quote(name, safe='')}.json"
+        return Path(self._jarvis_home) / _RUN_LOCKS_RELATIVE_DIR / (f"{quote(name, safe='')}.lock" if name else _LEGACY_RECOVERY_LOCK_FILENAME)
 
     @staticmethod
     def _flock_open(path: Path):
@@ -2216,8 +2216,8 @@ class OpenVikingMemoryProvider(MemoryProvider):
             logger.debug("Could not safely mark OpenViking session %s pending without a run lock", sid)
             return
         try:
-            from hermes_constants import mkdir_under_hermes_home
-            mkdir_under_hermes_home(path.parent)
+            from jarvis_constants import mkdir_under_jarvis_home
+            mkdir_under_jarvis_home(path.parent)
             atomic_json_write(path, {"session_id": sid, "owner_run_id": self._run_id}, mode=0o600)
             self._pending_marked_sids.add(sid)
         except Exception as e:
@@ -2234,7 +2234,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
 
     def _pending_sessions(self) -> List[tuple[str, str]]:
         """(sid, owner_run_id) for every marker file; sid falls back to the file name."""
-        directory = Path(self._hermes_home) / _PENDING_SESSIONS_RELATIVE_DIR if self._hermes_home else None
+        directory = Path(self._jarvis_home) / _PENDING_SESSIONS_RELATIVE_DIR if self._jarvis_home else None
         if directory is None or not directory.is_dir():
             return []
         sessions: List[tuple[str, str]] = []
@@ -2481,8 +2481,8 @@ class OpenVikingMemoryProvider(MemoryProvider):
             if t.is_alive():
                 t.join(timeout=5.0)
         # Clear so atexit doesn't double-commit.
-        if _active_providers_by_home.get(self._hermes_home) is self:
-            del _active_providers_by_home[self._hermes_home]
+        if _active_providers_by_home.get(self._jarvis_home) is self:
+            del _active_providers_by_home[self._jarvis_home]
         self._release_run_lock()
 
     @staticmethod
