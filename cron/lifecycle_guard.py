@@ -67,7 +67,7 @@ _GATEWAY_LIFECYCLE_PATTERN = re.compile(
 )
 
 # Branch E: process killers whose TARGET is the interpreter image hosting the gateway. A supervised
-# gateway is literally `python.exe` / `python3.12` (`python -m hermes_cli.main gateway run`), so
+# gateway is literally `python.exe` / `python3.12` (`python -m jarvis_cli.main gateway run`), so
 # `taskkill /F /IM python.exe`, `pkill -9 python3` or `killall python` carry no hermes/gateway token
 # yet terminate it (#113667). Token-aware rather than a line regex: option VALUES are never read as
 # targets (`pkill -u <user> chrome`), `-f` cmdline patterns are judged as patterns, and other image
@@ -94,10 +94,10 @@ _NAME_KILLERS = frozenset({"pkill", "killall", "taskkill", "stop-process"})
 _NAME_ENUMERATORS = frozenset({"pgrep", "pidof", "get-process"})
 _KILL_VERB_RE = re.compile(r"(?i)\b(?:kill|taskkill|stop-process)\b")
 # A `-f` pattern that does not start with the interpreter reaches the gateway cmdline
-# (`python -m hermes_cli.main gateway run` / `hermes gateway run`) only through its own tokens;
+# (`python -m jarvis_cli.main gateway run` / `hermes gateway run`) only through its own tokens;
 # an unrelated script that merely contains "hermes" (`hermes-polis/run.sh`, `my_hermes_bot.py`)
 # cannot match it. Same hermes+gateway pairing as Branch D, plus the module path.
-_GATEWAY_CMDLINE_TOKEN_RE = re.compile(r"(?i)hermes_cli|\bhermes\b[^\n]*\bgateway\b|\bgateway\b[^\n]*\bhermes\b")
+_GATEWAY_CMDLINE_TOKEN_RE = re.compile(r"(?i)jarvis_cli|\bhermes\b[^\n]*\bgateway\b|\bgateway\b[^\n]*\bhermes\b")
 # Rejection text for Branch E, shared by every tool surface that runs the guard so the agent is
 # pointed at the ownership-scoped route (proc_* id / explicit PID) rather than the shell.
 HOST_INTERPRETER_KILL_REJECTION = (
@@ -125,7 +125,7 @@ def _is_interpreter_image(value: str, *, substring: bool = False) -> bool:
 
 def _pattern_reaches_host_interpreter(pattern: str, *, full_cmdline: bool, exact: bool) -> bool:
     """pkill/pgrep/killall operand semantics: an ERE against the process NAME (or, with `-f`, the full
-    command line). `python -m hermes_cli.main …` is the gateway's own cmdline, so a `-f` pattern
+    command line). `python -m jarvis_cli.main …` is the gateway's own cmdline, so a `-f` pattern
     that names the interpreter and then only wildcards or a `hermes` token reaches it, while
     `python mt_add.py` (a specific script) does not."""
     core = pattern.strip().strip("\"'").lstrip("^")
@@ -367,13 +367,13 @@ _BINARY_MAGICS = (
 
 def _current_profile_name() -> Optional[str]:
     """Profile running the guard: ``HERMES_PROFILE_NAME``/``HERMES_PROFILE`` env first, then
-    ``hermes_cli.profiles.get_active_profile_name`` (from ``HERMES_HOME``); ``None`` if neither."""
+    ``jarvis_cli.profiles.get_active_profile_name`` (from ``HERMES_HOME``); ``None`` if neither."""
     for env_name in ("HERMES_PROFILE_NAME", "HERMES_PROFILE"):
         value = os.environ.get(env_name)
         if value and value.strip():
             return value.strip()
     try:
-        from hermes_cli.profiles import get_active_profile_name
+        from jarvis_cli.profiles import get_active_profile_name
 
         return get_active_profile_name() or None
     except Exception:
@@ -563,7 +563,7 @@ def _budget_exhausted(budget: _LifecycleScanBudget, what: str, depth: int) -> bo
 def _unreadable_reason(path: Path) -> str:
     """Name why an *executed* script failed closed without being scanned (live SQLite, device,
     oversized). Message-only: the fail-closed verdict itself came from the bounded reader."""
-    from hermes_cli.sqlite_safe_read import has_live_connection
+    from jarvis_cli.sqlite_safe_read import has_live_connection
 
     if has_live_connection(path):
         return f"`{path}` is a SQLite database open in this gateway process"
@@ -840,7 +840,7 @@ def _resolved_or_nothing(candidate: str, cwd: Optional[str]) -> Iterator[Path]:
 def _resolve_script_path(script_path: str) -> Optional[Path]:
     """Resolve a cron ``script`` value the way ``cron.scheduler`` does (relative paths live under
     ``<HERMES_HOME>/scripts/``) so the guard scans the file that will actually run."""
-    from hermes_constants import get_hermes_home
+    from jarvis_constants import get_jarvis_home
 
     raw = _expand_candidate_path(script_path)
     if raw is None:
@@ -848,9 +848,9 @@ def _resolve_script_path(script_path: str) -> Optional[Path]:
     if raw.is_absolute():
         return raw
     try:
-        return get_hermes_home() / "scripts" / raw
+        return get_jarvis_home() / "scripts" / raw
     except (RuntimeError, OSError):
-        # get_hermes_home() falls back to Path.home(), which raises when neither HERMES_HOME nor
+        # get_jarvis_home() falls back to Path.home(), which raises when neither HERMES_HOME nor
         # HOME is resolvable (launchd/systemd) — same ingestion contract: nothing to scan.
         return None
 
@@ -974,7 +974,7 @@ def _read_referenced_script(
     which another thread opens SQLite after the check but before this function
     closes its descriptor, cancelling that connection's POSIX locks.
     """
-    from hermes_cli.sqlite_safe_read import LiveConnectionError, offline_file_access
+    from jarvis_cli.sqlite_safe_read import LiveConnectionError, offline_file_access
 
     try:
         with offline_file_access(path, what="read referenced script"):
