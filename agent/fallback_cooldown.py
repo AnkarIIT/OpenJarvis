@@ -65,7 +65,7 @@ def _mark_entitlement_rejected_model(agent, api_error) -> bool:
     )
     agent._buffer_diagnostic_status(
         f"🚫 This account is not entitled to {model} via {provider}; it will be skipped "
-        "until restart. Switch to an entitled model via /model or `hermes model`."
+        "until restart. Switch to an entitled model via /model or `jarvis model`."
     )
     return True
 
@@ -78,5 +78,5 @@ def _is_entitlement_rejected(agent, provider: str, model: str) -> bool:
         return False
     if (provider, model) in rejected:
         return True
-    from hermes_cli.model_normalize import normalize_model_for_provider
+    from jarvis_cli.model_normalize import normalize_model_for_provider
     return (provider, normalize_model_for_provider(model, provider)) in rejected
