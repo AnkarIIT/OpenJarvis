@@ -8,7 +8,7 @@ statistics aggregated across all batches. See ``main`` (fire CLI) for usage.
 
 # hermes_bootstrap must be the very first import — UTF-8 stdio on Windows, no-op on POSIX.
 try:
-    import hermes_bootstrap  # noqa: F401
+    import jarvis_bootstrap  # noqa: F401
 except ModuleNotFoundError:
     # Partial ``hermes update`` (git reset landed, ``uv pip install -e .`` did not):
     # only Windows UTF-8 stdio setup is skipped.
