@@ -9,10 +9,10 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from hermes_cli.config import get_hermes_home
+from jarvis_cli.config import get_jarvis_home
 from utils import atomic_json_write
 
-CACHE_PATH = get_hermes_home() / "sticker_cache.json"
+CACHE_PATH = get_jarvis_home() / "sticker_cache.json"
 _CACHE_PATH_AT_IMPORT = CACHE_PATH
 
 
@@ -20,7 +20,7 @@ def _resolve_cache_path() -> Path:
     """Active profile's cache file at call time: the patched ``CACHE_PATH`` when a test changed
     it, else live profile-scoped HERMES_HOME — under the multiplexed gateway one process serves
     every profile, so the import-time constant would pin every profile to the launch home."""
-    return CACHE_PATH if CACHE_PATH != _CACHE_PATH_AT_IMPORT else get_hermes_home() / "sticker_cache.json"
+    return CACHE_PATH if CACHE_PATH != _CACHE_PATH_AT_IMPORT else get_jarvis_home() / "sticker_cache.json"
 
 # Kept concise to save tokens.
 STICKER_VISION_PROMPT = (
