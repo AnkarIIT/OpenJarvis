@@ -101,8 +101,8 @@ async def _aiter_ndjson_lines(response: Any) -> AsyncIterator[str]:
 # -- Sidecar runtime record ----------------------------------------------------
 
 def _runtime_record_path() -> Path:
-    from hermes_constants import get_hermes_home  # honors profile overrides
-    return get_hermes_home() / "runtime" / _RUNTIME_RECORD_NAME
+    from jarvis_constants import get_jarvis_home  # honors profile overrides
+    return get_jarvis_home() / "runtime" / _RUNTIME_RECORD_NAME
 
 
 def _write_runtime_record(port: int, token: str, pid: int) -> None:
@@ -249,7 +249,7 @@ def _reinstall_sidecar_deps() -> None:
     if not npm:
         logger.warning("[photon] cannot reinstall stale sidecar deps: npm not on PATH")
         return
-    from hermes_cli._subprocess_compat import windows_hide_flags  # no console flash on Windows
+    from jarvis_cli._subprocess_compat import windows_hide_flags  # no console flash on Windows
 
     def _run(verb: str) -> subprocess.CompletedProcess:
         return subprocess.run(  # noqa: S603
@@ -926,7 +926,7 @@ class PhotonAdapter(BasePlatformAdapter):
             "PHOTON_SIDECAR_TOKEN": self._sidecar_token,
             # Exit on stdin EOF so ANY gateway death (incl. SIGKILL) can't orphan it on the port.
             "PHOTON_SIDECAR_WATCH_STDIN": "1"})
-        from hermes_cli._subprocess_compat import windows_hide_flags  # hide child console on Windows
+        from jarvis_cli._subprocess_compat import windows_hide_flags  # hide child console on Windows
         await self._apply_spectrum_patch(windows_hide_flags())
         try:
             self._sidecar_proc = subprocess.Popen(  # noqa: S603
@@ -1588,7 +1588,7 @@ def __getattr__(name):  # PEP 562 — lazy so no import cycles
     if target is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     import importlib
-    from hermes_cli.plugin_compat import warn_once
+    from jarvis_cli.plugin_compat import warn_once
     warn_once(__name__, name, *target)
     return getattr(importlib.import_module(target[0]), target[1])
 # ---- END PLUGIN-COMPAT ----
