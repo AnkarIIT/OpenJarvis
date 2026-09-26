@@ -11,12 +11,12 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
-from hermes_constants import display_hermes_home
+from jarvis_constants import display_jarvis_home
 
 
 def cron_output_dir_display(job_id: str) -> str:
     """User-facing path of a job's saved run output (profile-aware)."""
-    return f"{display_hermes_home()}/cron/output/{job_id}/"
+    return f"{display_jarvis_home()}/cron/output/{job_id}/"
 
 
 _HTTP_STATUS_IN_TEXT = re.compile(r"(?:\bHTTP\b|\bError code\b|\bstatus(?: code)?\b)\W{0,3}(\b[45]\d\d\b)", re.I)
