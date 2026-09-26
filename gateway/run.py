@@ -3,9 +3,9 @@
 Provides ``start_gateway()`` (start all configured adapters) and ``GatewayRunner`` (lifecycle).
 Run via ``python -m gateway.run`` or ``python cli.py --gateway``."""
 
-# hermes_bootstrap must be the very first import (UTF-8 stdio on Windows; no-op on POSIX).
+# jarvis_bootstrap must be the very first import — UTF-8 stdio on Windows, no-op on POSIX.
 try:
-    import hermes_bootstrap  # noqa: F401
+    import jarvis_bootstrap  # noqa: F401
 except ModuleNotFoundError:
     pass  # a partial ``hermes update`` can leave the bootstrap unregistered; only Windows UTF-8 stdio suffers
 
@@ -39,8 +39,8 @@ from agent.conversation_loop import INTERRUPT_WAITING_FOR_MODEL_PREFIX
 from agent.interrupt_compat import request_hard_interrupt
 from agent.turn_context import compression_made_progress
 from agent.session_activity import ActivityProvenance
-from hermes_cli.config import _is_ssh_remote_tilde_cwd, cfg_get
-from hermes_cli.fallback_config import pre_agent_fallback_notice
+from jarvis_cli.config import _is_ssh_remote_tilde_cwd, cfg_get
+from jarvis_cli.fallback_config import pre_agent_fallback_notice
 
 # Per-session AIAgent cache bounds (agents are heavy); see _enforce_agent_cache_cap/_session_housekeeping_watcher.
 _AGENT_CACHE_MAX_SIZE = 128
@@ -842,7 +842,7 @@ def _telegramize_command_mentions(text: str, platform: Any) -> str:
     if platform_value != "telegram":
         return text
 
-    from hermes_cli.commands_platforms import _sanitize_telegram_name
+    from jarvis_cli.commands_platforms import _sanitize_telegram_name
 
     def _replace(match: re.Match[str]) -> str:
         sanitized = _sanitize_telegram_name(match.group(1))
@@ -926,7 +926,7 @@ def _warm_turn_machinery_sync() -> int:
     import model_tools
 
     tool_defs = model_tools.get_tool_definitions(quiet_mode=True)
-    from hermes_cli.config import load_config_readonly
+    from jarvis_cli.config import load_config_readonly
 
     agent_cfg = load_config_readonly().get("agent")
     if not isinstance(agent_cfg, dict) or agent_cfg.get("environment_probe", True):
@@ -1195,7 +1195,7 @@ def _build_gateway_agent_history(
     """Convert stored gateway transcript rows into agent replay messages.
 
     Observed context stays out of ``conversation_history`` so consecutive-user repair can't merge it in."""
-    from hermes_time import get_timezone as _get_msg_tz
+    from jarvis_time import get_timezone as _get_msg_tz
     from gateway.message_timestamps import (
         render_user_content_with_timestamp as _render_msg_ts,
         strip_leading_message_timestamps as _strip_msg_ts,
@@ -1535,11 +1535,11 @@ def _home_thread_env_var(platform_name: str) -> str:
 
 def _restart_notification_pending() -> bool:
     """Return True when a /restart completion marker is waiting to be delivered."""
-    return (_hermes_home / ".restart_notify.json").exists()
+    return (_jarvis_home / ".restart_notify.json").exists()
 
 
 def _planned_restart_notification_path() -> Path:
-    return _hermes_home / ".restart_pending.json"
+    return _jarvis_home / ".restart_pending.json"
 
 
 def _planned_restart_notification_pending() -> bool:
@@ -1554,13 +1554,13 @@ _ensure_ssl_certs()
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from hermes_constants import get_hermes_home, get_hermes_home_override
-_hermes_home = get_hermes_home()
+from jarvis_constants import get_jarvis_home, get_jarvis_home_override
+_jarvis_home = get_jarvis_home()
 
-# Load ~/.hermes/.env first: user-managed env files must override stale shell exports on restart.
-from hermes_cli.env_loader import load_hermes_dotenv
-_env_path = _hermes_home / '.env'
-load_hermes_dotenv(hermes_home=_hermes_home, project_env=Path(__file__).resolve().parents[1] / '.env')
+# Load ~/.jarvis/.env first: user-managed env files must override stale shell exports on restart.
+from jarvis_cli.env_loader import load_jarvis_dotenv
+_env_path = _jarvis_home / '.env'
+load_jarvis_dotenv(jarvis_home=_jarvis_home, project_env=Path(__file__).resolve().parents[1] / '.env')
 
 
 def _reload_runtime_env_preserving_config_authority() -> None:
@@ -1570,9 +1570,9 @@ def _reload_runtime_env_preserving_config_authority() -> None:
     every profile; it still honors the max_turns bridge."""
     from agent.secret_scope import is_multiplex_active
     if not is_multiplex_active():
-        load_hermes_dotenv(
-            hermes_home=_hermes_home, project_env=Path(__file__).resolve().parents[1] / '.env')
-    _bridge_max_turns_from_config(_hermes_home)
+        load_jarvis_dotenv(
+            hermes_home=_jarvis_home, project_env=Path(__file__).resolve().parents[1] / '.env')
+    _bridge_max_turns_from_config(_jarvis_home)
 
 
 def _bridge_max_turns_from_config(home: "Path") -> None:
@@ -1600,8 +1600,8 @@ def _current_max_iterations() -> int:
     ``agent.max_turns`` straight from config: the ``HERMES_MAX_ITERATIONS`` bridge is one process-wide
     slot holding the launch profile's value, so every secondary would inherit the default's budget."""
     _reload_runtime_env_preserving_config_authority()
-    from hermes_cli.config import resolve_turn_limit as _resolve_turn_limit
-    override = get_hermes_home_override()
+    from jarvis_cli.config import resolve_turn_limit as _resolve_turn_limit
+    override = get_jarvis_home_override()
     if override:
         config_path = Path(override) / 'config.yaml'
         try:
@@ -1628,7 +1628,7 @@ class HygieneTurnHoldExceeded(Exception):
 
 def _multiplex_profile_homes(config: object) -> list[tuple[str, "Path"]]:
     """Return the authoritative profile set for one multiplex gateway config."""
-    from hermes_cli.profiles import profiles_to_serve
+    from jarvis_cli.profiles import profiles_to_serve
     return list(profiles_to_serve(multiplex=True))
 
 
@@ -1637,7 +1637,7 @@ def _cron_tick_profile_homes(config: object) -> list[tuple[str, "Path"]]:
     process-active profile: ``profiles_to_serve`` lists default + every live named profile, but a
     ``--profile <name>`` multiplexer's own profile may sit outside ``profiles/`` (custom
     HERMES_HOME). Adapter startup already skips ``active``."""
-    from hermes_cli.profiles import get_active_profile_name, get_profile_dir
+    from jarvis_cli.profiles import get_active_profile_name, get_profile_dir
 
     homes = _multiplex_profile_homes(config)
     active = get_active_profile_name() or "default"  # launch profile, pre-identity (ticker boot)
@@ -1661,7 +1661,7 @@ def _enable_multiplex_log_routing(config: object) -> bool:
     if not getattr(config, "multiplex_profiles", False):
         return False
     try:
-        from hermes_logging import enable_profile_log_routing
+        from jarvis_logging import enable_profile_log_routing
         return enable_profile_log_routing([home for _name, home in _multiplex_profile_homes(config)])
     except Exception:
         logger.debug("could not enable per-profile log routing", exc_info=True)
@@ -1717,17 +1717,17 @@ def _terminal_scope_cwd(default: str = "") -> str:
 
 def _load_profile_secret_scope(profile_home: "Path") -> dict:
     """Hydrate and load one profile's secrets under its home override."""
-    from hermes_constants import set_hermes_home_override, reset_hermes_home_override
+    from jarvis_constants import set_jarvis_home_override, reset_jarvis_home_override
     # Caller already hydrated external sources off-loop (#99519).
     from agent.secret_scope import build_profile_secret_scope
-    from hermes_cli.env_loader import hydrate_profile_secret_sources
+    from jarvis_cli.env_loader import hydrate_profile_secret_sources
 
-    home_token = set_hermes_home_override(str(profile_home))
+    home_token = set_jarvis_home_override(str(profile_home))
     try:
         hydrate_profile_secret_sources(Path(profile_home))
         return build_profile_secret_scope(Path(profile_home))
     finally:
-        reset_hermes_home_override(home_token)
+        reset_jarvis_home_override(home_token)
 
 
 @_contextmanager
@@ -1735,13 +1735,13 @@ def _profile_runtime_scope(
     profile_home: "Path", prepared_secret_scope: Optional[dict] = None, *,
     hydrate_secrets: bool = True):
     """Scope config/skills/memory AND credentials to a profile for one turn (multiplexed path only).
-    ``set_hermes_home_override`` is a contextvar (reaches the agent worker via ``copy_context()``);
+    ``set_jarvis_home_override`` is a contextvar (reaches the agent worker via ``copy_context()``);
     ``set_secret_scope`` makes the profile ``.env`` the credential source without mutating
     ``os.environ``, so subprocesses never inherit cross-profile secrets."""
-    from hermes_constants import set_hermes_home_override, reset_hermes_home_override
+    from jarvis_constants import set_jarvis_home_override, reset_jarvis_home_override
     from agent.secret_scope import set_secret_scope, reset_secret_scope
 
-    home_token = set_hermes_home_override(str(profile_home))
+    home_token = set_jarvis_home_override(str(profile_home))
     if prepared_secret_scope is not None:
         secrets = prepared_secret_scope
     elif hydrate_secrets:
@@ -1760,7 +1760,7 @@ def _profile_runtime_scope(
             yield
         finally:
             reset_secret_scope(secret_token)
-            reset_hermes_home_override(home_token)
+            reset_jarvis_home_override(home_token)
 
 
 @_asynccontextmanager
@@ -1781,13 +1781,13 @@ def load_gateway_config_for_runner() -> "GatewayConfig":
 
     See #64674.
     """
-    from hermes_cli.gateway_multiplex_mode import log_multiplex_decision, resolve_multiplex_mode
+    from jarvis_cli.gateway_multiplex_mode import log_multiplex_decision, resolve_multiplex_mode
     cfg = load_gateway_config()
     log_multiplex_decision(resolve_multiplex_mode(cfg))
     if not cfg.multiplex_profiles:
         return cfg
     try:
-        home = get_hermes_home()
+        home = get_jarvis_home()
     except Exception:
         return cfg
     try:
@@ -1802,7 +1802,7 @@ def load_gateway_config_for_runner() -> "GatewayConfig":
 
 async def _discover_gateway_mcp_tools(config: object) -> None:
     """Run startup MCP discovery for every profile this gateway serves: ``discover_mcp_tools`` reads
-    ``mcp_servers`` from ``get_hermes_home()``'s config, so an unscoped call only connects the launch
+    ``mcp_servers`` from ``get_jarvis_home()``'s config, so an unscoped call only connects the launch
     profile's servers (single-profile gateways keep the unscoped call).
 
     Under multiplex, run it once per served profile inside that profile's ``_profile_runtime_scope`` and
@@ -1859,7 +1859,7 @@ _DOCKER_MEDIA_OUTPUT_CONTAINER_PATHS = {"/output", "/outputs"}
 
 # Internal bridge, not a config source: seed from the canonical default after dotenv so an ambient
 # process/.env value can never control lease safety.
-from hermes_cli.config_defaults import DEFAULT_CONFIG as _DEFAULT_CONFIG
+from jarvis_cli.config_defaults import DEFAULT_CONFIG as _DEFAULT_CONFIG
 os.environ["HERMES_TURN_LEASE_TIMEOUT"] = str(_DEFAULT_CONFIG["agent"]["gateway_turn_lease_timeout"])
 
 # Bridge config.yaml values into env so os.getenv() picks them up. config.yaml unconditionally wins
@@ -1963,7 +1963,7 @@ def _bridge_auxiliary_config_to_env(_auxiliary_cfg: dict) -> None:
     """Bridge auxiliary model/endpoint overrides (vision, approval, plugins); compression reads yaml."""
     _aux_bridged_keys = {"vision", "approval"}
     try:
-        from hermes_cli.plugins import get_plugin_auxiliary_tasks
+        from jarvis_cli.plugins import get_plugin_auxiliary_tasks
         for _entry in get_plugin_auxiliary_tasks():
             _aux_bridged_keys.add(_entry["key"])
     except Exception:
@@ -2030,11 +2030,11 @@ def _bridge_config_to_env(_cfg: dict) -> None:
 def _load_bridge_config(config_path: Path) -> dict:
     """Effective USER config (no defaults) for the presence-sensitive env bridge: only keys the user
     or the managed layer wrote get bridged, else all of DEFAULT_CONFIG would be exported."""
-    from hermes_cli.config_effective import load_user_config_effective
+    from jarvis_cli.config_effective import load_user_config_effective
     return load_user_config_effective(config_path)
 
 
-_config_path = _hermes_home / 'config.yaml'
+_config_path = _jarvis_home / 'config.yaml'
 _cfg: dict = {}
 if _config_path.exists():
     try:
@@ -2052,7 +2052,7 @@ if _config_path.exists():
 
 # IPv4 preference must apply before any HTTP clients are created.
 try:
-    from hermes_constants import apply_ipv4_preference
+    from jarvis_constants import apply_ipv4_preference
     _network_cfg = _cfg.get("network", {})
     if isinstance(_network_cfg, dict) and _network_cfg.get("force_ipv4"):
         apply_ipv4_preference(force=True)
@@ -2060,13 +2060,13 @@ except Exception as _bootstrap_exc:
     print(f"  Warning: IPv4 preference application failed: {_bootstrap_exc}", file=sys.stderr)
 
 try:
-    from hermes_cli.config import print_config_warnings
+    from jarvis_cli.config import print_config_warnings
     print_config_warnings()
 except Exception as _bootstrap_exc:
     print(f"  Warning: config validation failed: {_bootstrap_exc}", file=sys.stderr)
 
 try:
-    from hermes_cli.config import warn_deprecated_cwd_env_vars
+    from jarvis_cli.config import warn_deprecated_cwd_env_vars
     warn_deprecated_cwd_env_vars()
 except Exception as _bootstrap_exc:
     print(f"  Warning: deprecation check failed: {_bootstrap_exc}", file=sys.stderr)
@@ -2228,7 +2228,7 @@ def _resolve_runtime_agent_kwargs() -> dict:
     ``resolve_runtime_provider()`` may fall back to env vars; behavioral config is config.yaml only.
     An ``AuthError`` from the primary walks the configured fallback chain through the shared
     ``resolve_runtime_with_fallback`` (the gateway keeps no resolver loop of its own)."""
-    from hermes_cli.runtime_provider import (
+    from jarvis_cli.runtime_provider import (
         resolve_runtime_with_fallback, format_runtime_provider_error, _get_model_config)
 
     # Capture primary provider/model from config before the try block so we
@@ -2319,7 +2319,7 @@ def _resolve_gateway_model_context(
             configured_provider = provider = model_cfg.get("provider") or None
             configured_base_url = base_url = model_cfg.get("base_url") or None
         try:
-            from hermes_cli.config import get_compatible_custom_providers
+            from jarvis_cli.config import get_compatible_custom_providers
             custom_providers = get_compatible_custom_providers(data)
         except Exception:
             custom_providers = data.get("custom_providers")
@@ -2341,12 +2341,12 @@ def _resolve_gateway_model_context(
 
     def _pin_still_applies() -> bool:
         # Drop a configured context_length pin when the effective route no longer matches (or on error).
-        from hermes_cli.route_identity import should_clear_context_pin
+        from jarvis_cli.route_identity import should_clear_context_pin
         return not should_clear_context_pin(
             configured_model, resolved_model, configured_base_url, base_url, configured_provider, provider)
 
     def _custom_ctx() -> Optional[int]:
-        from hermes_cli.config import get_custom_provider_context_length
+        from jarvis_cli.config import get_custom_provider_context_length
         return get_custom_provider_context_length(
             model=resolved_model, base_url=base_url, custom_providers=custom_providers)
 
@@ -2376,7 +2376,7 @@ def _resolve_runtime_agent_kwargs_for_provider(provider: str, target_model: Opti
     ``target_model`` is the model the override will actually send: the ladder's model-keyed rungs
     (Zen/Go relay + api_mode) must see it rather than config's ``default``, or a Go-only override
     resolves an api_mode/base_url the sent model cannot use (#112600)."""
-    from hermes_cli.runtime_provider import resolve_runtime_provider, format_runtime_provider_error
+    from jarvis_cli.runtime_provider import resolve_runtime_provider, format_runtime_provider_error
     try:
         runtime = resolve_runtime_provider(requested=provider, target_model=target_model or None)
     except Exception as exc:
@@ -2389,7 +2389,7 @@ def _resolve_runtime_agent_kwargs_for_provider(provider: str, target_model: Opti
 
 def _deep_merge_request_overrides(base: Optional[dict], override: Optional[dict]) -> dict:
     """Merge request_overrides dicts, deep-merging nested dictionaries."""
-    from hermes_cli.config import _deep_merge
+    from jarvis_cli.config import _deep_merge
     base_dict = dict(base or {})
     override_dict = dict(override or {})
     if not base_dict:
@@ -2767,7 +2767,7 @@ def _check_unavailable_skill(command_name: str) -> str | None:
                         f"Enable it with: `hermes skills config`")
 
         # Check optional skills (shipped with repo but not installed)
-        from hermes_constants import get_optional_skills_dir
+        from jarvis_constants import get_optional_skills_dir
         repo_root = Path(__file__).resolve().parent.parent
         optional_dir = get_optional_skills_dir(repo_root / "optional-skills")
         if optional_dir.exists():
@@ -2801,19 +2801,19 @@ def _teams_pipeline_plugin_enabled() -> bool:
 
 def _gateway_config_home() -> Path:
     """Return the Hermes home that gateway config reads should use."""
-    override = get_hermes_home_override()
-    return Path(override) if override else _hermes_home
+    override = get_jarvis_home_override()
+    return Path(override) if override else _jarvis_home
 
 
 def _load_gateway_config(config_path: "Path | None" = None) -> dict:
     """The effective user config.yaml (managed overlay, ``${VAR}`` expansion, model-key canon; no
     DEFAULT_CONFIG merge) — ``{}`` on any error (fail-open). Defaults to the active gateway home
-    (``_hermes_home`` monkeypatches apply); multiplexers pass a path.
+    (``_jarvis_home`` monkeypatches apply); multiplexers pass a path.
     """
     if config_path is None:
         config_path = _gateway_config_home() / 'config.yaml'
     try:
-        from hermes_cli.config_effective import load_user_config_effective
+        from jarvis_cli.config_effective import load_user_config_effective
         return load_user_config_effective(config_path)
     except Exception:
         logger.debug("Could not load gateway config from %s", config_path, exc_info=True)
@@ -2828,7 +2828,7 @@ def _checkpoint_agent_kwargs(config: dict | None) -> dict:
         cp_cfg = {"enabled": cp_cfg}
     elif not isinstance(cp_cfg, dict):
         cp_cfg = {}
-    from hermes_cli.config import DEFAULT_CONFIG
+    from jarvis_cli.config import DEFAULT_CONFIG
     defaults = DEFAULT_CONFIG["checkpoints"]
     return {
         "checkpoints_enabled": cp_cfg.get("enabled", defaults["enabled"]),
@@ -2875,14 +2875,14 @@ def _get_channel_override(
 
 
 def _resolve_hermes_bin() -> Optional[list[str]]:
-    """Hermes update/restart argv: the running interpreter's ``python -m hermes_cli.main``
+    """Hermes update/restart argv: the running interpreter's ``python -m jarvis_cli.main``
     (exactly this install), else ``hermes`` on PATH, else None. The module argv must win: a
     PATH-first lookup lets an attacker-planted ``hermes`` shadow the running install when
     /update or /restart re-execs it (#111569)."""
     try:
         import importlib.util
-        if importlib.util.find_spec("hermes_cli") is not None:
-            return [sys.executable, "-m", "hermes_cli.main"]
+        if importlib.util.find_spec("jarvis_cli") is not None:
+            return [sys.executable, "-m", "jarvis_cli.main"]
     except Exception:
         pass
     import shutil
@@ -3570,7 +3570,7 @@ class GatewayRunner(
         # Manual approvals with no automated assessor (tirith off AND no auxiliary.approval) fail closed
         # on unattended gateways — surface it so operators knowingly enable one.
         try:
-            from hermes_cli.config import load_config as _load_full_config
+            from jarvis_cli.config import load_config as _load_full_config
             # Startup heads-up (#30882): a gateway in manual approval mode with no automated risk assessor
             # (tirith disabled AND no auxiliary.approval model) can only gate dangerous commands /
             # execute_code scripts via live in-chat approval.
@@ -3620,7 +3620,7 @@ class GatewayRunner(
         # nothing (#88235).
         if self._session_db is not None:
             try:
-                from hermes_cli.config import load_config as _load_full_config
+                from jarvis_cli.config import load_config as _load_full_config
                 _sess_cfg = (_load_full_config().get("sessions") or {})
                 if _sess_cfg.get("auto_archive", False):
                     self._session_db._db.maybe_auto_archive(
@@ -3690,8 +3690,8 @@ class GatewayRunner(
         after recording that recoverable state so ``__init__`` can record ``_session_db_init_error`` for the
         #88235 broadcast.
         """
-        from hermes_state import AsyncSessionDB, _default_db_path
-        from hermes_state_registry import acquire
+        from jarvis_state import AsyncSessionDB, _default_db_path
+        from jarvis_state_registry import acquire
         from gateway.session_db_recovery import RecoverableHandleCache
         path = Path(_default_db_path())
         cache = getattr(self, "_session_db_handle_cache", None)
@@ -3760,7 +3760,7 @@ class GatewayRunner(
                 return
             # Shared instances no-op on close() (the registry owns the lifecycle). Release the refcount
             # instead (#90837).
-            from hermes_state_registry import release_or_close
+            from jarvis_state_registry import release_or_close
             try:
                 release_or_close(inner)
             except Exception as exc:
@@ -3821,7 +3821,7 @@ class GatewayRunner(
             "This is fine if the model already emits host-visible paths, but MEDIA file delivery can fail "
             "for container-local paths like '/workspace/...' or '/output/...'.")
 
-    _VOICE_MODE_PATH = _hermes_home / "gateway_voice_mode.json"
+    _VOICE_MODE_PATH = _jarvis_home / "gateway_voice_mode.json"
 
     should_exit_cleanly = property(lambda self: self._exit_cleanly)
     should_exit_with_failure = property(lambda self: self._exit_with_failure)
@@ -3851,7 +3851,7 @@ class GatewayRunner(
                 _profile = source.profile
             else:
                 try:
-                    from hermes_cli.profiles import get_active_profile_name
+                    from jarvis_cli.profiles import get_active_profile_name
                     _profile = get_active_profile_name() or "default"
                 except Exception:
                     _profile = None
@@ -3973,7 +3973,7 @@ class GatewayRunner(
     def _active_profile_name(self) -> str:
         """Return the profile name this gateway represents."""
         try:
-            from hermes_cli.profiles import get_active_profile_name
+            from jarvis_cli.profiles import get_active_profile_name
             return get_active_profile_name() or "default"
         except Exception:
             return "default"
@@ -4345,8 +4345,8 @@ class GatewayRunner(
         ``build_source``), then the active profile."""
         from gateway.profile_routing import ProfileRouteRejected
         from gateway.session_identity import identity_of
-        from hermes_cli.profiles import get_active_profile_name, get_profile_dir, profile_exists
-        from hermes_constants import get_hermes_home
+        from jarvis_cli.profiles import get_active_profile_name, get_profile_dir, profile_exists
+        from jarvis_constants import get_jarvis_home
         identity = identity_of(source)
         if identity is not None:
             return identity.runtime_home
@@ -4363,7 +4363,7 @@ class GatewayRunner(
                     "falling back to global HERMES_HOME",
                     explicit_profile, source.platform.value, source.chat_id,
                     getattr(source, "guild_id", None))
-                return get_hermes_home()
+                return get_jarvis_home()
             return profile_dir
         except ProfileRouteRejected:
             raise
@@ -4373,7 +4373,7 @@ class GatewayRunner(
                 "falling back to global HERMES_HOME: %s",
                 source.platform.value, source.chat_id, getattr(source, "guild_id", None),
                 explicit_profile or "(no profile)", exc_info=True)
-            return get_hermes_home()
+            return get_jarvis_home()
 
     @dataclasses.dataclass
     class _RunAgentDisplay:
@@ -4501,7 +4501,7 @@ def _housekeeping_media_caches() -> None:
 
 
 def _housekeeping_paste_sweep() -> None:
-    from hermes_cli.debug import _sweep_expired_pastes
+    from jarvis_cli.debug import _sweep_expired_pastes
     deleted, remaining = _sweep_expired_pastes()
     if deleted:
         logger.info("Paste sweep: deleted %d expired paste(s), %d pending", deleted, remaining)
@@ -4537,8 +4537,8 @@ def _housekeeping_org_skill_sync() -> None:
 def _housekeeping_auto_archive() -> None:
     """Stale-session auto-archive on a live timer (the startup hook fires once); maybe_auto_archive()
     is gated by sessions.min_interval_hours. Opens its own SessionDB — SQLite connections are thread-bound."""
-    from hermes_cli.config import load_config as _load_full_config
-    from hermes_state_registry import acquire, release_or_close
+    from jarvis_cli.config import load_config as _load_full_config
+    from jarvis_state_registry import acquire, release_or_close
     _sess_cfg = (_load_full_config().get("sessions") or {})
     if _sess_cfg.get("auto_archive", False):
         _adb = acquire()
@@ -4556,7 +4556,7 @@ def _housekeeping_deferred_fts_retry() -> None:
     # Retry here, on the existing tick, against the shared instances this process already holds:
     # non-blocking admission, no new thread, rate-limited inside SessionDB. No-op when nothing is stale (one
     # attribute read per instance). See #100108.
-    from hermes_state_registry import borrow_live_shared_session_dbs
+    from jarvis_state_registry import borrow_live_shared_session_dbs
     with borrow_live_shared_session_dbs() as _session_dbs:
         for _sdb in _session_dbs:
             _retry = getattr(_sdb, "retry_deferred_fts_recovery", None)
@@ -4568,7 +4568,7 @@ def _housekeeping_deferred_fts_retry() -> None:
 
 def _housekeeping_memory_trim() -> None:
     """Messaging-gateway counterpart to the TUI idle reaper; config-gated and rate-limited inside."""
-    from hermes_cli.mem_trim import trim_memory
+    from jarvis_cli.mem_trim import trim_memory
     trim_memory(reason="messaging gateway housekeeping")
 
 
@@ -4597,7 +4597,7 @@ def _drain_restart_safe_cron_deliveries(adapters, loop, runner=None) -> None:
             profile_adapters = getattr(runner, "_profile_adapters", {}).get(profile_name)
         if profile_adapters is None:
             continue
-        with _profile_runtime_scope(profile_home or get_hermes_home()):
+        with _profile_runtime_scope(profile_home or get_jarvis_home()):
             if profile_name is not None and not profile_adapters and adapters:
                 routes = sched_preflight._primary_profile_routes_for_current_home()
                 if routes:
@@ -4766,9 +4766,9 @@ def _replace_target_belongs_to_other_profile(existing_pid: int) -> bool:
     # pidfile exists.
     try:
         from gateway.status import (
-            _get_pid_path, _get_process_hermes_home, _get_process_start_time, _pid_from_record,
+            _get_pid_path, _get_process_jarvis_home, _get_process_start_time, _pid_from_record,
             _read_pid_record, _record_looks_like_gateway, _read_process_cmdline, _same_hermes_home)
-        our_home = _get_process_hermes_home()
+        our_home = _get_process_jarvis_home()
 
         def refuse(msg: str, *args, level=logging.WARNING) -> bool:
             logger.log(level, "Refusing --replace: " + msg, *args)
@@ -4882,7 +4882,7 @@ async def _start_gateway_replace_existing_instance(existing_pid: int, replace: b
     Returns False when startup must abort (refused, permission denied, target still alive)."""
     from gateway.status import get_process_start_time, remove_pid_file, terminate_pid
     if not replace:
-        hermes_home = str(get_hermes_home())
+        hermes_home = str(get_jarvis_home())
         logger.error(
             "Another gateway instance is already running (PID %d, HERMES_HOME=%s). "
             "Use 'hermes gateway restart' to replace it, or 'hermes gateway stop' first.",
@@ -4896,12 +4896,12 @@ async def _start_gateway_replace_existing_instance(existing_pid: int, replace: b
 
     # Never signal a process not provably ours (a poisoned PID record → cross-profile restart loop).
     if _replace_target_belongs_to_other_profile(existing_pid):
-        from gateway.status import _get_process_hermes_home
+        from gateway.status import _get_process_jarvis_home
         logger.error(
             "Refusing --replace: PID %d cannot be proven to belong "
             "to this profile's gateway (HERMES_HOME %s). Remove the "
             "stale PID record or stop the owning profile explicitly.",
-            existing_pid, _get_process_hermes_home())
+            existing_pid, _get_process_jarvis_home())
         return False
     existing_start_time = get_process_start_time(existing_pid)
     logger.info("Replacing existing gateway instance (PID %d) with --replace.", existing_pid)
@@ -4951,7 +4951,7 @@ async def _start_gateway_replace_existing_instance(existing_pid: int, replace: b
     remove_pid_file()
     # remove_pid_file() is a no-op when the PID doesn't match; force-unlink covers a crashed old process.
     with suppress(Exception):
-        (get_hermes_home() / "gateway.pid").unlink(missing_ok=True)
+        (get_jarvis_home() / "gateway.pid").unlink(missing_ok=True)
     # The old process may not have consumed the marker (SIGKILL'd before its handler read it).
     _clear_takeover_marker_quiet()
     # Stopped (Ctrl+Z) processes don't release scoped locks on exit; stale lock files block the new gateway.
@@ -4974,18 +4974,18 @@ def _start_gateway_configure_logging(verbosity: Optional[int]) -> None:
     _best_effort(_sync_skills)
 
     # Centralized logging (agent.log INFO+, errors.log WARNING+, gateway.log gateway-only); idempotent.
-    from hermes_logging import setup_logging, _safe_stderr
-    setup_logging(hermes_home=_hermes_home, mode="gateway")
+    from jarvis_logging import setup_logging, _safe_stderr
+    setup_logging(hermes_home=_jarvis_home, mode="gateway")
 
     def _security_audit() -> None:
         # Warn-on-load, never blocks: surfaces root / weak-SSH / unauthenticated-listener exposure.
-        from hermes_cli.security_audit_startup import log_startup_security_warnings
+        from jarvis_cli.security_audit_startup import log_startup_security_warnings
 
         def _raw_cfg():
-            from hermes_cli.config import read_raw_config
+            from jarvis_cli.config import read_raw_config
             return read_raw_config()
 
-        log_startup_security_warnings(hermes_home=_hermes_home, config=_best_effort(_raw_cfg))
+        log_startup_security_warnings(hermes_home=_jarvis_home, config=_best_effort(_raw_cfg))
 
     _best_effort(_security_audit, "Startup security audit failed (non-fatal): %s")
 
@@ -5046,7 +5046,7 @@ def _start_gateway_make_shutdown_signal_handler(runner, _signal_initiated_shutdo
                 # down; bounded by an internal timeout, never blocks.
                 from gateway.shutdown_forensics import spawn_async_diagnostic
                 spawn_async_diagnostic(
-                    _hermes_home / "logs" / "gateway-shutdown-diag.log", _shutdown_ctx["signal"], timeout_seconds=5.0)
+                    _jarvis_home / "logs" / "gateway-shutdown-diag.log", _shutdown_ctx["signal"], timeout_seconds=5.0)
 
             _best_effort(_log_context, "format_context_for_log failed: %s")
             _best_effort(_diagnostic, "spawn_async_diagnostic failed: %s")
@@ -5101,7 +5101,7 @@ async def _start_gateway_start_control_socket(runner):
 
         def _pause_for_update_handler() -> dict:
             try:
-                from hermes_cli.gateway import _get_restart_drain_timeout
+                from jarvis_cli.gateway import _get_restart_drain_timeout
                 _drain = float(_get_restart_drain_timeout())
             except Exception:
                 _drain = 30.0
@@ -5237,7 +5237,7 @@ async def _start_gateway_shutdown_tail(
             logger.debug("Control socket stop failed (non-fatal)", exc_info=True)
 
     def _stop_keepalive() -> None:
-        from hermes_cli.nous_auth_keepalive import stop_nous_auth_keepalive
+        from jarvis_cli.nous_auth_keepalive import stop_nous_auth_keepalive
         stop_nous_auth_keepalive()
 
     _best_effort(_stop_keepalive)
@@ -5274,7 +5274,7 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
     # Set here (not at import) so incidental gateway.run imports from CLI code don't poison it.
     os.environ["HERMES_EXEC_ASK"] = "1"
 
-    from hermes_cli.resource_limits import apply_nofile_soft_limit
+    from jarvis_cli.resource_limits import apply_nofile_soft_limit
     apply_nofile_soft_limit()
 
     # Snapshot the revision while sys.modules matches disk so a later `git pull` is detected safely.
@@ -5361,7 +5361,7 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
         record_startup()
 
     def _start_keepalive() -> None:
-        from hermes_cli.nous_auth_keepalive import start_nous_auth_keepalive
+        from jarvis_cli.nous_auth_keepalive import start_nous_auth_keepalive
         start_nous_auth_keepalive()
 
     _best_effort(_lifecycle_record_startup, "Lifecycle ledger startup record failed: %s")
@@ -5430,8 +5430,8 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
 def _guard_corrupt_user_config() -> None:
     """Fail closed when the active profile's config.yaml cannot be parsed: nobody can repair it on this
     surface, and defaults would let provider auto-detection adopt ``.env`` credentials the config never
-    named. Same policy and escape hatch (``HERMES_IGNORE_USER_CONFIG=1``) as ``hermes_cli/main.py``."""
-    from hermes_cli.config import InvalidUserConfigError, require_parseable_user_config
+    named. Same policy and escape hatch (``HERMES_IGNORE_USER_CONFIG=1``) as ``jarvis_cli/main.py``."""
+    from jarvis_cli.config import InvalidUserConfigError, require_parseable_user_config
 
     try:
         require_parseable_user_config()
@@ -5445,26 +5445,26 @@ def main():
     # Before any config-dependent startup (watchdog, DB opens, provider resolution).
     _guard_corrupt_user_config()
 
-    # Advertise the harness to children (mirrors _advertise_agent_env in hermes_cli/main.py, inlined to
+    # Advertise the harness to children (mirrors _advertise_agent_env in jarvis_cli/main.py, inlined to
     # avoid its startup side effects). Value must equal registry id ``hermes-agent`` exactly.
     os.environ.setdefault("AI_AGENT", "hermes-agent")
     os.environ.setdefault("HERMES_AGENT", "true")
 
     def _register_identity() -> None:
         # Ledger registration + Windows job-object attach so update-time reapers can identify this gateway.
-        from hermes_cli.process_identity import attach_self_to_kill_on_close_job, register_self
+        from jarvis_cli.process_identity import attach_self_to_kill_on_close_job, register_self
         register_self("gateway")
         attach_self_to_kill_on_close_job()
 
     def _arm_watchdog() -> None:
         # Armed before config load / DB opens so a pre-loop deadlock is respawned by the supervisor instead
         # of wedging as a live-PID zombie. GatewayRunner disarms it.
-        from hermes_startup_watchdog import arm_startup_watchdog
+        from jarvis_startup_watchdog import arm_startup_watchdog
         arm_startup_watchdog()
 
     def _utf8_stdio() -> None:
         # Windows: gateway logs and banner would UnicodeEncodeError on cp1252 consoles. No-op on POSIX.
-        from hermes_cli.stdio import configure_windows_stdio
+        from jarvis_cli.stdio import configure_windows_stdio
         configure_windows_stdio()
 
     for _step in (_register_identity, _arm_watchdog, _utf8_stdio):
@@ -5482,7 +5482,7 @@ def main():
         with open(args.config, encoding="utf-8") as f:
             config = GatewayConfig.from_dict(yaml.safe_load(f) or {})
         # Same boot-time verdict the loaded config gets when the file leaves the flag unset.
-        from hermes_cli.gateway_multiplex_mode import log_multiplex_decision, resolve_multiplex_mode
+        from jarvis_cli.gateway_multiplex_mode import log_multiplex_decision, resolve_multiplex_mode
         log_multiplex_decision(resolve_multiplex_mode(config))
 
     # start_gateway() completes teardown before returning/raising SystemExit; force-exit after so a
@@ -5542,7 +5542,7 @@ def _exit_after_graceful_shutdown(exit_code: int) -> None:
     def _drain_logs() -> None:
         # os._exit bypasses the listener's atexit drain. Bounded, no restart — NOT flush_log_queue():
         # a listener wedged on the rotation lock would re-freeze shutdown in an unbounded stop() join.
-        from hermes_logging import drain_log_queue
+        from jarvis_logging import drain_log_queue
         drain_log_queue(timeout=1.0)
 
     for _step in (_release_locks, _mark_exited, _drain_logs):
@@ -5620,7 +5620,7 @@ def __getattr__(name):  # PEP 562 — lazy so no import cycles
     if target is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     import importlib
-    from hermes_cli.plugin_compat import warn_once
+    from jarvis_cli.plugin_compat import warn_once
     warn_once(__name__, name, *target)
     return getattr(importlib.import_module(target[0]), target[1])
 # ---- END PLUGIN-COMPAT ----
