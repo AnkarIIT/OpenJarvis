@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from hermes_constants import get_hermes_home
+from jarvis_constants import get_jarvis_home
 
 
 _DB_LOCK = threading.Lock()
@@ -23,7 +23,7 @@ _MAX_OUTPUT_SUMMARY_CHARS = 2000
 _MAX_EVIDENCE_AGE_DAYS = 30
 _MAX_EVENTS_PER_SESSION_ROOT = 100
 _MAX_TOTAL_UNREFERENCED_EVENTS = 10_000
-_AD_HOC_SCRIPT_NAME_PREFIXES = ("hermes-verify-", "hermes-ad-hoc-")
+_AD_HOC_SCRIPT_NAME_PREFIXES = ("jarvis-verify-", "jarvis-ad-hoc-")
 _VERIFY_SCHEMA_VERSION = 1
 
 _INTERPRETERS = {"python", "python3", "node", "bash", "sh", "ruby", "perl"}
@@ -107,7 +107,7 @@ def _utc_now() -> str:
 
 
 def _db_path() -> Path:
-    return get_hermes_home() / "verification_evidence.db"
+    return get_jarvis_home() / "verification_evidence.db"
 
 
 def _ledger_enabled() -> bool:
@@ -119,13 +119,13 @@ def _ledger_enabled() -> bool:
 
 
 def _connect() -> sqlite3.Connection:
-    from hermes_cli.sqlite_util import open_db
+    from jarvis_cli.sqlite_util import open_db
 
     return open_db(_db_path(), db_label="verification_evidence.db", initialize=_ensure_schema)
 
 
 def _transaction():
-    from hermes_cli.sqlite_util import transaction
+    from jarvis_cli.sqlite_util import transaction
 
     return transaction(_connect())
 
@@ -440,10 +440,10 @@ def record_terminal_result(
 
 
 def record_verify_run(
-    *, root: str | Path, session_id: str | None = None, ok: bool, command: str = "hermes verify",
+    *, root: str | Path, session_id: str | None = None, ok: bool, command: str = "jarvis verify",
     scope: str = "full", output: str = "",
 ) -> Optional[dict[str, Any]]:
-    """Record a completed ``hermes verify`` run as verification evidence.
+    """Record a completed ``jarvis verify`` run as verification evidence.
 
     A pass marks the workspace ``passed`` for the verify-on-stop guard like a
     canonical test command would. ``root`` is re-resolved through project facts
@@ -453,7 +453,7 @@ def record_verify_run(
         return None
     resolved = str(Path(root).resolve())
     return _insert_evidence(VerificationEvidence(
-        command=command, canonical_command="hermes verify", kind="verify",
+        command=command, canonical_command="jarvis verify", kind="verify",
         scope=scope if scope in {"full", "targeted"} else "full",
         status="passed" if ok else "failed", exit_code=0 if ok else 1, cwd=resolved,
         root=str((_project_facts(root) or {}).get("root") or resolved),
