@@ -1227,8 +1227,8 @@ class BuzzAdapter(BasePlatformAdapter):
 
     @staticmethod
     def _cursor_path() -> Path:
-        from hermes_constants import get_hermes_home
-        return get_hermes_home() / _CURSOR_STATE_SUBDIR / _CURSOR_STATE_FILENAME
+        from jarvis_constants import get_jarvis_home
+        return get_jarvis_home() / _CURSOR_STATE_SUBDIR / _CURSOR_STATE_FILENAME
 
     def _load_cursors(self) -> None:
         """Read persisted cursors; another identity/relay's file is ignored (ids collide), failures seed from history."""
@@ -1811,9 +1811,9 @@ def _profile_buzz_extra() -> dict:
     if not _profile_scoped():
         return {}
     try:
-        from hermes_constants import get_hermes_home
-        from hermes_cli.config import read_user_config_raw
-        cfg = read_user_config_raw(Path(get_hermes_home()) / "config.yaml")
+        from jarvis_constants import get_jarvis_home
+        from jarvis_cli.config import read_user_config_raw
+        cfg = read_user_config_raw(Path(get_jarvis_home()) / "config.yaml")
     except Exception:
         return {}
     buzz = ((cfg.get("gateway") or {}).get("platforms") or {}).get("buzz") if isinstance(cfg, dict) else None
@@ -1939,10 +1939,10 @@ async def _standalone_send(
 
 def interactive_setup() -> None:
     """Interactive ``hermes gateway setup`` flow (lazy CLI imports keep the plugin importable elsewhere)."""
-    from hermes_cli.setup import (
+    from jarvis_cli.setup import (
         prompt, prompt_yes_no, save_env_value, get_env_value, print_header, print_info, print_warning, print_success,
     )
-    from hermes_cli.setup_platforms import declines_reconfigure
+    from jarvis_cli.setup_platforms import declines_reconfigure
     def ask(label: str, env: str) -> str:
         return prompt(label, default=get_env_value(env) or "")
 
