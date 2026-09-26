@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 from gateway.restart import GATEWAY_SERVICE_RESTART_EXIT_CODE
-from hermes_constants import get_hermes_home, get_process_hermes_home
+from jarvis_constants import get_jarvis_home, get_process_jarvis_home
 from utils import atomic_json_write
 
 logger = logging.getLogger(__name__)
@@ -162,13 +162,13 @@ def _mark_exited_quietly(exit_code: int, reason: str) -> None:
         write_runtime_status(gateway_state="degraded", exit_reason=reason, **restart)
 
 
-def _process_hermes_home() -> Path:
+def _process_jarvis_home() -> Path:
     """HERMES_HOME for process-level identity files (ignore profile overrides)."""
-    return get_process_hermes_home() if os.environ.get("HERMES_HOME", "").strip() else get_hermes_home()
+    return get_process_jarvis_home() if os.environ.get("HERMES_HOME", "").strip() else get_jarvis_home()
 
 
 def _home(home: Optional[Path]) -> Path:
-    return home if home is not None else _process_hermes_home()
+    return home if home is not None else _process_jarvis_home()
 
 
 def get_loop_heartbeat_path(home: Optional[Path] = None) -> Path:
@@ -289,7 +289,7 @@ def arm_shutdown_watchdog(
             remove_pid_file()
             release_gateway_runtime_lock()
         with contextlib.suppress(Exception):
-            from hermes_logging import drain_log_queue
+            from jarvis_logging import drain_log_queue
             drain_log_queue(timeout=1.0)
         _mark_exited_quietly(exit_code, "shutdown_watchdog")
         os._exit(exit_code)
