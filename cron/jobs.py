@@ -27,15 +27,15 @@ except ImportError:  # pragma: no cover - non-Windows
     msvcrt = None
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from hermes_constants import get_hermes_home
+from jarvis_constants import get_jarvis_home
 from cron.constants import FIRE_CLAIM_SKEW_SECONDS, FIRE_CLAIM_TTL_SECONDS
 from cron.env_settings import cron_env_setting
 from typing import Optional, Dict, List, Any, Callable, Set, Tuple, Union, Collection
 
 logger = logging.getLogger(__name__)
 
-from hermes_time import now as _hermes_now
-from hermes_time import get_timezone
+from jarvis_time import now as _hermes_now
+from jarvis_time import get_timezone
 from utils import atomic_replace, atomic_write_text
 
 # croniter is imported lazily (slow import, only needed for cron exprs). HAS_CRONITER stays a
@@ -59,15 +59,15 @@ def _ensure_croniter() -> bool:
 
 # --- Configuration ---
 
-# Cron is per-profile by design: anchor at get_hermes_home() (active profile home), NOT
-# get_default_hermes_root() — the shared root would funnel every profile's jobs into one jobs.json
+# Cron is per-profile by design: anchor at get_jarvis_home() (active profile home), NOT
+# get_default_jarvis_root() — the shared root would funnel every profile's jobs into one jobs.json
 # and run them under the ticker's HERMES_HOME, leaking config/credentials/skills across profiles.
 # Each profile owns its own cron store under its own HERMES_HOME, and a profile-scoped gateway runs that
 # profile's jobs under that same HERMES_HOME — so a job authored in profile `coder` lives in
 # `~/.hermes/profiles/coder/cron/jobs.json` and executes with `coder`'s `.env`, `config.yaml`, and skills.
 # Do NOT change this to the default root: that re-breaks per-profile isolation. See also the dynamic
-# `_get_hermes_home()` / `_get_lock_paths()` resolution in cron/scheduler.py. See #4707.
-HERMES_DIR = get_hermes_home().resolve()
+# `_get_jarvis_home()` / `_get_lock_paths()` resolution in cron/scheduler.py. See #4707.
+HERMES_DIR = get_jarvis_home().resolve()
 # Default-profile fallback and compatibility surface for callers/tests. Cross-profile callers must
 # scope paths with use_cron_store() instead of mutating these process-wide.
 CRON_DIR = HERMES_DIR / "cron"
@@ -80,7 +80,7 @@ JOBS_FILE = CRON_DIR / "jobs.json"
 TICKER_HEARTBEAT_FILE = CRON_DIR / "ticker_heartbeat"
 TICKER_SUCCESS_FILE = CRON_DIR / "ticker_last_success"
 # Single source of truth for the ticker interval (scheduler_provider.py) and the staleness
-# threshold in `hermes cron status` (hermes_cli/cron.py), so they never drift apart.
+# threshold in `hermes cron status` (jarvis_cli/cron.py), so they never drift apart.
 TICKER_INTERVAL_SECONDS = 60
 
 # In-process lock for load_jobs→modify→save_jobs cycles; without it, parallel tick threads'
@@ -153,7 +153,7 @@ _IMPORT_STORE = _CronStorePaths(CRON_DIR, JOBS_FILE, OUTPUT_DIR)
 def _current_cron_store() -> _CronStorePaths:
     """Paths pinned to this execution context's profile. Precedence: (1) active use_cron_store()
     override; (2) deliberately re-pointed module constants; (3) the ACTIVE profile home via
-    get_hermes_home(), so re-pointing HERMES_HOME after import uses ITS OWN store rather than the
+    get_jarvis_home(), so re-pointing HERMES_HOME after import uses ITS OWN store rather than the
     user's real jobs.json frozen at import; (4) import-time constants."""
     override = _cron_store_override.get()
     if override is not None:
@@ -161,7 +161,7 @@ def _current_cron_store() -> _CronStorePaths:
     live_constants = _CronStorePaths(CRON_DIR, JOBS_FILE, OUTPUT_DIR)
     if live_constants != _IMPORT_STORE:
         return live_constants
-    home = get_hermes_home().resolve()
+    home = get_jarvis_home().resolve()
     if home == HERMES_DIR:
         return live_constants
     return _CronStorePaths.for_dir(home / "cron")
@@ -563,13 +563,13 @@ def _is_recoverable_error_job(job: Dict[str, Any]) -> bool:
 def _secure_dir(path: Path):
     """Owner-only (0700) via the shared helper, so cron/ and cron/output honor the same managed/
     container/HERMES_HOME_MODE rules as the rest of HERMES_HOME (#10757)."""
-    from hermes_cli.config import _secure_dir as _shared_secure_dir
+    from jarvis_cli.config import _secure_dir as _shared_secure_dir
     _shared_secure_dir(path)
 
 
 def _secure_file(path: Path):
     """Owner-only (0600) via the shared helper (managed/container skip included)."""
-    from hermes_cli.config import _secure_file as _shared_secure_file
+    from jarvis_cli.config import _secure_file as _shared_secure_file
     _shared_secure_file(path)
 
 
@@ -1567,9 +1567,9 @@ def _resolve_default_model_snapshot() -> Optional[str]:
     """Default model resolved as the ticker's ``run_job`` does, so unpinned jobs can snapshot it and
     keep running on it after a later swap. ``None`` on missing config or failure ("no snapshot")."""
     try:
-        from hermes_cli.config_effective import load_user_config_effective
+        from jarvis_cli.config_effective import load_user_config_effective
 
-        cfg_path = get_hermes_home() / "config.yaml"
+        cfg_path = get_jarvis_home() / "config.yaml"
         if not cfg_path.exists():
             return None
         cfg = load_user_config_effective(cfg_path)
@@ -1628,7 +1628,7 @@ def _normalize_reasoning_effort(value: Any) -> Optional[str]:
     text = str(value).strip().lower()
     if not text:
         return None
-    from hermes_constants import parse_reasoning_effort
+    from jarvis_constants import parse_reasoning_effort
 
     if parse_reasoning_effort(text) is None:
         raise ValueError(
@@ -1679,7 +1679,7 @@ def _compute_provider_model_snapshots(
     model_snapshot: Optional[str] = None
     if normalized_provider is None:
         with contextlib.suppress(Exception):
-            from hermes_cli.runtime_provider import resolve_runtime_provider
+            from jarvis_cli.runtime_provider import resolve_runtime_provider
 
             runtime_kwargs = {"requested": None}
             # Delegate all rate-limit / 5xx retry to hermes's outer conversation loop, which honors
@@ -2822,7 +2822,7 @@ COMPLETED_ONESHOT_RETENTION_DAYS = 7
 def _cron_config_number(key: str, default: Any, cast: Callable[[Any], Any]) -> Any:
     """Read ``cron.<key>`` from config as *cast*, falling back to *default* on any failure."""
     try:
-        from hermes_cli.config import load_config
+        from jarvis_cli.config import load_config
         cfg = load_config() or {}
         cron_cfg = cfg.get("cron", {}) if isinstance(cfg, dict) else {}
         return cast(cron_cfg.get(key, default))
@@ -3330,7 +3330,7 @@ def _get_due_jobs_locked() -> List[Dict[str, Any]]:
 
 # Per-run output files (`cron/output/<job>/<timestamp>.md`) are capped so a frequent job can't fill
 # the disk.
-# Unlike the quick-snapshot store (`hermes_cli.backup`, capped at 20) it had no retention, so a
+# Unlike the quick-snapshot store (`jarvis_cli.backup`, capped at 20) it had no retention, so a
 # frequently-scheduled job on a long-running deploy accumulated one file per run forever and could fill the
 # disk (#52383). Keep the most recent N files per job; a non-positive value disables pruning (opt-out).
 _CRON_OUTPUT_DEFAULT_KEEP = 50
