@@ -23,7 +23,7 @@ import logging
 from datetime import timedelta
 from typing import Any, Dict, Optional
 
-from hermes_time import now as _hermes_now
+from jarvis_time import now as _hermes_now
 
 logger = logging.getLogger("cron.scheduler")
 
@@ -41,7 +41,7 @@ def retry_enabled(cfg: Optional[dict] = None) -> bool:
     model calls were made)."""
     if cfg is None:
         try:
-            from hermes_cli.config import load_config
+            from jarvis_cli.config import load_config
 
             cfg = load_config() or {}
         except Exception:  # config unreadable — keep the reliability default
