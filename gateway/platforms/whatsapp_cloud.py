@@ -47,7 +47,7 @@ from gateway.platforms.whatsapp_common import WhatsAppBehaviorMixin, _get_wsecre
 from gateway.platforms.access_policy_mixin import OPTIN_TRUTHY as _OPTIN_TRUTHY
 from gateway.platforms.media_cache import ext_for_mime
 from gateway import rich_sent_store
-from hermes_constants import get_hermes_dir
+from jarvis_constants import get_jarvis_dir
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +151,7 @@ def _optional_module(name: str, unavailable_log: str) -> Any:
 
 
 # Under the hermes dir so it survives restarts/reloads — same as the Baileys bridge.
-_INBOUND_MEDIA_CACHE = Path(get_hermes_dir("platforms/whatsapp_cloud/media", "whatsapp_cloud/media"))
+_INBOUND_MEDIA_CACHE = Path(get_jarvis_dir("platforms/whatsapp_cloud/media", "whatsapp_cloud/media"))
 
 
 def check_whatsapp_cloud_requirements() -> bool:
