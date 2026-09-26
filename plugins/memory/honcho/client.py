@@ -28,9 +28,9 @@ from urllib.parse import urlparse
 
 from agent.memory_provider import spawn_context_thread as _spawn_context_thread
 from agent.secret_scope import get_secret
-from hermes_cli.profiles import _get_default_hermes_home
-from hermes_constants import get_hermes_home
-from hermes_state_common import TITLE_SOURCE_DERIVED, TITLE_SOURCE_LLM
+from jarvis_cli.profiles import _get_default_hermes_home
+from jarvis_constants import get_jarvis_home
+from jarvis_state_common import TITLE_SOURCE_DERIVED, TITLE_SOURCE_LLM
 
 from plugins.memory.honcho.client_cache import (
     _DEFAULT_HTTP_TIMEOUT, _client_cache_key, _client_slots, _client_slots_lock,
@@ -81,7 +81,7 @@ def resolve_active_host() -> str:
     if explicit:
         return explicit
     try:
-        from hermes_cli.profiles import get_active_profile_name
+        from jarvis_cli.profiles import get_active_profile_name
         profile_host = profile_host_key(get_active_profile_name())
     except Exception:
         profile_host = HOST
@@ -109,7 +109,7 @@ def resolve_config_path() -> Path:
     """Active Honcho config path: $HERMES_HOME/honcho.json -> default profile's honcho.json
     (host blocks accumulate there via setup/clone) -> ~/.honcho/config.json (also the
     first-time-setup write target when nothing exists)."""
-    local_path = get_hermes_home() / "honcho.json"
+    local_path = get_jarvis_home() / "honcho.json"
     if local_path.exists():
         return local_path
     default_path = _get_default_hermes_home() / "honcho.json"
@@ -408,7 +408,7 @@ class HonchoClientConfig:
     # re-resolving (the resolvers read a ContextVar background threads can't see).
     # Provenance: WHERE this config was resolved from, captured at resolution time (inside the caller's
     # profile scope). Bound consumers (session manager, OAuth refresh paths) use these instead of
-    # re-resolving resolve_config_path()/get_hermes_home() later — those resolvers read a ContextVar that
+    # re-resolving resolve_config_path()/get_jarvis_home() later — those resolvers read a ContextVar that
     # background threads cannot see, so re-resolution from a daemon thread silently lands on the DEFAULT
     # profile (#69123, #74065).
     config_path: Path | None = None
@@ -429,7 +429,7 @@ class HonchoClientConfig:
             environment=get_secret("HONCHO_ENVIRONMENT", "") or "production",
             timeout=_resolve_optional_float(os.environ.get("HONCHO_TIMEOUT")),
             ai_peer=resolved_host, enabled=bool(api_key or base_url),
-            config_path=resolve_config_path(), hermes_home=get_hermes_home(),
+            config_path=resolve_config_path(), hermes_home=get_jarvis_home(),
         )
 
     @classmethod
@@ -453,7 +453,7 @@ class HonchoClientConfig:
         return cls(
             host=resolved_host, **_connection_fields(look, resolved_host, path), **_behavior_fields(look, explicitly_configured),
             sessions=raw.get("sessions", {}), raw=raw, explicitly_configured=explicitly_configured,
-            config_path=path, hermes_home=get_hermes_home(),
+            config_path=path, hermes_home=get_jarvis_home(),
         )
 
     @staticmethod
@@ -642,7 +642,7 @@ def _build_client(config: HonchoClientConfig) -> "Honcho":
     base_url, timeout = config.base_url, config.timeout
     if not base_url or timeout is None:
         with contextlib.suppress(Exception):
-            from hermes_cli.config import load_config
+            from jarvis_cli.config import load_config
             honcho_cfg = load_config().get("honcho", {})
             if isinstance(honcho_cfg, dict):
                 base_url = base_url or _sanitize_url(honcho_cfg.get("base_url", "").strip() or None)
@@ -698,7 +698,7 @@ def __getattr__(name):  # PEP 562 — lazy so no import cycles
     if target is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     import importlib
-    from hermes_cli.plugin_compat import warn_once
+    from jarvis_cli.plugin_compat import warn_once
     warn_once(__name__, name, *target)
     return getattr(importlib.import_module(target[0]), target[1])
 # ---- END PLUGIN-COMPAT ----

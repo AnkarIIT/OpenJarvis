@@ -18,7 +18,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import List, Optional, Tuple, TYPE_CHECKING
 
-from hermes_cli.config import cfg_get
+from jarvis_cli.config import cfg_get
 from plugins import plugin_loader as _loader
 
 if TYPE_CHECKING:
@@ -36,9 +36,9 @@ _NATIVE_WARM_IMPORTS: Tuple[str, ...] = ("numpy",)
 
 
 def _registered_skills_for_active_home() -> dict[str, Path]:
-    from hermes_constants import hermes_home_key
+    from jarvis_constants import jarvis_home_key
 
-    return _REGISTERED_MEMORY_PROVIDER_SKILLS.setdefault(hermes_home_key(), {})
+    return _REGISTERED_MEMORY_PROVIDER_SKILLS.setdefault(jarvis_home_key(), {})
 
 # Synthetic parent package so user-installed providers don't collide with bundled ones.
 _USER_NAMESPACE = "_hermes_user_memory"
@@ -51,7 +51,7 @@ def _get_project_plugins_dir() -> Optional[Path]:
     """``./.hermes/plugins/`` or None. Gated on HERMES_ENABLE_PROJECT_PLUGINS like the
     PluginManager scan: a repo you merely ``cd`` into must not offer a memory backend."""
     try:
-        from hermes_cli.plugins import _env_enabled
+        from jarvis_cli.plugins import _env_enabled
 
         if not _env_enabled("HERMES_ENABLE_PROJECT_PLUGINS"):
             return None
@@ -144,7 +144,7 @@ def _entry_point_package_dir(entry_point) -> Optional[Path]:
     if entry_point is None:
         return None
     try:
-        from hermes_cli.plugins import resolve_module_origin
+        from jarvis_cli.plugins import resolve_module_origin
 
         module_name = (entry_point.value or "").split(":")[0].strip()
         origin = resolve_module_origin(module_name)
@@ -345,7 +345,7 @@ class _ProviderCollector:
     def collect(self, register, *, source=None):
         """Run ``register`` with this collector; hooks it registers form the fallback group that
         general discovery of the same source replaces (see ``PluginLedgerMixin``)."""
-        from hermes_cli.plugins_ledger import _hook_source_of
+        from jarvis_cli.plugins_ledger import _hook_source_of
 
         module = sys.modules.get(getattr(register, "__module__", ""))
         self._hook_source = _hook_source_of(self.name, SimpleNamespace(__file__=source) if source else module)
@@ -372,7 +372,7 @@ class _ProviderCollector:
             self._plugin_context().register_skill(*args, **kwargs)
             qualified_name = f"{self.name}:{args[0] if args else kwargs.get('name')}"
 
-            from hermes_cli.plugins import get_plugin_manager
+            from jarvis_cli.plugins import get_plugin_manager
 
             registered_path = get_plugin_manager().find_plugin_skill(qualified_name)
             if registered_path is not None:
@@ -404,7 +404,7 @@ class _ProviderCollector:
         """A real ``PluginContext``, built once on demand: the common provider that only
         calls ``register_memory_provider`` must not pay for importing the plugin manager."""
         if self._context is None:
-            from hermes_cli.plugins import PluginContext, PluginManifest, get_plugin_manager
+            from jarvis_cli.plugins import PluginContext, PluginManifest, get_plugin_manager
 
             manifest = PluginManifest(name=self.name, key=self.name)
             self._context = PluginContext(manifest, get_plugin_manager())
@@ -414,7 +414,7 @@ class _ProviderCollector:
 def _get_active_memory_provider() -> Optional[str]:
     """Active provider name from config.yaml (``memory.provider``), or None. Reads config only."""
     try:
-        from hermes_cli.config import load_config
+        from jarvis_cli.config import load_config
         config = load_config()
         return cfg_get(config, "memory", "provider") or None
     except Exception:
@@ -426,7 +426,7 @@ def _prune_inactive_memory_provider_skills(active_provider: Optional[str] = None
     if active_provider is None:
         active_provider = _get_active_memory_provider()
 
-    from hermes_cli.plugins import get_plugin_manager
+    from jarvis_cli.plugins import get_plugin_manager
 
     manager = get_plugin_manager()
     registered = _registered_skills_for_active_home()
