@@ -44,9 +44,9 @@ def has_codex_credentials() -> bool:
     exception so a corrupted auth store cannot block other availability scans.
     """
     try:
-        from hermes_constants import get_hermes_home
+        from jarvis_constants import get_jarvis_home
 
-        auth_path = get_hermes_home() / "auth.json"
+        auth_path = get_jarvis_home() / "auth.json"
         if not auth_path.exists():
             return False
         store = json.loads(auth_path.read_text(encoding="utf-8-sig"))
