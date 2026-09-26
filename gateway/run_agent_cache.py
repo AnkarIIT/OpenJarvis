@@ -16,8 +16,8 @@ from agent.interrupt_compat import _accepts_keyword
 from gateway.config import Platform
 from gateway.session import SessionSource, build_session_context_prompt
 from gateway.run_shutdown import _log_suppressed
-from hermes_cli.config import cfg_get
-from hermes_cli.local_runtime.endpoint import LLAMACPP_ALIASES
+from jarvis_cli.config import cfg_get
+from jarvis_cli.local_runtime.endpoint import LLAMACPP_ALIASES
 
 if TYPE_CHECKING:  # string annotations only; never imported at runtime (cycle)
     from gateway.run import GatewayRunner  # noqa: F401
@@ -171,7 +171,7 @@ class GatewayAgentCacheMixin:
                     # The managed llama.cpp supervisor owns its live port; a persisted loopback URL from a
                     # boot that fell back to an ephemeral port would strand the session on a dead endpoint.
                     override["base_url"] = runtime.get("base_url")
-                from hermes_cli.models import normalize_opencode_base_url, opencode_provider_family
+                from jarvis_cli.models import normalize_opencode_base_url, opencode_provider_family
                 if opencode_provider_family(provider) is not None and override.get("base_url"):
                     # api_mode was just re-derived from the target model; a relay URL persisted by an older
                     # build for another wire (/v1-stripped) or the other family is healed to match (#96066).
@@ -499,7 +499,7 @@ class GatewayAgentCacheMixin:
             # running-agent fast path; the pending-sentinel /stop has no in-flight work, so it stays
             # silent. Dispatch failures are swallowed so a misbehaving plugin cannot break an interrupt.
             try:
-                from hermes_cli.plugins import invoke_hook as _invoke_hook
+                from jarvis_cli.plugins import invoke_hook as _invoke_hook
 
                 _invoke_hook(
                     "agent_loop_stopped",
@@ -655,8 +655,8 @@ class GatewayAgentCacheMixin:
             from gateway.session import _slack_tools_loaded
             slack_tools = "1" if _slack_tools_loaded() else "0"
         try:
-            from hermes_constants import display_hermes_home
-            home_display = str(display_hermes_home())
+            from jarvis_constants import display_jarvis_home
+            home_display = str(display_jarvis_home())
         except Exception:
             home_display = ""
         key_tuple = (
@@ -743,7 +743,7 @@ class GatewayAgentCacheMixin:
         scope = nullcontext()
         if is_multiplex_active():
             from gateway.run import _profile_runtime_scope
-            from hermes_constants import get_default_hermes_root, get_hermes_home, hermes_home_key
+            from jarvis_constants import get_default_jarvis_root, get_jarvis_home, hermes_home_key
             owner = None
             store = getattr(self, "session_store", None)
             if session_key and store is not None:
@@ -752,8 +752,8 @@ class GatewayAgentCacheMixin:
                 except Exception:
                     logger.warning("Could not resolve the owning profile for %s; releasing under the default profile",
                                    session_key, exc_info=True)
-            owner_home = Path(owner) if owner else get_default_hermes_root()
-            if current_secret_scope() is None or hermes_home_key(get_hermes_home()) != hermes_home_key(owner_home):
+            owner_home = Path(owner) if owner else get_default_jarvis_root()
+            if current_secret_scope() is None or jarvis_home_key(get_jarvis_home()) != jarvis_home_key(owner_home):
                 scope = _profile_runtime_scope(owner_home)
         with scope:
             target(*args)
@@ -917,7 +917,7 @@ class GatewayAgentCacheMixin:
                 logger.debug("Pressure release failed for %s: %s", key, _e)
             del agent
         with suppress(Exception):
-            from hermes_cli.mem_trim import trim_memory
+            from jarvis_cli.mem_trim import trim_memory
             trim_memory(force=True, reason="agent_cache_pressure")
 
     def _enforce_agent_cache_cap(self) -> None:
