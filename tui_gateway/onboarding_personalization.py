@@ -1,8 +1,8 @@
 """Writes the setup facts agreed during onboarding into the default profile's user memory."""
 import json
 
-from hermes_constants import reset_hermes_home_override, set_hermes_home_override
-from hermes_cli.profiles import get_profile_dir
+from jarvis_constants import reset_jarvis_home_override, set_jarvis_home_override
+from jarvis_cli.profiles import get_profile_dir
 from tools.memory_tool import load_on_disk_store, memory_tool
 
 
@@ -31,7 +31,7 @@ def remember_onboarding(answers: dict) -> dict:
 
     # The entry must land in the 'default' profile directory even when this RPC arrives on the guide's
     # backend or under a custom Hermes home.
-    token = set_hermes_home_override(get_profile_dir('default'))
+    token = set_jarvis_home_override(get_profile_dir('default'))
     try:
         result = json.loads(memory_tool(action='add', target='user', content=content, store=load_on_disk_store()))
         if not result.get('success') or result.get('staged'):
@@ -41,4 +41,4 @@ def remember_onboarding(answers: dict) -> dict:
             raise ValueError('Could not verify saved onboarding facts')
         return {'saved': True, 'profile': 'default', 'target': 'user'}
     finally:
-        reset_hermes_home_override(token)
+        reset_jarvis_home_override(token)
