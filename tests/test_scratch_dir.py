@@ -1,38 +1,38 @@
-"""Scratch dir contract: TMPDIR/TMP/TEMP follow HERMES_HOME/cache/scratch unless the user set them."""
+"""Scratch dir contract: TMPDIR/TMP/TEMP follow JARVIS_HOME/cache/scratch unless the user set them."""
 
 import os
 import subprocess
 import sys
 import time
 
-from hermes_constants import apply_scratch_tmp_env, get_scratch_dir, prune_scratch_dir
+from jarvis_constants import apply_scratch_tmp_env, get_scratch_dir, prune_scratch_dir
 
 
 def test_scratch_env_follows_home_and_respects_user_tmpdir(tmp_path):
-    """Unset temp vars → scratch of env HERMES_HOME; a Hermes-exported value re-derives for a routed
+    """Unset temp vars → scratch of env JARVIS_HOME; a Jarvis-exported value re-derives for a routed
     home; a user/OS-set value (macOS ``/var/folders``, ``%TEMP%``) is never touched."""
     home_a, home_b = tmp_path / "a", tmp_path / "b"
-    env = {"HERMES_HOME": str(home_a)}
+    env = {"JARVIS_HOME": str(home_a)}
     assert apply_scratch_tmp_env(env) is True
     scratch_a = str(home_a / "cache" / "scratch")
-    assert env["TMPDIR"] == env["TMP"] == env["TEMP"] == env["HERMES_SCRATCH_DIR"] == scratch_a
+    assert env["TMPDIR"] == env["TMP"] == env["TEMP"] == env["JARVIS_SCRATCH_DIR"] == scratch_a
     assert os.path.isdir(scratch_a)
 
-    env["HERMES_HOME"] = str(home_b)  # child served under another profile's home
+    env["JARVIS_HOME"] = str(home_b)  # child served under another profile's home
     assert apply_scratch_tmp_env(env) is True
     assert env["TMPDIR"] == str(home_b / "cache" / "scratch")
 
-    user_env = {"HERMES_HOME": str(home_a), "TMPDIR": "/var/folders/zz"}
+    user_env = {"JARVIS_HOME": str(home_a), "TMPDIR": "/var/folders/zz"}
     assert apply_scratch_tmp_env(user_env) is False
-    assert user_env["TMPDIR"] == "/var/folders/zz" and "HERMES_SCRATCH_DIR" not in user_env
+    assert user_env["TMPDIR"] == "/var/folders/zz" and "JARVIS_SCRATCH_DIR" not in user_env
     assert "TMP" not in user_env  # a partially user-set triple is left exactly as found
 
 
 def test_bootstrap_import_exports_scratch_to_process_and_children(tmp_path):
-    """``import hermes_bootstrap`` alone makes ``tempfile`` (this process AND a child) land in scratch."""
-    env = {k: v for k, v in os.environ.items() if k not in ("TMPDIR", "TMP", "TEMP", "HERMES_SCRATCH_DIR")}
-    env["HERMES_HOME"] = str(tmp_path)
-    code = ("import tempfile, os, subprocess, sys; import hermes_bootstrap; "
+    """``import jarvis_bootstrap`` alone makes ``tempfile`` (this process AND a child) land in scratch."""
+    env = {k: v for k, v in os.environ.items() if k not in ("TMPDIR", "TMP", "TEMP", "JARVIS_SCRATCH_DIR")}
+    env["JARVIS_HOME"] = str(tmp_path)
+    code = ("import tempfile, os, subprocess, sys; import jarvis_bootstrap; "
             "print(tempfile.gettempdir()); "
             "print(subprocess.run([sys.executable, '-c', 'import tempfile;print(tempfile.gettempdir())'],"
             " capture_output=True, text=True).stdout.strip())")
