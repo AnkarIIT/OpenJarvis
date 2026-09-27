@@ -11,8 +11,8 @@ from agent.redact import mask_secret, redact_cdp_url, redact_sensitive_text, Red
 
 @pytest.fixture(autouse=True)
 def _ensure_redaction_enabled(monkeypatch):
-    """Ensure HERMES_REDACT_SECRETS is not disabled by prior test imports."""
-    monkeypatch.delenv("HERMES_REDACT_SECRETS", raising=False)
+    """Ensure JARVIS_REDACT_SECRETS is not disabled by prior test imports."""
+    monkeypatch.delenv("JARVIS_REDACT_SECRETS", raising=False)
     # Also patch the module-level snapshot so it reflects the cleared env var
     monkeypatch.setattr("agent.redact._REDACT_ENABLED", True)
 
@@ -1061,7 +1061,7 @@ class TestTerminalOutputRedaction:
         assert _command_reads_secret_file("cat -n .env")
         assert _command_reads_secret_file("cat -A .env")
         # With paths
-        assert _command_reads_secret_file("cat ~/.hermes/.env")
+        assert _command_reads_secret_file("cat ~/.jarvis/.env")
         assert _command_reads_secret_file("cat /home/user/project/.env")
         assert _command_reads_secret_file("cat ./config/.env.local")
         # In a pipeline / sequence
@@ -1155,9 +1155,9 @@ class TestTerminalOutputRedaction:
     @pytest.mark.parametrize(
         ("command", "output", "secret"),
         [
-            ("cat ~/.hermes/config.yaml", "api_key: hermesConfigSecret123", "hermesConfigSecret123"),
+            ("cat ~/.jarvis/config.yaml", "api_key: jarvisConfigSecret123", "jarvisConfigSecret123"),
             (
-                "head ~/.hermes/profiles/work/config.yaml",
+                "head ~/.jarvis/profiles/work/config.yaml",
                 "provider.token=profileConfigSecret456",
                 "profileConfigSecret456",
             ),
@@ -1170,17 +1170,17 @@ class TestTerminalOutputRedaction:
             ),
             ("sed -n '1,20p' ~/.zprofile", "api_key: zprofileSecret789", "zprofileSecret789"),
             (
-                'cat "$HERMES_HOME/config.yaml"',
+                'cat "$JARVIS_HOME/config.yaml"',
                 "SERVICE_TOKEN=variablePathSecret123456789",
                 "variablePathSecret123456789",
             ),
             (
-                'cat "${HERMES_HOME}/config.yaml"',
+                'cat "${JARVIS_HOME}/config.yaml"',
                 "SERVICE_TOKEN=variablePathSecret123456789",
                 "variablePathSecret123456789",
             ),
             (
-                "cat $HOME/.hermes/config.yaml",
+                "cat $HOME/.jarvis/config.yaml",
                 "SERVICE_TOKEN=homeVariablePathSecret123456",
                 "homeVariablePathSecret123456",
             ),
@@ -1190,7 +1190,7 @@ class TestTerminalOutputRedaction:
                 "awkQuotedSecret123",
             ),
             (
-                "grep 'foo|bar' ~/.hermes/config.yaml",
+                "grep 'foo|bar' ~/.jarvis/config.yaml",
                 "SERVICE_TOKEN=grepQuotedSecret456",
                 "grepQuotedSecret456",
             ),
@@ -1206,8 +1206,8 @@ class TestTerminalOutputRedaction:
         [
             "cat config.yaml",
             "cat /project/config.yaml",
-            "cat ~/.hermes/config.example.yaml",
-            "cat ~/.hermes/config.template.yaml",
+            "cat ~/.jarvis/config.example.yaml",
+            "cat ~/.jarvis/config.template.yaml",
             "cat ~/.bashrc.example",
             'cat "$OTHER/config.yaml"',
             "grep TOKEN app.py",
@@ -1373,18 +1373,18 @@ class TestSecretFileAssignmentRedaction:
         assert time.perf_counter() - started < 1.0
 
 
-class TestHermesHomePathClassification:
-    """``_is_secret_file_arg`` must see the RESOLVED Hermes home: a managed Windows home
-    (``%LOCALAPPDATA%\\hermes``) has no ``.hermes`` segment and a resolved path never spells
-    ``$HERMES_HOME``, so the literal test alone classified its ``config.yaml`` as ordinary YAML."""
+class TestJarvisHomePathClassification:
+    """``_is_secret_file_arg`` must see the RESOLVED Jarvis home: a managed Windows home
+    (``%LOCALAPPDATA%\\jarvis``) has no ``.jarvis`` segment and a resolved path never spells
+    ``$JARVIS_HOME``, so the literal test alone classified its ``config.yaml`` as ordinary YAML."""
 
     def test_resolved_home_config_is_secret_bearing_but_project_config_is_not(self, tmp_path, monkeypatch):
         import agent.file_safety as file_safety
         from agent.redact import _is_secret_file_arg
 
-        home = tmp_path / "hermes"  # no ".hermes" segment
-        monkeypatch.setattr(file_safety, "_hermes_home_path", lambda: home)
-        monkeypatch.setattr(file_safety, "_hermes_root_path", lambda: home)
+        home = tmp_path / "jarvis"  # no ".jarvis" segment
+        monkeypatch.setattr(file_safety, "_jarvis_home_path", lambda: home)
+        monkeypatch.setattr(file_safety, "_jarvis_root_path", lambda: home)
         assert _is_secret_file_arg(str(home / "config.yaml"))
         assert _is_secret_file_arg(str(home / "profiles" / "coder" / "config.yaml"))
         assert _is_secret_file_arg(str(home / "backups" / "config" / "config.yaml.good.20260914-184559"))
