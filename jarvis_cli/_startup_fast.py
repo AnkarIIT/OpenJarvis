@@ -162,7 +162,7 @@ def print_fast_version_info(*, check_updates: bool = True) -> None:
         from jarvis_cli import __release_date__, __version__
 
         print(f"JARVIS v{__version__} ({__release_date__})")
-    print(f"Install directory: {project_root_str().replace('hermes-agent', 'jarvis-agent')}")
+    print(f"Install directory: {project_root_str()}")
     # Authoritative resolver first (code-scoped stamp → managed → nix → git → pip; also self-heals
     # poisoned shared-home 'docker' stamps); cheap stdlib stamp probe only if it fails.
     try:

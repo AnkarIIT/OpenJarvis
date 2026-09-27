@@ -59,7 +59,8 @@ def jarvis_xai_user_agent() -> str:
 
 
 # Compat alias: plugins importing ``jarvis_xai_user_agent`` (pre-rename) resolve here.
-hermes_xai_user_agent = jarvis_xai_user_agent
+# Legacy compat alias — remove once external plugins migrate to jarvis_xai_user_agent.
+jarvis_xai_user_agent = jarvis_xai_user_agent  # noqa: F841
 
 
 def jarvis_xai_default_headers() -> Dict[str, str]:

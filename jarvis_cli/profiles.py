@@ -168,7 +168,7 @@ def _get_default_jarvis_home() -> Path:
     return get_default_jarvis_root()
 
 
-# Backward-compat alias for the hermes→jarvis rebrand
+# Backward-compat alias for the hermes→jarvis rebrand (deprecated, remove after 2026)
 def _get_default_hermes_home() -> Path:  # noqa: N802
     """Deprecated alias for :func:`_get_default_jarvis_home`."""
     return _get_default_jarvis_home()

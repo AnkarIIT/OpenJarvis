@@ -476,7 +476,7 @@ def load_jarvis_dotenv(
     return loaded
 
 
-# Backward-compat alias for the hermes→jarvis rebrand
+# Backward-compat alias for the hermes→jarvis rebrand (deprecated, remove after 2026)
 def load_hermes_dotenv(  # noqa: N802
     *,
     jarvis_home: str | os.PathLike | None = None,
