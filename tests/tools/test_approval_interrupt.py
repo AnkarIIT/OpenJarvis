@@ -44,12 +44,12 @@ class TestApprovalInterrupt:
         set_interrupt(False)
         self._saved_env = {
             k: os.environ.get(k)
-            for k in ("HERMES_GATEWAY_SESSION", "HERMES_YOLO_MODE",
-                      "HERMES_SESSION_KEY")
+            for k in ("JARVIS_GATEWAY_SESSION", "JARVIS_YOLO_MODE",
+                      "JARVIS_SESSION_KEY")
         }
-        os.environ.pop("HERMES_YOLO_MODE", None)
-        os.environ["HERMES_GATEWAY_SESSION"] = "1"
-        os.environ["HERMES_SESSION_KEY"] = self.SESSION_KEY
+        os.environ.pop("JARVIS_YOLO_MODE", None)
+        os.environ["JARVIS_GATEWAY_SESSION"] = "1"
+        os.environ["JARVIS_SESSION_KEY"] = self.SESSION_KEY
 
     def teardown_method(self):
         from tools.interrupt import set_interrupt
