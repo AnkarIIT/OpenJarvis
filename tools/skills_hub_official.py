@@ -32,13 +32,13 @@ def _entry_provider(entry: dict) -> str:
 
 
 class OptionalSkillSource(SkillSource):
-    """Skills from the repo's ``optional-skills/`` directory: official (Nous-maintained) but not
+    """Skills from the repo's ``optional-skills/`` directory: official (AnkarIIT-maintained) but not
     activated by default — absent from the system prompt and not copied to ~/.jarvis/skills/ at
     setup. Discoverable via the Skills Hub as source "official" with "builtin" trust."""
 
     SOURCE_ID = "official"
     TRUST_LEVEL = "builtin"
-    OFFICIAL_REPO = "NousResearch/jarvis-agent"
+    OFFICIAL_REPO = "AnkarIIT/OpenJarvis"
     OPTIONAL_SKILLS_PREFIX = "optional-skills"
 
     _parse_frontmatter = staticmethod(_parse_frontmatter)

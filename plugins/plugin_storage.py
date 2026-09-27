@@ -1,6 +1,9 @@
-"""Per-plugin persistent storage: ``<hermes home>/plugin-data/<name>/``.
+"""Per-plugin persistent storage: ``<jarvis home>/plugin-data/<name>/``.
 
-Plugins must NOT park state in ``<hermes home>/plugins/<name>/`` (the install dir, deleted by
+Plugins must NOT park state in ``<jarvis home>/plugins/<name>/`` (the install dir, deleted by
+update/install). Everything below ``<jarvis home>/plugin-data/`` survives reinstalls that keep
+update/install). Everything below ``<jarvis home>/plugin-data/`` survives reinstalls that keep
+the home dir (editable installs, ``--no-deps`` cloning) — use it for credentials, caches, indexes.
 ``remove`` and git-pulled by ``update``). Secrets are deliberately NOT part of this convention —
 credential reads go through ``agent.secret_scope`` / ``.env``.
 Usage: ``plugin_data_dir("my-plugin") / "state.json"``; ``plugin_db("my-plugin")`` → ``data.db``.
@@ -14,7 +17,7 @@ from pathlib import Path
 
 __all__ = ["plugin_data_dir", "plugin_db"]
 
-# Mirrors the plugin-name shape `hermes plugins install` accepts (no separators/traversal).
+# Mirrors the plugin-name shape `jarvis plugins install` accepts (no separators/traversal).
 _NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$")
 
 
@@ -25,7 +28,7 @@ def _validate_name(name: str) -> str:
 
 
 def plugin_data_dir(name: str) -> Path:
-    """Return (and create) ``<hermes home>/plugin-data/<name>/``; resolves ``get_jarvis_home()`` on
+    """Return (and create) ``<jarvis home>/plugin-data/<name>/``; resolves ``get_jarvis_home()`` on
     every call so it follows the active profile — don't cache across profile switches."""
     from jarvis_constants import get_jarvis_home
     root = get_jarvis_home() / "plugin-data" / _validate_name(name)

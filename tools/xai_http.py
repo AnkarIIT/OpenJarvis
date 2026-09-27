@@ -58,7 +58,7 @@ def jarvis_xai_user_agent() -> str:
     return f"Jarvis-Agent/{__version__}"
 
 
-# Compat alias: plugins importing ``hermes_xai_user_agent`` (pre-rename) resolve here.
+# Compat alias: plugins importing ``jarvis_xai_user_agent`` (pre-rename) resolve here.
 hermes_xai_user_agent = jarvis_xai_user_agent
 
 

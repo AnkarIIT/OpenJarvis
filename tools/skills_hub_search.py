@@ -24,7 +24,7 @@ from tools.skills_hub_sources import BrowseShSource, LobeHubSource, UrlSource, W
 # Log-record parity with the origin module.
 logger = logging.getLogger("tools.skills_hub")
 
-JARVIS_INDEX_URL = "https://jarvis-agent.nousresearch.com/docs/api/skills-index.json"
+JARVIS_INDEX_URL = "https://raw.githubusercontent.com/AnkarIIT/OpenJarvis/main/tools/skills-index.json"
 JARVIS_INDEX_TTL = 6 * 3600  # 6 hours
 
 
