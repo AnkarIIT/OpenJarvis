@@ -164,7 +164,7 @@ class SkillHubHit(Result):
 
 
 class SkillBrowseItem(OpenModel):
-    """``hermes_cli.skills_hub.browse_skills`` row."""
+    """``jarvis_cli.skills_hub.browse_skills`` row."""
 
     name: str = ""
     description: str = ""
@@ -174,7 +174,7 @@ class SkillBrowseItem(OpenModel):
 
 
 class SkillInspectInfo(OpenModel):
-    """``hermes_cli.skills_hub.inspect_skill``; ``{}`` when the identifier resolves nowhere."""
+    """``jarvis_cli.skills_hub.inspect_skill``; ``{}`` when the identifier resolves nowhere."""
 
     name: str | None = None
     description: str | None = None
@@ -613,7 +613,7 @@ class AgentPluginRow(Result):
 
 class PluginsManageResult(Result):
     """``list`` → ``plugins`` + counts; ``toggle`` → ``ok``/``unchanged``/``name``/``plugin``;
-    ``install`` → ``hermes_cli.plugins_cmd.dashboard_install_plugin``'s ok payload; ``update`` →
+    ``install`` → ``jarvis_cli.plugins_cmd.dashboard_install_plugin``'s ok payload; ``update`` →
     ``ok``/``unchanged``/``sha``."""
 
     plugins: list[AgentPluginRow] | None = None
