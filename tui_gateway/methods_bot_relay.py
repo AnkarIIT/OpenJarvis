@@ -121,7 +121,7 @@ def _(rid, params: dict, _root=_relay_root, _run=_run_delivery,
         # lease (#113753). Hand the DM to the live owner through the same mailbox local DMs use
         # (tools/bot_mode_dm.py::_run_delivery); its poller admits it at the next idle boundary.
         from tools.bot_live_delivery import deliver_to_live_owner, find_canonical_live_owner
-        owner_home = live_home if live_home is not None else Path(_hermes_home)
+        owner_home = live_home if live_home is not None else Path(_jarvis_home)
         owner = find_canonical_live_owner(owner_home)
         if owner is not None:
             deliver_to_live_owner(owner_home, owner, message, author=author)
