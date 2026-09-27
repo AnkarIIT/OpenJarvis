@@ -11,7 +11,7 @@ _registry = HandlerRegistry()
 
 def resolve_skin() -> dict:
     try:
-        from hermes_cli.skin_engine import init_skin_from_config, get_active_skin
+        from jarvis_cli.skin_engine import init_skin_from_config, get_active_skin
         init_skin_from_config(_load_cfg())
         skin = get_active_skin()
         # light/dark are paired palettes: the TUI prefers the block matching terminal polarity.
@@ -32,8 +32,8 @@ _last_skin_sig: tuple[str, float | None] | None = None
 
 def _watcher_home() -> Path:
     """Active profile home for the change watcher's signature probes."""
-    override = get_hermes_home_override()
-    return Path(override if isinstance(override, str) and override else _hermes_home)
+    override = get_jarvis_home_override()
+    return Path(override if isinstance(override, str) and override else _jarvis_home)
 
 
 def _watcher_mtime_ns(path: Path):
@@ -157,7 +157,7 @@ def _pairing_roots(home: Path) -> list:
     cached = _pairing_roots_cache
     if cached is not None and cached[0] == home and cached[1] == dir_mtime and now - cached[2] < _PAIRING_ROOTS_TTL_S:
         return cached[3]
-    from hermes_constants import named_profile_is_live
+    from jarvis_constants import named_profile_is_live
     roots = [home / "pairing", home / "platforms" / "pairing"]
     with contextlib.suppress(OSError):
         for profile_dir in profiles_dir.iterdir():
