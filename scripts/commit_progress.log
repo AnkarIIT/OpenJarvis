@@ -49,3 +49,19 @@ Total: 554 individual commits
 
 === Phase 3: Modifications ===
   [0/554] M: scripts/commit_progress.log
+  [1/554] M: tests/tools/test_registry.py
+  COMMIT FAILED tests/tools/test_registry.py: 
+  [1/554] M: tests/tools/test_removed_backend_migration.py
+  Progress: 100/537 mods done (99/554 total) 1.3/s
+  [100/554] M: tests/tools/test_web_tools_truncate.py
+  Progress: 200/537 mods done (199/554 total) 1.3/s
+  [200/554] M: tests/tui_gateway/test_sudo_command_context.py
+  Progress: 300/537 mods done (299/554 total) 1.3/s
+  [300/554] M: tools/mcp_oauth_provider.py
+  Progress: 400/537 mods done (399/554 total) 1.3/s
+  [400/554] M: tui_gateway/methods_session_foreign.py
+  Progress: 500/537 mods done (499/554 total) 1.3/s
+  [500/554] M: ui-tui/src/components/overlayControls.tsx
+
+============================================================
+COMPLETE: 536 individual commits in 396s (1.4/s)
