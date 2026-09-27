@@ -8,7 +8,7 @@ def log(msg):
         f.write(msg + '\n')
     print(msg, flush=True)
 
-def run(cmd, timeout=30):
+def run(cmd, timeout=120):
     try:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except Exception as e:
