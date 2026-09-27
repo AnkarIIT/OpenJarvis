@@ -370,14 +370,14 @@ class TestGptQualityPinnedToMedium:
 class TestModelResolution:
 
     def test_no_config_falls_back_to_default(self, image_tool):
-        with patch("hermes_cli.config.load_config", return_value={}):
+        with patch("jarvis_cli.config.load_config", return_value={}):
             mid, meta = image_tool._resolve_fal_model()
         assert mid == "fal-ai/flux-2/klein/9b"
 
 
     def test_config_wins_over_env_var(self, image_tool, monkeypatch):
         monkeypatch.setenv("FAL_IMAGE_MODEL", "fal-ai/z-image/turbo")
-        with patch("hermes_cli.config.load_config",
+        with patch("jarvis_cli.config.load_config",
                    return_value={"image_gen": {"model": "fal-ai/nano-banana-pro"}}):
             mid, _ = image_tool._resolve_fal_model()
         assert mid == "fal-ai/nano-banana-pro"
@@ -474,7 +474,7 @@ class TestManagedGatewayErrorTranslation:
         monkeypatch.setattr(image_tool, "fal_client", object())
 
     def test_4xx_translates_to_value_error_with_remediation(self, image_tool, monkeypatch):
-        """403 from managed gateway → ValueError mentioning FAL_KEY + hermes tools."""
+        """403 from managed gateway → ValueError mentioning FAL_KEY + jarvis tools."""
         from unittest.mock import MagicMock
 
         # Simulate: managed mode active, managed submit raises 4xx.
@@ -497,7 +497,7 @@ class TestManagedGatewayErrorTranslation:
         assert "fal-ai/nano-banana-pro" in msg
         assert "403" in msg
         assert "FAL_KEY" in msg
-        assert "hermes tools" in msg
+        assert "jarvis tools" in msg
         # Original exception chained for debugging
         assert exc_info.value.__cause__ is bad_request
 
@@ -620,7 +620,7 @@ class TestManagedKreaRouting:
             "agent.image_gen_registry.get_provider", lambda name: fake_provider
         )
         monkeypatch.setattr(
-            "hermes_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None
+            "jarvis_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None
         )
 
         out = image_tool._maybe_route_managed_model("a cat", "portrait")
@@ -637,7 +637,7 @@ class TestManagedPortalRouting:
 
     def _fake_registry(self, monkeypatch, fake_provider):
         monkeypatch.setattr("agent.image_gen_registry.get_provider", lambda name: fake_provider)
-        monkeypatch.setattr("hermes_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None)
+        monkeypatch.setattr("jarvis_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None)
 
     def test_routes_portal_model_to_nous_plugin(self, image_tool, monkeypatch):
         import json as _json
@@ -774,7 +774,7 @@ class TestUpscaleDispatchForwarding:
             "agent.image_gen_registry.get_provider", lambda name: fake_provider
         )
         monkeypatch.setattr(
-            "hermes_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None
+            "jarvis_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None
         )
 
         out = image_tool._dispatch_to_plugin_provider("a cat", "square", upscale=True)
@@ -792,7 +792,7 @@ class TestUpscaleDispatchForwarding:
             "agent.image_gen_registry.get_provider", lambda name: fake_provider
         )
         monkeypatch.setattr(
-            "hermes_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None
+            "jarvis_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None
         )
 
         image_tool._dispatch_to_plugin_provider("a cat", "square")
