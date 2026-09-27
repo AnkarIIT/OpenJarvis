@@ -84,7 +84,7 @@ def _start_loopback_listener(flow) -> "http.server.HTTPServer":
 def _probe_with_rollback(
     server_name: str, cfg: dict, hermes_home: str, flow, reconnect_live: bool) -> None:
     """Run the OAuth probe; on ANY failure restore the prior token file + manager entry."""
-    from hermes_cli.mcp_config import _oauth_tokens_present, _probe_single_server, _save_mcp_server
+    from jarvis_cli.mcp_config import _oauth_tokens_present, _probe_single_server, _save_mcp_server
     from tools.mcp_oauth import HermesTokenStorage
     from tools.mcp_oauth_manager import get_manager
     manager = get_manager()
@@ -116,7 +116,7 @@ def _worker(
         session_id: str, hermes_home: str, server_name: str, cfg: dict, reconnect_live: bool) -> None:
     """Drive the interactive MCP OAuth probe under the shared dashboard bridge (same wrapping
     as ``web_server._run_dashboard_mcp_oauth``), keyed to our session record."""
-    from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+    from jarvis_constants import reset_jarvis_home_override, set_jarvis_home_override
     rec = _sessions.get(session_id)
     flow = rec["flow"] if rec else None
     try:
@@ -124,14 +124,14 @@ def _worker(
             build_profile_secret_scope, reset_secret_scope, set_secret_scope)
         from tools.mcp_dashboard_oauth import dashboard_oauth_flow
         from tools.mcp_oauth import force_interactive_oauth
-        home_token = set_hermes_home_override(hermes_home)
+        home_token = set_jarvis_home_override(hermes_home)
         secret_token = set_secret_scope(build_profile_secret_scope(Path(hermes_home)))
         try:
             with force_interactive_oauth(), dashboard_oauth_flow(flow):
                 _probe_with_rollback(server_name, cfg, hermes_home, flow, reconnect_live)
         finally:
             reset_secret_scope(secret_token)
-            reset_hermes_home_override(home_token)
+            reset_jarvis_home_override(home_token)
     except Exception as exc:
         from tools.mcp_dashboard_oauth import exception_message
         msg = exception_message(exc)
@@ -213,14 +213,14 @@ def _lookup(
     session_id: str, server_name: str, hermes_home: Optional[str] = None,
 ) -> "tuple[Dict[str, Any] | None, str | None]":
     """Find a session belonging to the caller's resolved profile."""
-    from hermes_constants import hermes_home_key
+    from jarvis_constants import jarvis_home_key
     with _sessions_lock:
         rec = _sessions.get(session_id)
     if rec is None:
         return None, "OAuth session not found or expired"
     if rec["server_name"] != server_name:
         return None, "server name mismatch for session"
-    if hermes_home_key(rec["hermes_home"]) != hermes_home_key(hermes_home):
+    if jarvis_home_key(rec["hermes_home"]) != jarvis_home_key(hermes_home):
         return None, "profile mismatch for session"
     return rec, None
 
