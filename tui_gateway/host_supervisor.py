@@ -19,7 +19,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from hermes_constants import get_hermes_home
+from jarvis_constants import get_jarvis_home
 from tools.environments.local import hermes_subprocess_env
 
 logger = logging.getLogger(__name__)
@@ -130,7 +130,7 @@ class HostSupervisor:
         expected_hermes_home: str | None = None, autostart: bool = True) -> None:
         self.registry_path = (
             Path(registry_path) if registry_path is not None
-            else get_hermes_home() / "state" / _REGISTRY_NAME)
+            else get_jarvis_home() / "state" / _REGISTRY_NAME)
         self.argv = argv or [sys.executable, "-m", "tui_gateway.compute_host"]
         self.cwd = Path(cwd) if cwd is not None else _repo_root()
         self.env = env
@@ -139,7 +139,7 @@ class HostSupervisor:
         self.heartbeat_secs = max(1, int(heartbeat_secs))
         self.expected_build_sha = _build_sha() if expected_build_sha is None else expected_build_sha
         self.expected_hermes_home = (
-            str(get_hermes_home()) if expected_hermes_home is None else expected_hermes_home)
+            str(get_jarvis_home()) if expected_hermes_home is None else expected_hermes_home)
         self._lock = threading.RLock()
         self._proc: subprocess.Popen[str] | None = None
         self._hello_event = threading.Event()
