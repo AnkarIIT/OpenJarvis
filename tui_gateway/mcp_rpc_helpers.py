@@ -15,7 +15,7 @@ def summarize_server(name: str, cfg: dict) -> Dict[str, Any]:
     Mirrors web_server._mcp_server_summary plus ``oauth_tokens_present`` so a UI can
     tell an OAuth server that still needs authentication from one already authenticated.
     """
-    from hermes_cli.mcp_config import _oauth_tokens_present
+    from jarvis_cli.mcp_config import _oauth_tokens_present
 
     cfg = cfg if isinstance(cfg, dict) else {}
     transport = "http" if cfg.get("url") else ("stdio" if cfg.get("command") else "unknown")
@@ -54,8 +54,8 @@ def resolve_profile(rid, params, err_fn) -> Tuple[Optional[Any], Optional[dict]]
     profile = str(params.get("profile") or "").strip()
     if not profile:
         return None, None
-    from hermes_cli.profiles import get_profile_dir
-    from hermes_constants import set_hermes_home_override
+    from jarvis_cli.profiles import get_profile_dir
+    from jarvis_constants import set_jarvis_home_override
 
     try:
         profile_dir = get_profile_dir(profile)
@@ -63,5 +63,5 @@ def resolve_profile(rid, params, err_fn) -> Tuple[Optional[Any], Optional[dict]]
         return None, err_fn(rid, 4064, f"profile '{profile}' not found")
     if not profile_dir or not profile_dir.is_dir():
         return None, err_fn(rid, 4064, f"profile '{profile}' not found")
-    return set_hermes_home_override(str(profile_dir)), None
+    return set_jarvis_home_override(str(profile_dir)), None
 # ---- END PLUGIN-COMPAT ----
