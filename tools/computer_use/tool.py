@@ -303,9 +303,22 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
     try:
         backend = _get_backend(session_id=session_id)
     except Exception as e:
-        return json.dumps({"error": f"computer_use backend unavailable: {e}",
-                           "hint": "If the cua-driver binary is missing, run `jarvis computer-use install`. "
-                                   "If a Python dependency is missing, the error above shows the exact install command."})
+        # Best-effort auto-install (mirrors browser's _try_auto_install_chromium):
+        # one-shot, gated by security.allow_lazy_installs, skipped in Docker.
+        from tools.computer_use.cua_auto_install import try_auto_install_cua_driver
+        if try_auto_install_cua_driver():
+            try:
+                backend = _get_backend(session_id=session_id)
+            except Exception as retry_e:
+                return json.dumps(
+                    {"error": f"computer_use backend unavailable after auto-install: {retry_e}",
+                     "hint": "The auto-install failed. Install manually: "
+                             "https://github.com/trycua/cua/blob/main/libs/cua-driver/README.md"})
+        else:
+            return json.dumps(
+                {"error": f"computer_use backend unavailable: {e}",
+                 "hint": "If the cua-driver binary is missing, run `jarvis computer-use install`. "
+                         "If a Python dependency is missing, the error above shows the exact install command."})
     try:
         with _backend_lock:
             call_lock = _backend_call_locks.setdefault(session_id, threading.RLock())
@@ -806,11 +819,16 @@ def _route_capture_through_aux_vision(cap: CaptureResult, summary: str, *, visib
 
 # ── Availability check (used by the tool registry check_fn) ─────────────────
 def check_computer_use_requirements() -> bool:
-    """macOS/Windows/Linux + cua-driver binary (or env override). `jarvis computer-use doctor` names blocked checks."""
+    """macOS/Windows/Linux + cua-driver binary (or env override). Auto-installs once on first check if missing.
+
+    Mirrors ``browser_tool_install.check_browser_requirements``: the ``check_fn`` may trigger a
+    best-effort install so the tool can be advertised without a separate ``jarvis computer-use install``
+    step. Gated by ``security.allow_lazy_installs``, skipped in Docker, attempted once per process.
+    """
     if sys.platform not in ("darwin", "win32", "linux"):
         return False
-    from tools.computer_use.cua_backend_driver import cua_driver_binary_available
-    return cua_driver_binary_available()
+    from tools.computer_use.cua_auto_install import try_auto_install_cua_driver
+    return try_auto_install_cua_driver()
 
 def get_computer_use_schema() -> Dict[str, Any]:
     from tools.computer_use.schema import COMPUTER_USE_SCHEMA
