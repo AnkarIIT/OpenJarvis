@@ -13,7 +13,7 @@ _registry = HandlerRegistry()
 method = _registry.method
 
 
-# ── Voice state: HERMES_VOICE / HERMES_VOICE_TTS are runtime-only env flags (never config.yaml)
+# ── Voice state: JARVIS_VOICE / JARVIS_VOICE_TTS are runtime-only env flags (never config.yaml)
 # so a prior session can't auto-start REC.
 
 _voice_sid_lock = threading.Lock()
@@ -41,19 +41,19 @@ def _resume_voice_wake() -> None:
 
 
 def _voice_mode_enabled() -> bool:
-    return os.environ.get("HERMES_VOICE", "").strip() == "1"
+    return os.environ.get("JARVIS_VOICE", "").strip() == "1"
 
 
 def _voice_tts_enabled() -> bool:
-    return os.environ.get("HERMES_VOICE_TTS", "").strip() == "1"
+    return os.environ.get("JARVIS_VOICE_TTS", "").strip() == "1"
 
 
 def _end_voice_chat(*, stop_loop: bool, stop_tts: bool) -> None:
     """Flip voice + TTS off; optionally halt the continuous loop / cut live TTS (best-effort)."""
-    os.environ["HERMES_VOICE"] = os.environ["HERMES_VOICE_TTS"] = "0"
+    os.environ["JARVIS_VOICE"] = os.environ["JARVIS_VOICE_TTS"] = "0"
     if stop_loop:
         with contextlib.suppress(Exception):
-            from hermes_cli.voice import stop_continuous
+            from jarvis_cli.voice import stop_continuous
             stop_continuous()
     if stop_tts:
         with contextlib.suppress(Exception):
@@ -261,7 +261,7 @@ def _deliver_fd_transcript(text: str) -> None:
 
 def _speak_text_with_barge(text: str) -> None:
     """speak_text registered in ``_fd_speak_pipelines`` so the listener can cut it / waits for it."""
-    from hermes_cli.voice import speak_text
+    from jarvis_cli.voice import speak_text
     stop, done = threading.Event(), threading.Event()
     with _fd_listener_lock:
         _fd_speak_pipelines.add((stop, done))
@@ -306,7 +306,7 @@ def _voice_status_payload(**extra) -> dict:
     return {"enabled": _voice_mode_enabled(), "record_key": record_key, "tts": _voice_tts_enabled(), **extra}
 
 
-# ── Wake word ("Hey Hermes"): process-global detector (one mic). The first eligible transport
+# ── Wake word ("Hey Jarvis"): process-global detector (one mic). The first eligible transport
 # to call wake.start owns it until stop, disconnect, or stream failure; on detection we emit
 # wake.detected and the client opens a session + its own capture. The detector yields the mic
 # to voice.record (pause/resume) and to the desktop's browser mic (wake.pause/resume RPCs).
@@ -435,7 +435,7 @@ def _wake_detect_handler(transport, sid: str, phrase: str, new_session: bool):
 def _(rid, params: dict) -> dict:
     """What THIS BUILD enforces (a client withholds unless advertised), sourced from the enforcing
     module, never config: a believed-but-absent capability is worse."""
-    from hermes_cli.active_sessions import PER_SESSION_EXCLUSIVE_SUBMIT
+    from jarvis_cli.active_sessions import PER_SESSION_EXCLUSIVE_SUBMIT
     return _ok(rid, {"per_session_exclusive_submit": bool(PER_SESSION_EXCLUSIVE_SUBMIT)})
 
 
@@ -637,7 +637,7 @@ def _voice_toggle_status(rid, params: dict) -> dict:
 
 def _voice_toggle_mode(rid, params: dict) -> dict:
     enabled = params.get("action") == "on"
-    os.environ["HERMES_VOICE"] = "1" if enabled else "0"
+    os.environ["JARVIS_VOICE"] = "1" if enabled else "0"
     stop_hint = ""
     if enabled:
         # Spoken-stop hint for the client; sourced from voice.stop_phrases, empty when disabled.
@@ -650,7 +650,7 @@ def _voice_toggle_mode(rid, params: dict) -> dict:
     else:
         # The continuous loop holds the microphone; tear it down with the mode.
         try:
-            from hermes_cli.voice import stop_continuous
+            from jarvis_cli.voice import stop_continuous
             stop_continuous()
         except ImportError:
             pass
@@ -662,7 +662,7 @@ def _voice_toggle_mode(rid, params: dict) -> dict:
 
 def _set_voice_tts(on: bool) -> None:
     """Flip TTS; off silences live speech. The lease pre-loads the engine (on) / releases it (off)."""
-    os.environ["HERMES_VOICE_TTS"] = "1" if on else "0"
+    os.environ["JARVIS_VOICE_TTS"] = "1" if on else "0"
     if not on:
         _tts_stream_stop(user_barge=False)
     _tts_lease_async("tui:voice-tts", on)
@@ -693,16 +693,75 @@ def _(rid, params: dict) -> dict:
 
 # voice.record callbacks: each terminal capture event resumes the wake detector so wake-triggered
 # and manual captures coexist.
-def _vr_transcript(payload: dict) -> None:
-    _voice_emit("voice.transcript", payload)
-    _resume_voice_wake()
-
-
 def _vr_on_stop_phrase(t):
     # A SPOKEN bare stop phrase: end the chat like /voice off and emit a distinct signal so
     # clients end the conversation instead of treating it as a no-speech timeout.
     _end_voice_chat(stop_loop=False, stop_tts=True)
     _vr_transcript({"stop_phrase": True, "text": t})
+
+
+# ── Continuous voice conversation ──────────────────────────────────────────────────────────────
+
+_conversation_active = threading.Event()
+_conversation_lock = threading.Lock()
+
+
+def _vr_conversation_turn(transcript: str) -> None:
+    """Submit ``transcript`` to the active agent, TTS the reply, then re-arm the mic.
+
+    Called from ``_vr_transcript`` when ``_conversation_active`` is set. Runs on the
+    recorder's silence-callback thread, so agent+I/O happen on a background thread to
+    keep the audio stack responsive.
+    """
+    if not transcript or not transcript.strip():
+        return
+    with _conversation_lock:
+        if not _conversation_active.is_set():
+            return
+    _voice_emit("voice.conversation.transcribe", {"text": transcript})
+    def _run_turn() -> None:
+        try:
+            from jarvis_cli.voice import speak_text
+            # Submit to the active session agent. The agent itself streams TTS via
+            # _speak_text_with_barge when the response is spoken, so we render the
+            # reply text to the client first, then let the streaming TTS pipeline
+            # handle playback + barge-in.
+            from tui_gateway.server import _get_runtime_session_for_sid
+            sid = ""
+            with _voice_sid_lock:
+                sid = _voice_event_sid or ""
+            session = _get_runtime_session_for_sid(sid) if sid else None
+            if session is not None and session.get("agent") is not None:
+                agent = session["agent"]
+                # Run the turn on the agent — streaming handles TTS + barge-in.
+                try:
+                    response = agent.chat(transcript)
+                except Exception as e:
+                    logger.warning("voice.conversation: agent.chat failed: %s", e)
+                    response = f"Sorry, I couldn't process that: {e}"
+                # Emit the assistant reply so the TUI shows it even if TTS fails.
+                _voice_emit("voice.transcript", {"role": "assistant", "text": response})
+                # Speak the reply. speak_text manages _tts_playing + recorder re-arm.
+                speak_text(response)
+            else:
+                # No active session: speak a fallback and keep the loop alive.
+                fallback = "I don't have an active conversation session right now."
+                _voice_emit("voice.transcript", {"role": "assistant", "text": fallback})
+                try:
+                    speak_text(fallback)
+                except Exception as e:
+                    logger.warning("voice.conversation: fallback speak failed: %s", e)
+        except Exception as e:
+            logger.warning("voice.conversation turn failed: %s", e, exc_info=True)
+    threading.Thread(target=_run_turn, daemon=True).start()
+
+
+def _vr_transcript(payload: dict) -> None:
+    _voice_emit("voice.transcript", payload)
+    _resume_voice_wake()
+    # When a conversation loop is active, drive agent + TTS for every transcript.
+    if payload.get("text") and _conversation_active.is_set() and not payload.get("stop_phrase"):
+        _vr_conversation_turn(str(payload["text"]))
 
 
 def _vr_on_status(state):
@@ -730,15 +789,15 @@ def _(rid, params: dict) -> dict:
         with _voice_sid_lock:
             _voice_event_sid = params.get("session_id") or _voice_event_sid
         if action == "stop":
-            from hermes_cli.voice import stop_continuous
+            from jarvis_cli.voice import stop_continuous
             stop_continuous(force_transcribe=True)
             _resume_voice_wake()
             return _ok(rid, {"status": "stopped"})
-        from hermes_cli.voice import start_continuous
+        from jarvis_cli.voice import start_continuous
         # Busy probe holds the no-speech counter during long agent turns; safe to re-register every
         # start (older wrappers lack the setter).
         with contextlib.suppress(Exception):
-            from hermes_cli.voice import set_voice_busy_probe
+            from jarvis_cli.voice import set_voice_busy_probe
             set_voice_busy_probe(_any_session_running)
         # Shape-safe: malformed voice YAML falls back to documented defaults; an explicit numeric
         # max_recording_seconds <= 0 disables the cap (0.0).
@@ -773,17 +832,90 @@ def _(rid, params: dict) -> dict:
         return _err(rid, 5025, str(e))
 
 
-@method("voice.tts")
+@method("voice.conversation")
 def _(rid, params: dict) -> dict:
-    text = params.get("text", "")
-    if not text:
-        return _err(rid, 4020, "text required")
+    """Continuous hands-free voice conversation: record until silence, transcribe, submit to the
+    active agent, TTS the reply, then re-arm the mic. ``stop`` ends the loop.
+
+    Wakes the wake-word detector when idle so "Hey Jarvis" can start a turn even mid-conversation,
+    and pauses it while the mic is open to avoid double-capture. Speaks every agent reply through the
+    same TTS lease used by ``/voice`` so barge-in applies across the whole loop.
+    """
+    action = params.get("action", "start")
+    if action not in {"start", "stop"}:
+        return _err(rid, 4019, f"unknown voice.conversation action: {action}")
+    if not _voice_mode_enabled():
+        return _err(rid, 4015, "voice mode is off — enable with /voice on")
+    transport = _caller_transport()
+    wake_paused = False
     try:
-        import hermes_cli.voice  # noqa: F401  (a missing module must answer 5026, not die in a thread)
+        global _voice_event_sid, _voice_wake_owner
+        with _voice_sid_lock:
+            _voice_event_sid = params.get("session_id") or _voice_event_sid
+        if action == "stop":
+            _conversation_active.clear()
+            from jarvis_cli.voice import stop_continuous
+            stop_continuous(force_transcribe=True)
+            _resume_voice_wake()
+            return _ok(rid, {"status": "stopped", "conversation": False})
+        # Start a continuous conversation loop: record → transcribe → agent → TTS → restart.
+        from jarvis_cli.voice import start_continuous, stop_continuous
+        with contextlib.suppress(Exception):
+            from jarvis_cli.voice import set_voice_busy_probe
+            set_voice_busy_probe(_any_session_running)
+        voice_cfg = _voice_cfg_dict()
+        max_rec = _voice_cfg_number(voice_cfg.get("max_recording_seconds"), 120.0)
+        with contextlib.suppress(Exception):
+            from tools.wake_word import pause_listening
+            wake_paused = pause_listening(owner=transport)
+        if wake_paused:
+            with _voice_sid_lock:
+                _voice_wake_owner = transport
+        started = start_continuous(
+            on_transcript=lambda t: _vr_conversation_transcript(t),
+            on_status=_vr_on_status,
+            on_silent_limit=lambda: _vr_conversation_transcript({"no_speech_limit": True}),
+            silence_threshold=_voice_cfg_number(voice_cfg.get("silence_threshold"), 200),
+            silence_duration=_voice_cfg_number(voice_cfg.get("silence_duration"), 3.0),
+            auto_restart=True, max_recording_seconds=max_rec if max_rec > 0 else 0.0,
+            on_stop_phrase=_vr_on_conversation_stop_phrase)
+        if started is False:
+            _resume_voice_wake()
+            return _ok(rid, {"status": "busy", "conversation": False})
+        _conversation_active.set()
+        return _ok(rid, {"status": "recording", "conversation": True})
     except Exception as e:
-        return _err(rid, 5026, "voice module not available" if isinstance(e, ImportError) else str(e))
-    threading.Thread(target=_speak_text_with_barge, args=(text,), daemon=True).start()
-    return _ok(rid, {"status": "speaking"})
+        if wake_paused or action == "stop":
+            _resume_voice_wake()
+        _conversation_active.clear()
+        if isinstance(e, ImportError):
+            return _err(rid, 5025, "voice module not available — install audio dependencies")
+        return _err(rid, 5025, str(e))
+
+
+def _vr_on_conversation_stop_phrase(t):
+    # A SPOKEN bare stop phrase: end the conversation loop (not just the current recording).
+    _conversation_active.clear()
+    try:
+        from jarvis_cli.voice import stop_continuous
+        stop_continuous(force_transcribe=False)
+    except Exception:
+        pass
+    _resume_voice_wake()
+    _voice_emit("voice.conversation.transcribe", {"stop_phrase": True, "text": t})
+    # Let the last spoken stop phrase through as a regular transcript so the agent can acknowledge
+    # the request to stop, but do not drive another agent turn after it.
+    _vr_transcript({"stop_phrase": True, "text": t})
+
+
+def _vr_conversation_transcript(payload: dict) -> None:
+    """Conversation-aware transcript dispatch: only submits agent turns while the loop is active."""
+    _vr_transcript(payload)
+    if not payload.get("text") or not _conversation_active.is_set():
+        return
+    if payload.get("stop_phrase"):
+        return  # stop_phrase already handled by _vr_on_conversation_stop_phrase / _vr_transcript
+    _vr_conversation_turn(str(payload["text"]))
 
 
 def register(server) -> None:
