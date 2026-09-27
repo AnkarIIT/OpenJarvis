@@ -250,13 +250,13 @@ async def test_live_writer_outside_the_executor_skips_the_session_db_close(monke
     join above the close block never sees them; the close has to consult their counters too.
     The executor must still be sealed on this path (#101118).
     """
-    import hermes_state_registry
+    import jarvis_state_registry
 
     events = []
     gw = _FakeGateway(events)
     arm(gw)
     monkeypatch.setattr(
-        hermes_state_registry, "close_all", lambda: events.append("close_all") or 0
+        jarvis_state_registry, "close_all", lambda: events.append("close_all") or 0
     )
 
     await gw_mod.GatewayRunner.stop(gw)
