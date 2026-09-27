@@ -296,11 +296,17 @@ def check_browser_requirements() -> bool:
 
     Local mode needs the ``agent-browser`` CLI plus a Chromium build (except Lightpanda-only text workflows);
     cloud mode needs the CLI plus provider credentials (the provider hosts its own Chromium).
+    Browser Use CLI mode needs ``agent-browser`` installed (no local Chromium required).
     """
     _bt = _origin()
     # Browser Use CLI backend: browser_exec replaces the whole browser_* surface (incl. browser_cdp/browser_dialog check_fns).
+    # But tools should still be advertised if agent-browser is installed — the CLI handles Chromium automatically.
     if _bt._is_browser_use_cli_mode():
-        return False
+        try:
+            _find_agent_browser(validate=False)
+            return True
+        except FileNotFoundError:
+            return False
     # Camofox only needs the server URL, no agent-browser CLI.
     if _bt._is_camofox_mode():
         return True
