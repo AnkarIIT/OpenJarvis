@@ -4,10 +4,10 @@
 
 # Jarvis Agent ☤ v0.21.3
 <p align="center">
-  <a href="https://jarvis-agent.nousresearch.com/">Jarvis Agent</a> | <a href="https://jarvis-agent.nousresearch.com/">Jarvis Desktop</a>
+  <a href="https://github.com/AnkarIIT/OpenJarvis">Jarvis Agent</a> | <a href="https://github.com/AnkarIIT/OpenJarvis">Jarvis Desktop</a>
 </p>
 <p align="center">
-  <a href="https://jarvis-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-jarvis--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
+  <a href="https://github.com/AnkarIIT/OpenJarvis"><img src="https://img.shields.io/badge/Docs-GitHub-FFD700?style=for-the-badge" alt="Documentation"></a>
   <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="https://github.com/AnkarIIT/OpenJarvis/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
   <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
@@ -17,7 +17,7 @@
 
 **The self-improving AI agent with a built-in learning loop** — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
 
-Use any model you want — OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Qwen, MiniMax, XAI, ZAI, Azure, Bedrock, your own endpoint, and [many others](https://jarvis-agent.nousresearch.com/docs/integrations/providers). Switch with `jarvis model` — no code changes, no lock-in.
+Use any model you want — OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Qwen, MiniMax, XAI, ZAI, Azure, Bedrock, your own endpoint, and [many others](https://github.com/AnkarIIT/OpenJarvis/wiki/providers). Switch with `jarvis model` — no code changes, no lock-in.
 
 <table>
 <tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Cyan-themed (#00FFFF accent) with customizable skins — `default`, `ares`, `mono`, `slate`, plus your own YAML skins.</td></tr>
@@ -39,7 +39,7 @@ Use any model you want — OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, Qwen
 ### Linux, macOS, WSL2, Termux
 
 ```bash
-curl -fsSL https://jarvis-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/AnkarIIT/OpenJarvis/main/install.sh | bash
 ```
 
 ### Windows (native, PowerShell)
@@ -49,14 +49,14 @@ curl -fsSL https://jarvis-agent.nousresearch.com/install.sh | bash
 Run this in PowerShell:
 
 ```powershell
-iex (irm https://jarvis-agent.nousresearch.com/install.ps1)
+iex (irm https://raw.githubusercontent.com/AnkarIIT/OpenJarvis/main/install.ps1)
 ```
 
 The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\jarvis\git` — no admin required, completely isolated from any system Git install). Jarvis uses this bundled Git Bash to run shell commands.
 
 If you already have Git installed, the installer detects it and uses that instead. Otherwise a ~45MB MinGit download is all you need — it won't touch or interfere with any system Git.
 
-> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://jarvis-agent.nousresearch.com/docs/getting-started/termux). On Termux, Jarvis installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies.
+> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://github.com/AnkarIIT/OpenJarvis/wiki/Termux). On Termux, Jarvis installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies.
 >
 > **Windows:** Native Windows is fully supported — the PowerShell one-liner above installs everything. If you'd rather use WSL2, the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\jarvis`; WSL2 installs under `~/.jarvis` as on Linux.
 
@@ -120,7 +120,7 @@ jarvis update       # Update to the latest version
 jarvis doctor       # Diagnose any issues
 ```
 
-📖 **[Full documentation →](https://jarvis-agent.nousresearch.com/docs/)**
+📖 **[Full documentation →](https://github.com/AnkarIIT/OpenJarvis/wiki)**
 
 ---
 
@@ -140,31 +140,31 @@ Jarvis has two entry points: start the terminal UI with `jarvis`, or run the gat
 || Interrupt current work         | `Ctrl+C` or send a new message                | `/stop` or send a new message                                                    |
 || Platform-specific status       | `/platforms`                                  | `/status`, `/sethome`                                                            |
 
-For the full command lists, see the [CLI guide](https://jarvis-agent.nousresearch.com/docs/user-guide/cli) and the [Messaging Gateway guide](https://jarvis-agent.nousresearch.com/docs/user-guide/messaging).
+For the full command lists, see the [CLI guide](https://github.com/AnkarIIT/OpenJarvis/wiki/CLI-Usage) and the [Messaging Gateway guide](https://github.com/AnkarIIT/OpenJarvis/wiki/Messaging-Gateway).
 
 ---
 
 ## Documentation
 
-All documentation lives at **[jarvis-agent.nousresearch.com/docs](https://jarvis-agent.nousresearch.com/docs/)**:
+All documentation lives at **[GitHub Wiki](https://github.com/AnkarIIT/OpenJarvis/wiki)**:
 
 | Section                                                                                             | What's Covered                                             |
 | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [Quickstart](https://jarvis-agent.nousresearch.com/docs/getting-started/quickstart)                 | Install → setup → first conversation in 2 minutes          |
-| [CLI Usage](https://jarvis-agent.nousresearch.com/docs/user-guide/cli)                              | Commands, keybindings, personalities, sessions             |
-| [Configuration](https://jarvis-agent.nousresearch.com/docs/user-guide/configuration)                | Config file, providers, models, all options                |
-| [Messaging Gateway](https://jarvis-agent.nousresearch.com/docs/user-guide/messaging)                | Telegram, Discord, Slack, WhatsApp, Signal, Home Assistant |
-| [Security](https://jarvis-agent.nousresearch.com/docs/user-guide/security)                          | Command approval, DM pairing, container isolation          |
-| [Tools & Toolsets](https://jarvis-agent.nousresearch.com/docs/user-guide/features/tools)            | 40+ tools, toolset system, terminal backends               |
-| [Skills System](https://jarvis-agent.nousresearch.com/docs/user-guide/features/skills)              | Procedural memory, Skills Hub, creating skills             |
-| [Memory](https://jarvis-agent.nousresearch.com/docs/user-guide/features/memory)                     | Persistent memory, user profiles, best practices           |
-| [MCP Integration](https://jarvis-agent.nousresearch.com/docs/user-guide/features/mcp)               | Connect any MCP server for extended capabilities           |
-| [Cron Scheduling](https://jarvis-agent.nousresearch.com/docs/user-guide/features/cron)              | Scheduled tasks with platform delivery                     |
-| [Context Files](https://jarvis-agent.nousresearch.com/docs/user-guide/features/context-files)       | Project context that shapes every conversation             |
-| [Architecture](https://jarvis-agent.nousresearch.com/docs/developer-guide/architecture)             | Project structure, agent loop, key classes                 |
-| [Contributing](https://jarvis-agent.nousresearch.com/docs/developer-guide/contributing)             | Development setup, PR process, code style                  |
-| [CLI Reference](https://jarvis-agent.nousresearch.com/docs/reference/cli-commands)                  | All commands and flags                                     |
-| [Environment Variables](https://jarvis-agent.nousresearch.com/docs/reference/environment-variables) | Complete env var reference                                 |
+| [Quickstart](https://github.com/AnkarIIT/OpenJarvis/wikigetting-started/quickstart)                 | Install → setup → first conversation in 2 minutes          |
+| [CLI Usage](https://github.com/AnkarIIT/OpenJarvis/wiki/CLI-Usage)                              | Commands, keybindings, personalities, sessions             |
+| [Configuration](https://github.com/AnkarIIT/OpenJarvis/wikiuser-guide/configuration)                | Config file, providers, models, all options                |
+| [Messaging Gateway](https://github.com/AnkarIIT/OpenJarvis/wiki/Messaging-Gateway)                | Telegram, Discord, Slack, WhatsApp, Signal, Home Assistant |
+| [Security](https://github.com/AnkarIIT/OpenJarvis/wiki/Security)                          | Command approval, DM pairing, container isolation          |
+| [Tools & Toolsets](https://github.com/AnkarIIT/OpenJarvis/wiki/Tools-and-Toolsets)            | 40+ tools, toolset system, terminal backends               |
+| [Skills System](https://github.com/AnkarIIT/OpenJarvis/wiki/Skills-System)              | Procedural memory, Skills Hub, creating skills             |
+| [Memory](https://github.com/AnkarIIT/OpenJarvis/wiki/Memory)                     | Persistent memory, user profiles, best practices           |
+| [MCP Integration](https://github.com/AnkarIIT/OpenJarvis/wiki/MCP-Integration)               | Connect any MCP server for extended capabilities           |
+| [Cron Scheduling](https://github.com/AnkarIIT/OpenJarvis/wiki/Cron-Scheduling)              | Scheduled tasks with platform delivery                     |
+| [Context Files](https://github.com/AnkarIIT/OpenJarvis/wiki/Context-Files)       | Project context that shapes every conversation             |
+| [Architecture](https://github.com/AnkarIIT/OpenJarvis/wiki/Architecture)             | Project structure, agent loop, key classes                 |
+| [Contributing](https://github.com/AnkarIIT/OpenJarvis/wiki/Contributing)             | Development setup, PR process, code style                  |
+| [CLI Reference](https://github.com/AnkarIIT/OpenJarvis/wiki/CLI-Reference)                  | All commands and flags                                     |
+| [Environment Variables](https://github.com/AnkarIIT/OpenJarvis/wiki/Environment-Variables) | Complete env var reference                                 |
 
 ---
 
@@ -215,7 +215,7 @@ Create your own skin as a YAML file in `~/.jarvis/skins/` — define colors, bra
 
 ## Contributing
 
-We welcome contributions! See the [Contributing Guide](https://jarvis-agent.nousresearch.com/docs/developer-guide/contributing) for development setup, code style, and PR process.
+We welcome contributions! See the [Contributing Guide](https://github.com/AnkarIIT/OpenJarvis/wiki/Contributing) for development setup, code style, and PR process.
 
 Quick start for contributors — use the standard installer, then work from the
 full git checkout it creates at `$JARVIS_HOME/jarvis-agent` (usually
@@ -223,7 +223,7 @@ full git checkout it creates at `$JARVIS_HOME/jarvis-agent` (usually
 managed venv, lazy dependencies, gateway, and docs tooling.
 
 ```bash
-curl -fsSL https://jarvis-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/AnkarIIT/OpenJarvis/main/install.sh | bash
 cd "${JARVIS_HOME:-$HOME/.jarvis}/jarvis-agent"
 uv pip install -e ".[all,dev]"
 scripts/run_tests.sh
