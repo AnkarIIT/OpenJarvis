@@ -47,7 +47,7 @@ class TestWriteToSandbox:
     def test_success(self):
         env = MagicMock()
         env.execute.return_value = {"output": "", "returncode": 0}
-        result = _write_to_sandbox("hello world", "/tmp/hermes-results/abc.txt", env)
+        result = _write_to_sandbox("hello world", "/tmp/jarvis-results/abc.txt", env)
         assert result is True
         # First call is the write; a second call round-trip-verifies the
         # persisted size (unparseable probe output = best-effort success).
@@ -66,7 +66,7 @@ class TestWriteToSandbox:
         env = MagicMock()
         env.execute.return_value = {"output": "", "returncode": 0}
         big = "x" * 200_000
-        _write_to_sandbox(big, "/tmp/hermes-results/big.txt", env)
+        _write_to_sandbox(big, "/tmp/jarvis-results/big.txt", env)
         cmd = env.execute.call_args_list[0][0][0]
         assert len(cmd) < 1_000  # cmd is just `mkdir -p X && cat > Y`
         assert env.execute.call_args_list[0][1]["stdin_data"] == big
@@ -75,21 +75,21 @@ class TestWriteToSandbox:
     def test_path_with_spaces_is_quoted(self):
         env = MagicMock()
         env.execute.return_value = {"output": "", "returncode": 0}
-        remote_path = "/tmp/hermes results/abc file.txt"
+        remote_path = "/tmp/jarvis results/abc file.txt"
         _write_to_sandbox("content", remote_path, env)
         cmd = env.execute.call_args_list[0][0][0]
-        assert "'/tmp/hermes results'" in cmd
-        assert "'/tmp/hermes results/abc file.txt'" in cmd
+        assert "'/tmp/jarvis results'" in cmd
+        assert "'/tmp/jarvis results/abc file.txt'" in cmd
 
     def test_shell_metacharacters_neutralized(self):
         """Paths with shell metacharacters must be quoted to prevent injection."""
         env = MagicMock()
         env.execute.return_value = {"output": "", "returncode": 0}
-        malicious_path = "/tmp/hermes-results/$(whoami).txt"
+        malicious_path = "/tmp/jarvis-results/$(whoami).txt"
         _write_to_sandbox("content", malicious_path, env)
         cmd = env.execute.call_args_list[0][0][0]
         # The $() must not appear unquoted — shlex.quote wraps it
-        assert "'/tmp/hermes-results/$(whoami).txt'" in cmd
+        assert "'/tmp/jarvis-results/$(whoami).txt'" in cmd
 
     def test_semicolon_injection_neutralized(self):
         env = MagicMock()
@@ -144,10 +144,10 @@ class TestWriteToSandbox:
             {"output": f"{probed}\n", "returncode": 0},  # wc -c
             {"output": "", "returncode": 0},          # rm -f cleanup (mismatch only)
         ]
-        assert _write_to_sandbox(content, "/tmp/hermes-results/p.txt", env) is ok
+        assert _write_to_sandbox(content, "/tmp/jarvis-results/p.txt", env) is ok
         if not ok:
             rm_cmd = env.execute.call_args_list[2][0][0]
-            assert rm_cmd.startswith("rm -f ") and "/tmp/hermes-results/p.txt" in rm_cmd
+            assert rm_cmd.startswith("rm -f ") and "/tmp/jarvis-results/p.txt" in rm_cmd
         else:
             assert env.execute.call_count == 2
 
@@ -158,7 +158,7 @@ class TestWriteToSandbox:
             {"output": "", "returncode": 0},
             RuntimeError("exec transport gone"),
         ]
-        assert _write_to_sandbox("data", "/tmp/hermes-results/np.txt", env) is True
+        assert _write_to_sandbox("data", "/tmp/jarvis-results/np.txt", env) is True
 
 
 class TestResolveStorageDir:
@@ -168,7 +168,7 @@ class TestResolveStorageDir:
     def test_uses_env_temp_dir_when_available(self):
         env = MagicMock()
         env.get_temp_dir.return_value = "/data/data/com.termux/files/usr/tmp"
-        assert _resolve_storage_dir(env) == "/data/data/com.termux/files/usr/tmp/hermes-results"
+        assert _resolve_storage_dir(env) == "/data/data/com.termux/files/usr/tmp/jarvis-results"
 
 
 class TestSafeResultFilename:
@@ -192,12 +192,12 @@ class TestBuildPersistedMessage:
             preview="first 100 chars...",
             has_more=True,
             original_size=50_000,
-            file_path="/tmp/hermes-results/test123.txt",
+            file_path="/tmp/jarvis-results/test123.txt",
         )
         assert msg.startswith(PERSISTED_OUTPUT_TAG)
         assert msg.endswith(PERSISTED_OUTPUT_CLOSING_TAG)
         assert "50,000 characters" in msg
-        assert "/tmp/hermes-results/test123.txt" in msg
+        assert "/tmp/jarvis-results/test123.txt" in msg
         assert "read_file" in msg
         assert "first 100 chars..." in msg
         assert "..." in msg  # has_more indicator
@@ -208,7 +208,7 @@ class TestBuildPersistedMessage:
             preview="x",
             has_more=True,
             original_size=2_000_000,
-            file_path="/tmp/hermes-results/big.txt",
+            file_path="/tmp/jarvis-results/big.txt",
         )
         assert "MB" in msg
 
@@ -382,12 +382,12 @@ class TestPerToolThresholds:
             pytest.skip("file_tools not importable in test env")
 
 
-# ── Host-side spillover ($HERMES_HOME/cache/spillover) ────────────────
+# ── Host-side spillover ($JARVIS_HOME/cache/spillover) ────────────────
 
 class TestSpillover:
     @pytest.fixture(autouse=True)
     def _isolated_home(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+        monkeypatch.setenv("JARVIS_HOME", str(tmp_path / ".jarvis"))
         # Reset the once-per-process prune flag so each test is independent.
         import tools.tool_result_storage as trs
         monkeypatch.setattr(trs, "_spillover_pruned_homes", set())
@@ -468,7 +468,7 @@ class TestSpillover:
             threshold=30_000,
         )
         assert PERSISTED_OUTPUT_TAG in result
-        assert "/tmp/hermes-results/tc_remote_2.txt" in result
+        assert "/tmp/jarvis-results/tc_remote_2.txt" in result
         assert env.execute.call_count == 3
         # Host canonical copy exists regardless.
         assert (get_spillover_dir() / "tc_remote_2.txt").exists()
@@ -541,7 +541,7 @@ class TestRecoveryHint:
             preview="preview text",
             has_more=True,
             original_size=60_000,
-            file_path="/tmp/hermes-results/r.txt",
+            file_path="/tmp/jarvis-results/r.txt",
         )
         assert "Recovery:" in msg
         assert "execute_code" in msg
