@@ -3,7 +3,7 @@ entry) must carry the same one-shot switch notice the messaging gateway surfaces
 private notice key must never reach the AIAgent constructor. Drives the real ``_make_agent``."""
 from unittest.mock import patch
 
-from hermes_cli.auth import AuthError
+from jarvis_cli.auth import AuthError
 
 
 class _StubAgent:
@@ -14,10 +14,10 @@ class _StubAgent:
 def _build(monkeypatch, tmp_path, *, primary_fails: bool):
     from tui_gateway import server
 
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    monkeypatch.setenv("HERMES_IGNORE_RULES", "1")
+    monkeypatch.setenv("JARVIS_HOME", str(tmp_path))
+    monkeypatch.setenv("JARVIS_IGNORE_RULES", "1")
     (tmp_path / "config.yaml").write_text("model:\n  default: gpt-5.6-sol\n  provider: openai-codex\n")
-    monkeypatch.setattr(server, "_hermes_home", tmp_path)
+    monkeypatch.setattr(server, "_jarvis_home", tmp_path)
     monkeypatch.setattr(server, "_get_db", lambda: None)
     monkeypatch.setattr(server, "_load_fallback_model",
                         lambda: [{"provider": "anthropic", "model": "claude-sonnet-5", "api_key": "fb"}])
@@ -28,7 +28,7 @@ def _build(monkeypatch, tmp_path, *, primary_fails: bool):
         return {"api_key": "k", "base_url": "https://example.invalid/v1",
                 "provider": kwargs.get("requested") or "openai-codex", "api_mode": "chat_completions"}
 
-    with patch("hermes_cli.runtime_provider.resolve_runtime_provider", side_effect=_resolve), \
+    with patch("jarvis_cli.runtime_provider.resolve_runtime_provider", side_effect=_resolve), \
          patch("run_agent.AIAgent", _StubAgent):
         return server._make_agent("sid", "key", context_cwd_is_launch_artifact=False)
 
