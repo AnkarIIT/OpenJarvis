@@ -94,9 +94,9 @@ def test_required_frontmatter_fields(p):
     ]
     if missing and not _grandfathered(p, "fields"):
         pytest.fail(f"{_rel(p)}: missing frontmatter fields: {missing}")
-    hermes = (fm.get("metadata") or {}).get("hermes") or {}
-    if not (hermes.get("tags") or fm.get("tags")) and not _grandfathered(p, "tags"):
-        pytest.fail(f"{_rel(p)}: no tags (metadata.hermes.tags or top-level tags)")
+    jarvis = (fm.get("metadata") or {}).get("jarvis") or {}
+    if not (jarvis.get("tags") or fm.get("tags")) and not _grandfathered(p, "tags"):
+        pytest.fail(f"{_rel(p)}: no tags (metadata.jarvis.tags or top-level tags)")
 
 
 @pytest.mark.parametrize("p", _params())
@@ -123,9 +123,9 @@ def test_description_hardline(p):
 @pytest.mark.parametrize("p", _params())
 def test_related_skills_resolve(p):
     fm, _ = _frontmatter(p)
-    hermes = (fm.get("metadata") or {}).get("hermes") or {}
+    jarvis = (fm.get("metadata") or {}).get("jarvis") or {}
     dangling = [
-        rs for rs in (hermes.get("related_skills") or []) if rs not in _all_names()
+        rs for rs in (jarvis.get("related_skills") or []) if rs not in _all_names()
     ]
     if dangling and not _grandfathered(p, "related"):
         pytest.fail(f"{_rel(p)}: dangling related_skills: {dangling}")
