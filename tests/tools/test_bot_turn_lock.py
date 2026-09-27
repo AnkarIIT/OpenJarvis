@@ -131,13 +131,13 @@ def test_turn_wait_seconds_falls_back_to_module_constant(monkeypatch):
     def _boom():
         raise RuntimeError("no config")
 
-    monkeypatch.setattr("hermes_cli.config.load_config", _boom)
+    monkeypatch.setattr("jarvis_cli.config.load_config", _boom)
     assert bot_relay.turn_wait_seconds() == float(bot_relay.TURN_WAIT_SECONDS_FALLBACK)
 
 
 def test_turn_wait_seconds_reads_config(monkeypatch):
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "jarvis_cli.config.load_config",
         lambda: {"bot_mode": {"turn_wait_seconds": 7}},
     )
     assert bot_relay.turn_wait_seconds() == 7.0
@@ -147,10 +147,10 @@ def test_turn_wait_seconds_reads_config(monkeypatch):
 
 
 def test_run_delivery_holds_profile_lock_during_turn(root, tmp_path, monkeypatch):
-    """The local `hermes -p <profile>` turn runs UNDER the profile lock."""
-    home = root / ".hermes"
+    """The local `jarvis -p <profile>` turn runs UNDER the profile lock."""
+    home = root / ".jarvis"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("JARVIS_HOME", str(home))
     dm = tmp_path / "dm.txt"
     dm.write_text("hi", encoding="utf-8")
     observed = {}
@@ -171,10 +171,10 @@ def test_run_delivery_holds_profile_lock_during_turn(root, tmp_path, monkeypatch
 
     monkeypatch.setattr(bot_mode_dm.subprocess, "run", _fake_run)
     rc = bot_mode_dm._run_delivery(
-        ["hermes", "-p", "ops", "chat"], str(dm), stdin_file=False
+        ["jarvis", "-p", "ops", "chat"], str(dm), stdin_file=False
     )
     assert rc == 0
-    assert observed["argv"][:3] == ["hermes", "-p", "ops"]
+    assert observed["argv"][:3] == ["jarvis", "-p", "ops"]
     # …and after the turn, the lock is free again.
     with acquire_turn_lock(home, "ops", timeout_seconds=0.5):
         pass
@@ -182,9 +182,9 @@ def test_run_delivery_holds_profile_lock_during_turn(root, tmp_path, monkeypatch
 
 def test_delivery_main_reports_target_busy_json(root, tmp_path, monkeypatch, capsys):
     """A queued delivery that exceeds its budget surfaces the structured error."""
-    home = root / ".hermes"
+    home = root / ".jarvis"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("JARVIS_HOME", str(home))
     monkeypatch.setattr(bot_relay, "turn_wait_seconds", lambda: 0.2)
     dm = tmp_path / "dm.txt"
     dm.write_text("hi", encoding="utf-8")
@@ -198,7 +198,7 @@ def test_delivery_main_reports_target_busy_json(root, tmp_path, monkeypatch, cap
     assert held.wait(timeout=5)
     try:
         rc = bot_mode_dm._delivery_main(
-            ["--run-delivery", "query-file", str(dm), "hermes", "-p", "ops", "chat"]
+            ["--run-delivery", "query-file", str(dm), "jarvis", "-p", "ops", "chat"]
         )
         assert rc == 1
         payload = json.loads(capsys.readouterr().out.strip())
@@ -212,9 +212,9 @@ def test_delivery_main_reports_target_busy_json(root, tmp_path, monkeypatch, cap
 
 def test_peer_stdin_delivery_skips_local_lock(root, tmp_path, monkeypatch):
     """Peer transports run their turn on the remote gateway — no local lock."""
-    home = root / ".hermes"
+    home = root / ".jarvis"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("JARVIS_HOME", str(home))
     dm = tmp_path / "dm.txt"
     dm.write_text("hi", encoding="utf-8")
 
@@ -235,7 +235,7 @@ def test_peer_stdin_delivery_skips_local_lock(root, tmp_path, monkeypatch):
 
         monkeypatch.setattr(bot_mode_dm.subprocess, "run", _fake_run)
         rc = bot_mode_dm._run_delivery(
-            ["hermes", "peer", "dm", "spark/ops"], str(dm), stdin_file=True
+            ["jarvis", "peer", "dm", "spark/ops"], str(dm), stdin_file=True
         )
         assert rc == 0  # did not contend with the held 'ops' lock
     finally:
@@ -248,9 +248,9 @@ def test_peer_stdin_delivery_skips_local_lock(root, tmp_path, monkeypatch):
 
 def test_local_delivery_command_never_reenters_the_lock():
     """The gateway deliver handler runs local_delivery_command ALREADY holding
-    the profile lock. That argv must stay a raw hermes CLI invocation:
+    the profile lock. That argv must stay a raw jarvis CLI invocation:
     routing it through the --run-delivery wrapper would make the child hit
-    _delivery_lock (hermes CLI + '-p'), burn the full wait
+    _delivery_lock (jarvis CLI + '-p'), burn the full wait
     budget against its parent's flock, and fail every relay delivery with
     target_busy. argv[0] may be a resolved venv path (#93590) — the lock
     matcher and this assertion both go by basename."""
@@ -258,7 +258,7 @@ def test_local_delivery_command_never_reenters_the_lock():
 
     argv = bot_relay.local_delivery_command("ops", "/tmp/q.txt")
     assert argv[1:3] == ["-p", "ops"]
-    assert Path(argv[0]).name in ("hermes", "hermes.exe")
+    assert Path(argv[0]).name in ("jarvis", "jarvis.exe")
     assert "--run-delivery" not in argv
     assert not any("bot_mode_dm" in part for part in argv)
 
@@ -269,7 +269,7 @@ def test_relay_deliver_returns_target_busy_error(tmp_path, monkeypatch):
     h = tmp_path / "h"
     (h / "profiles" / "ops").mkdir(parents=True)
     (h / "profiles" / "ops" / "config.yaml").touch()  # identity marker: bare dirs are not profiles
-    monkeypatch.setenv("HERMES_HOME", str(h))
+    monkeypatch.setenv("JARVIS_HOME", str(h))
     monkeypatch.setattr(bot_relay, "turn_wait_seconds", lambda: 0.2)
 
     spawned = {}
@@ -321,7 +321,7 @@ def test_relay_deliver_serializes_then_succeeds(tmp_path, monkeypatch):
     h = tmp_path / "h"
     (h / "profiles" / "ops").mkdir(parents=True)
     (h / "profiles" / "ops" / "config.yaml").touch()  # identity marker: bare dirs are not profiles
-    monkeypatch.setenv("HERMES_HOME", str(h))
+    monkeypatch.setenv("JARVIS_HOME", str(h))
     monkeypatch.setattr(bot_relay, "turn_wait_seconds", lambda: 5.0)
 
     class _Proc:
@@ -361,7 +361,7 @@ class _WithReason(RuntimeError):
     ("failure", "code", "reason"),
     [
         (TurnBusyError("ops", 0.2), 5096, "target_busy"),
-        (subprocess.TimeoutExpired(["hermes"], 600), 5093, "delivery_timeout"),
+        (subprocess.TimeoutExpired(["jarvis"], 600), 5093, "delivery_timeout"),
         (RuntimeError("Error code: 401 - invalid api key"), 5094, "provider_auth_or_access"),
         (RuntimeError("something nobody has a rule for"), 5094, "unknown"),
         (_WithReason("CERTIFICATE_VERIFY_FAILED", "ssl handshake failed"), 5094, "unknown"),
@@ -381,7 +381,7 @@ def test_every_relay_refusal_carries_its_typed_reason(tmp_path, monkeypatch, fai
     h = tmp_path / "h"
     (h / "profiles" / "ops").mkdir(parents=True)
     (h / "profiles" / "ops" / "config.yaml").touch()  # identity marker: bare dirs are not profiles
-    monkeypatch.setenv("HERMES_HOME", str(h))
+    monkeypatch.setenv("JARVIS_HOME", str(h))
     monkeypatch.setattr(bot_relay, "local_delivery_command", lambda prof, tmp: ["__delivery__", prof])
 
     def _raise(argv, **kwargs):
@@ -416,7 +416,7 @@ def test_delivery_main_reports_every_failure_as_typed_json(tmp_path, monkeypatch
 
     monkeypatch.setattr(bot_mode_dm, "_run_delivery", _raise)
 
-    rc = bot_mode_dm._delivery_main(["--run-delivery", "query-file", str(dm), "hermes", "-p", "ops", "chat"])
+    rc = bot_mode_dm._delivery_main(["--run-delivery", "query-file", str(dm), "jarvis", "-p", "ops", "chat"])
 
     assert rc == 1
     payload = json.loads(capsys.readouterr().out.strip())
