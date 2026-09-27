@@ -44,14 +44,14 @@ class TestGetBrowserEngine:
         from tools.browser_tool_cloud import _get_browser_engine
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("AGENT_BROWSER_ENGINE", None)
-            with patch("hermes_cli.config.read_raw_config", return_value={}):
+            with patch("jarvis_cli.config.read_raw_config", return_value={}):
                 assert _get_browser_engine() == "auto"
 
     def test_config_lightpanda(self):
         """Config browser.engine = 'lightpanda' is respected."""
         from tools.browser_tool_cloud import _get_browser_engine
         cfg = {"browser": {"engine": "lightpanda"}}
-        with patch("hermes_cli.config.read_raw_config", return_value=cfg):
+        with patch("jarvis_cli.config.read_raw_config", return_value=cfg):
             assert _get_browser_engine() == "lightpanda"
 
 
@@ -59,7 +59,7 @@ class TestGetBrowserEngine:
         """Result is cached — second call doesn't re-read config."""
         from tools.browser_tool_cloud import _get_browser_engine
         mock_read = MagicMock(return_value={"browser": {"engine": "lightpanda"}})
-        with patch("hermes_cli.config.read_raw_config", mock_read):
+        with patch("jarvis_cli.config.read_raw_config", mock_read):
             assert _get_browser_engine() == "lightpanda"
             assert _get_browser_engine() == "lightpanda"
             mock_read.assert_called_once()
@@ -142,12 +142,12 @@ class TestConfigIntegration:
     """Verify engine config is in DEFAULT_CONFIG."""
 
     def test_engine_in_default_config(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from jarvis_cli.config import DEFAULT_CONFIG
         assert "engine" in DEFAULT_CONFIG["browser"]
         assert DEFAULT_CONFIG["browser"]["engine"] == "auto"
 
     def test_env_var_registered(self):
-        from hermes_cli.config import OPTIONAL_ENV_VARS
+        from jarvis_cli.config import OPTIONAL_ENV_VARS
         assert "AGENT_BROWSER_ENGINE" in OPTIONAL_ENV_VARS
         entry = OPTIONAL_ENV_VARS["AGENT_BROWSER_ENGINE"]
         assert entry["category"] == "tool"
@@ -332,7 +332,7 @@ class TestLightpandaFallbackWarning:
              patch("tools.browser_tool_lightpanda_fallback._chrome_fallback_screenshot", return_value={
                  "success": True, "data": {"path": str(chrome_shot)}
              }), \
-             patch("hermes_constants.get_hermes_dir", return_value=tmp_path), \
+             patch("jarvis_constants.get_jarvis_dir", return_value=tmp_path), \
              patch("agent.auxiliary_client.call_llm", return_value=_Response()):
             response = json.loads(bt.browser_vision("what is this?", task_id="vision-structured"))
 
@@ -767,7 +767,7 @@ class TestLightpandaSessionLifecycle:
         """A parseable-but-non-object state file is swept like an unreadable one —
         never an AttributeError that wedges the reaper."""
         from tools import browser_lightpanda
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("JARVIS_HOME", str(tmp_path))
         state_dir = browser_lightpanda._state_dir()
         bad = state_dir / "broken.json"
         bad.write_text('"not a record"', encoding="utf-8")
