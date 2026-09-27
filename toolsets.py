@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Set, Optional, Tuple
 # in `desktop_ui`/`project`, enabled per desktop-sourced session by the GUI gateway
 # (tui_gateway/server.py::_load_enabled_toolsets). HA, kanban and computer_use
 # entries are further gated by their tools' check_fns.
-_HERMES_CORE_TOOLS = [
+_JARVIS_CORE_TOOLS = [
     "web_search", "web_extract",
     "terminal", "process_manage",
     "read_file", "write_file", "patch", "search_files",
@@ -40,7 +40,7 @@ _HERMES_CORE_TOOLS = [
 ]
 
 # Webhook payloads are untrusted third-party content: no file/system execution.
-_HERMES_WEBHOOK_SAFE_TOOLS = ["web_search", "web_extract", "vision_analyze", "clarify"]
+_JARVIS_WEBHOOK_SAFE_TOOLS = ["web_search", "web_extract", "vision_analyze", "clarify"]
 _HA_TOOLS = ["ha_list_entities", "ha_get_state", "ha_list_services", "ha_call_service"]
 _FEISHU_TOOLS = [
     "feishu_doc_read", "feishu_drive_list_comments", "feishu_drive_list_comment_replies",
@@ -55,13 +55,13 @@ def _ts(description, tools=(), includes=(), **extra):
 
 
 def _bundle(description, extras=()):
-    """A `hermes-*` platform bundle: the shared core tools plus optional platform extras."""
-    return _ts(description, _HERMES_CORE_TOOLS + list(extras))
+    """A `jarvis-*` platform bundle: the shared core tools plus optional platform extras."""
+    return _ts(description, _JARVIS_CORE_TOOLS + list(extras))
 
 
 def _core_without(*excluded, kanban=True):
-    """_HERMES_CORE_TOOLS minus *excluded* (and, unless kanban=True, every kanban_* tool); order preserved."""
-    return [t for t in _HERMES_CORE_TOOLS if t not in excluded and (kanban or not t.startswith("kanban_"))]
+    """_JARVIS_CORE_TOOLS minus *excluded* (and, unless kanban=True, every kanban_* tool); order preserved."""
+    return [t for t in _JARVIS_CORE_TOOLS if t not in excluded and (kanban or not t.startswith("kanban_"))]
 
 
 # Coding posture: everything you reach for while pairing on code; drops messaging,
@@ -77,7 +77,7 @@ TOOLSETS = {
         "Search X (Twitter) posts and threads via xAI's built-in x_search Responses "
         "tool. Read-only public X discovery; use the xurl skill for authenticated X "
         "API reads and account actions. Available when xAI credentials are configured "
-        "(SuperGrok OAuth or XAI_API_KEY). Off by default; enable in `hermes tools` → "
+        "(SuperGrok OAuth or XAI_API_KEY). Off by default; enable in `jarvis tools` → "
         "X (Twitter) Search.",
         ["x_search"],
     ),
@@ -88,7 +88,7 @@ TOOLSETS = {
         "Video generation tools. Single ``video_generate`` tool covers text-to-video "
         "(prompt only) and image-to-video (prompt + image_url), plus "
         "reference-to-video. Provider-specific edit/extend workflows may appear as "
-        "separate tools. Configure via ``hermes tools`` → Video Generation.",
+        "separate tools. Configure via ``jarvis tools`` → Video Generation.",
         ["video_generate", "xai_video_edit", "xai_video_extend"],
     ),
     "computer_use": _ts(
@@ -110,7 +110,7 @@ TOOLSETS = {
     "browser": _ts(
         "Browser automation for web interaction (navigate, click, type, scroll, "
         "iframes, hold-click)",
-        [t for t in _HERMES_CORE_TOOLS if t.startswith("browser_")],
+        [t for t in _JARVIS_CORE_TOOLS if t.startswith("browser_")],
     ),
     "cronjob": _ts(
         "Cronjob management tool - create, list, update, pause, resume, remove, and "
@@ -147,13 +147,13 @@ TOOLSETS = {
     "homeassistant": _ts("Home Assistant smart home control and monitoring", _HA_TOOLS),
     "kanban": _ts(
         "Kanban multi-agent coordination — only active when the agent is spawned by "
-        "the kanban dispatcher (HERMES_KANBAN_TASK env set). The dispatcher runs "
+        "the kanban dispatcher (JARVIS_KANBAN_TASK env set). The dispatcher runs "
         "inside the gateway by default; see `kanban.dispatch_in_gateway` in "
         "config.yaml. Lets workers mark tasks done with structured handoffs, enter "
         "first-class review (request_review — not a block), return review changes, "
         "block for human input, heartbeat during long ops, comment on threads, attach "
         "files, and (for orchestrators) list, unblock, and fan out tasks.",
-        [t for t in _HERMES_CORE_TOOLS if t.startswith("kanban_")],
+        [t for t in _JARVIS_CORE_TOOLS if t.startswith("kanban_")],
     ),
     "discord": _ts("Discord read and participate tools (fetch messages, search members, create threads)", ["discord"]),
     "discord_admin": _ts("Discord server management (list channels/roles, pin messages, assign roles)", ["discord_admin"]),
@@ -173,7 +173,7 @@ TOOLSETS = {
     # Coding posture, auto-selected in a code workspace (agent/coding_context.py).
     # `desktop_ui` is folded in separately by the GUI gateway for desktop sessions.
     # posture=True: per-session posture, never auto-recovered into platform tool
-    # config (see the non-configurable-toolset recovery loop in hermes_cli/tools_config.py).
+    # config (see the non-configurable-toolset recovery loop in jarvis_cli/tools_config.py).
     "coding": _ts(
         "Coding-focused toolset: files, terminal, search, web docs, skills, todo, "
         "delegate, vision, browser",
@@ -181,61 +181,61 @@ TOOLSETS = {
         posture=True,
     ),
 
-    # Full Hermes toolsets (CLI + messaging platforms). All share the core tools;
-    # there is deliberately no agent-callable send_message tool. hermes-acp is the
+    # Full Jarvis toolsets (CLI + messaging platforms). All share the core tools;
+    # there is deliberately no agent-callable send_message tool. jarvis-acp is the
     # coding posture minus the interactive clarify UI.
-    "hermes-acp": _ts(
+    "jarvis-acp": _ts(
         "Editor integration (VS Code, Zed, JetBrains) — coding-focused tools without "
         "messaging, audio, or clarify UI",
         [t for t in _CODING_TOOLS if t != "clarify"],
     ),
-    "hermes-api-server": _ts(
+    "jarvis-api-server": _ts(
         "OpenAI-compatible API server — full agent tools accessible via HTTP (no "
         "interactive UI tools like clarify or send_message)",
         _core_without("text_to_speech", "clarify", "computer_use", kanban=False),
     ),
-    "hermes-cli": _bundle("Full interactive CLI toolset - all default tools plus cronjob management"),
+    "jarvis-cli": _bundle("Full interactive CLI toolset - all default tools plus cronjob management"),
 
-    # Mirrors hermes-cli; `hermes tools` platform config filters it down and
+    # Mirrors jarvis-cli; `jarvis tools` platform config filters it down and
     # _get_platform_tools() drops _DEFAULT_OFF_TOOLSETS unless user-enabled.
-    "hermes-cron": _bundle("Default cron toolset - same core tools as hermes-cli; gated by `hermes tools`"),
-    "hermes-telegram": _bundle("Telegram bot toolset - full access for personal use (terminal has safety checks)"),
-    "hermes-discord": _bundle(
+    "jarvis-cron": _bundle("Default cron toolset - same core tools as jarvis-cli; gated by `jarvis tools`"),
+    "jarvis-telegram": _bundle("Telegram bot toolset - full access for personal use (terminal has safety checks)"),
+    "jarvis-discord": _bundle(
         "Discord bot toolset - full access (terminal has safety checks via dangerous "
         "command approval)",
         ["discord", "discord_admin"],
     ),
-    "hermes-whatsapp": _bundle("WhatsApp bot toolset - similar to Telegram (personal messaging, more trusted)"),
-    "hermes-slack": _bundle("Slack bot toolset - full access for workspace use (terminal has safety checks)"),
-    "hermes-signal": _bundle("Signal bot toolset - encrypted messaging platform (full access)"),
-    "hermes-bluebubbles": _bundle("BlueBubbles iMessage bot toolset - Apple iMessage via local BlueBubbles server"),
-    "hermes-homeassistant": _bundle("Home Assistant bot toolset - smart home event monitoring and control"),
-    "hermes-email": _bundle("Email bot toolset - interact with Hermes via email (IMAP/SMTP)"),
-    "hermes-mattermost": _bundle("Mattermost bot toolset - self-hosted team messaging (full access)"),
-    "hermes-matrix": _bundle("Matrix bot toolset - decentralized encrypted messaging (full access)"),
-    "hermes-dingtalk": _bundle("DingTalk bot toolset - enterprise messaging platform (full access)"),
-    "hermes-feishu": _bundle("Feishu/Lark bot toolset - enterprise messaging via Feishu/Lark (full access)", _FEISHU_TOOLS),
-    "hermes-weixin": _bundle("Weixin bot toolset - personal WeChat messaging via iLink (full access)"),
-    "hermes-qqbot": _bundle("QQBot toolset - QQ messaging via Official Bot API v2 (full access)"),
-    "hermes-wecom": _bundle("WeCom bot toolset - enterprise WeChat messaging (full access)"),
-    "hermes-wecom-callback": _bundle("WeCom callback toolset - enterprise self-built app messaging (full access)"),
-    "hermes-yuanbao": {
+    "jarvis-whatsapp": _bundle("WhatsApp bot toolset - similar to Telegram (personal messaging, more trusted)"),
+    "jarvis-slack": _bundle("Slack bot toolset - full access for workspace use (terminal has safety checks)"),
+    "jarvis-signal": _bundle("Signal bot toolset - encrypted messaging platform (full access)"),
+    "jarvis-bluebubbles": _bundle("BlueBubbles iMessage bot toolset - Apple iMessage via local BlueBubbles server"),
+    "jarvis-homeassistant": _bundle("Home Assistant bot toolset - smart home event monitoring and control"),
+    "jarvis-email": _bundle("Email bot toolset - interact with Jarvis via email (IMAP/SMTP)"),
+    "jarvis-mattermost": _bundle("Mattermost bot toolset - self-hosted team messaging (full access)"),
+    "jarvis-matrix": _bundle("Matrix bot toolset - decentralized encrypted messaging (full access)"),
+    "jarvis-dingtalk": _bundle("DingTalk bot toolset - enterprise messaging platform (full access)"),
+    "jarvis-feishu": _bundle("Feishu/Lark bot toolset - enterprise messaging via Feishu/Lark (full access)", _FEISHU_TOOLS),
+    "jarvis-weixin": _bundle("Weixin bot toolset - personal WeChat messaging via iLink (full access)"),
+    "jarvis-qqbot": _bundle("QQBot toolset - QQ messaging via Official Bot API v2 (full access)"),
+    "jarvis-wecom": _bundle("WeCom bot toolset - enterprise WeChat messaging (full access)"),
+    "jarvis-wecom-callback": _bundle("WeCom callback toolset - enterprise self-built app messaging (full access)"),
+    "jarvis-yuanbao": {
         "description": "Yuanbao Bot 元宝消息平台工具集 - 群信息、成员查询、私聊、贴纸表情",
-        "tools": _HERMES_CORE_TOOLS + _YUANBAO_TOOLS,
+        "tools": _JARVIS_CORE_TOOLS + _YUANBAO_TOOLS,
         "module": "tools.yuanbao_tools",
         "includes": [],
     },
-    "hermes-sms": _bundle("SMS bot toolset - interact with Hermes via SMS (Twilio)"),
-    "hermes-webhook": _ts("Webhook toolset - receive and process external webhook events", _HERMES_WEBHOOK_SAFE_TOOLS),
-    "hermes-gateway": _ts(
+    "jarvis-sms": _bundle("SMS bot toolset - interact with Jarvis via SMS (Twilio)"),
+    "jarvis-webhook": _ts("Webhook toolset - receive and process external webhook events", _JARVIS_WEBHOOK_SAFE_TOOLS),
+    "jarvis-gateway": _ts(
         "Gateway toolset - union of all messaging platform tools",
         [],
         includes=[
-            "hermes-telegram", "hermes-discord", "hermes-whatsapp", "hermes-slack",
-            "hermes-signal", "hermes-bluebubbles", "hermes-homeassistant", "hermes-email",
-            "hermes-sms", "hermes-mattermost", "hermes-matrix", "hermes-dingtalk",
-            "hermes-feishu", "hermes-wecom", "hermes-wecom-callback", "hermes-weixin",
-            "hermes-qqbot", "hermes-webhook", "hermes-yuanbao",
+            "jarvis-telegram", "jarvis-discord", "jarvis-whatsapp", "jarvis-slack",
+            "jarvis-signal", "jarvis-bluebubbles", "jarvis-homeassistant", "jarvis-email",
+            "jarvis-sms", "jarvis-mattermost", "jarvis-matrix", "jarvis-dingtalk",
+            "jarvis-feishu", "jarvis-wecom", "jarvis-wecom-callback", "jarvis-weixin",
+            "jarvis-qqbot", "jarvis-webhook", "jarvis-yuanbao",
         ],
     ),
 }
@@ -308,13 +308,13 @@ def get_toolset(name: str, *, include_registry: bool = True) -> Optional[Dict[st
 
 
 def bundle_non_core_tools(toolset_name: str) -> Set[str]:
-    """A bundle's tools minus _HERMES_CORE_TOOLS (one level of includes).
+    """A bundle's tools minus _JARVIS_CORE_TOOLS (one level of includes).
 
     Disabling a `core + extras` bundle must not strip the core tools every other
-    toolset shares. One `includes` pass suffices (only hermes-gateway nests
+    toolset shares. One `includes` pass suffices (only jarvis-gateway nests
     bundles). Unknown names: full resolution minus core.
     """
-    core = set(_HERMES_CORE_TOOLS)
+    core = set(_JARVIS_CORE_TOOLS)
     ts_def = get_toolset(toolset_name)
     if not (ts_def and "tools" in ts_def):
         return set(resolve_toolset(toolset_name)) - core
@@ -333,18 +333,18 @@ _resolve_toolset_memo: Dict[Tuple[str, bool, int, int, str], List[str]] = {}
 
 
 def _plugin_platform_bundle(name: str) -> List[str]:
-    """Implicit `hermes-<platform>` bundle for a registered plugin platform: core
+    """Implicit `jarvis-<platform>` bundle for a registered plugin platform: core
     tools plus whatever the plugin registered under the platform name. [] otherwise."""
-    if not name.startswith("hermes-"):
+    if not name.startswith("jarvis-"):
         return []
-    platform_name = name[len("hermes-"):]
+    platform_name = name[len("jarvis-"):]
     try:
         from gateway.platform_registry import platform_registry
         if not platform_registry.is_registered(platform_name):
             return []
     except Exception:
         return []
-    tools = set(_HERMES_CORE_TOOLS)
+    tools = set(_JARVIS_CORE_TOOLS)
     try:
         tools.update(e.name for e in _registry_call("get_all_entries", ()) if e.toolset == platform_name)
     except Exception:
