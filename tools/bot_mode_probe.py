@@ -1,6 +1,6 @@
 """Bot Mode roster probe — canonical Bot Chat system prompt section.
 
-When any profile carries ``ui_meta['hermes-bots']`` in profile.yaml (Bot-Mode-managed),
+When any profile carries ``ui_meta['jarvis-bots']`` in profile.yaml (Bot-Mode-managed),
 a bot's canonical "Bot Chat" session — ONLY that session (agent/system_prompt.py enforces
 the ``BOT_CHAT_TITLE`` gate) — gets a "Messaging other agents" section. Silent (``""``)
 when no profile is managed or on any error. Older desktop builds appended a frozen copy of
@@ -38,9 +38,9 @@ _cached: dict[str, str] = {}
 
 
 def _default_home() -> str:
-    """Ambient process HERMES_HOME (env, else the platform default) as a string."""
-    from hermes_constants import get_process_hermes_home
-    return str(get_process_hermes_home())
+    """Ambient process JARVIS_HOME (env, else the platform default) as a string."""
+    from jarvis_constants import get_process_jarvis_home
+    return str(get_process_jarvis_home())
 
 
 def _resolve_home(home: str | os.PathLike | None) -> Path:
@@ -55,8 +55,8 @@ def _swallow(fn, default):
         return default
 
 
-def _hermes_root(home: Path) -> Path:
-    """Root ~/.hermes for both the default profile and named profiles."""
+def _jarvis_root(home: Path) -> Path:
+    """Root ~/.jarvis for both the default profile and named profiles."""
     return home.parent.parent if home.parent.name == "profiles" else home
 
 
@@ -65,15 +65,15 @@ def _profile_name(home: Path) -> str:
 
 
 def _handle(name: str) -> str:
-    # The mention middleware aliases the default profile as @hermes.
-    return "hermes" if name == "default" else name
+    # The mention middleware aliases the default profile as @jarvis.
+    return "jarvis" if name == "default" else name
 
 
 def _roster(root: Path) -> list[tuple[str, Path]]:
     """(name, dir) for the default profile + every live named profile, sorted. Same identity
     predicate as ``profile list``: infra dirs (``sessions/``, ``logs/``) and tombstones are not
     teammates (#99392)."""
-    from hermes_constants import named_profile_is_live
+    from jarvis_constants import named_profile_is_live
 
     profiles = root / "profiles"
     named = _swallow(
@@ -107,14 +107,14 @@ def _read_yaml_dict(path: Path, needle: str | None = None) -> dict | None:
 
 
 def _bots_meta(data: dict | None) -> dict | None:
-    """The ``ui_meta['hermes-bots']`` block of a parsed profile.yaml, if a dict."""
+    """The ``ui_meta['jarvis-bots']`` block of a parsed profile.yaml, if a dict."""
     ui_meta = data.get("ui_meta") if data else None
-    bots = ui_meta.get("hermes-bots") if isinstance(ui_meta, dict) else None
+    bots = ui_meta.get("jarvis-bots") if isinstance(ui_meta, dict) else None
     return bots if isinstance(bots, dict) else None
 
 
 def _is_bot_managed(profile_dir: Path) -> bool:
-    return _bots_meta(_read_yaml_dict(profile_dir / "profile.yaml", "hermes-bots")) is not None
+    return _bots_meta(_read_yaml_dict(profile_dir / "profile.yaml", "jarvis-bots")) is not None
 
 
 def _any_managed(root: Path) -> bool:
@@ -125,7 +125,7 @@ def is_bot_mode_managed(home: str | os.PathLike | None = None) -> bool:
     """True when ANY profile on this install is Bot-Mode-managed. Never raises. The
     ``message_agent`` injection gate — deliberately independent of the protocol section's
     emptiness: a SOUL.md carrying the legacy protocol gets an empty section but still gets the tool."""
-    return _swallow(lambda: _any_managed(_hermes_root(_resolve_home(home))), False)
+    return _swallow(lambda: _any_managed(_jarvis_root(_resolve_home(home))), False)
 
 
 def _role_line(*parts: str) -> str:
@@ -140,7 +140,7 @@ def _bullet(handle: str, *parts: str) -> str:
 
 def _profile_role(profile_dir: Path) -> str:
     """Teammate role line: Bot Mode title — profile description; tells a teammate
-    WHO to message for a job. A friendly ``display_name`` (``hermes profile rename``) that
+    WHO to message for a job. A friendly ``display_name`` (``jarvis profile rename``) that
     differs from both the folder id and the title leads the line, so an untagged
     "talk to Scribe" maps to the folder handle without a disk search (#100671).
     Single-line, ≤160 chars, "" when nothing. Never raises."""
@@ -168,13 +168,13 @@ def _friendly_names(profile_dir: Path) -> tuple[str, str]:
 
 def _display_name(name: str, profile_dir: Path) -> str:
     """Human-facing sender name, in the Desktop's ``botFriendlyNames`` order: Bot Mode title,
-    then profile.yaml ``display_name`` (``hermes profile rename``), else the @handle — the
-    renamed primary signs as ``Maia (@hermes)``, not ``hermes (@hermes)`` (#89720)."""
+    then profile.yaml ``display_name`` (``jarvis profile rename``), else the @handle — the
+    renamed primary signs as ``Maia (@jarvis)``, not ``jarvis (@jarvis)`` (#89720)."""
     return next((n for n in _friendly_names(profile_dir) if n), None) or _handle(name)
 
 
-# Tokens the Desktop mention parser reserves; a bot titled "Hermes" never hijacks @hermes.
-_RESERVED_ALIASES = frozenset({"all", "everyone", "user", "default", "hermes"})
+# Tokens the Desktop mention parser reserves; a bot titled "Jarvis" never hijacks @jarvis.
+_RESERVED_ALIASES = frozenset({"all", "everyone", "user", "default", "jarvis"})
 
 
 def alias_forms(value: str) -> set[str]:
@@ -205,7 +205,7 @@ def local_alias_map(root: Path) -> dict[str, set[str]]:
 
 
 def _peers(root: Path) -> list[str]:
-    """Registered peer gateway names (``hermes peer``) from config.yaml, read
+    """Registered peer gateway names (``jarvis peer``) from config.yaml, read
     directly (no config-loader import; the section is absent on most installs). Never raises."""
     def _names() -> list[str]:
         peers = (_read_yaml_dict(root / "config.yaml", "bot_peers") or {}).get("bot_peers")
@@ -253,13 +253,13 @@ def _peer_paragraph(root: Path) -> str:
         "\n\nTeammates on OTHER machines: this install also has peer gateways "
         f"registered ({listed}). Message an agent on a peer the same way — "
         'message_agent with target "<peer>/<agent-name>" (or "<peer>" alone '
-        "for the peer's main agent). Run `hermes peer list` for the live "
+        "for the peer's main agent). Run `jarvis peer list` for the live "
         "peer list."
     )
 
 
 def _build_section(home: Path) -> str:
-    root = _hermes_root(home)
+    root = _jarvis_root(home)
     me = _profile_name(home)
     if not _any_managed(root):
         return ""
@@ -269,7 +269,7 @@ def _build_section(home: Path) -> str:
 
     return (
         f"{_PROTOCOL_HEADING}\n"
-        "This install runs Bot Mode: each Hermes profile is an agent teammate with "
+        "This install runs Bot Mode: each Jarvis profile is an agent teammate with "
         'one canonical "Bot Chat" conversation, and you have the `message_agent` '
         "tool to DM any of them. It is FIRE-AND-FORGET: it delivers your message "
         "with your attribution prefixed automatically and returns an acknowledgement "
@@ -300,7 +300,7 @@ def _build_section(home: Path) -> str:
 
 def get_bot_mode_protocol_section(home: str | os.PathLike | None = None, *, force_refresh: bool = False) -> str:
     """Cached probe entry point — one filesystem pass per (process, home). ``home`` should be
-    the AGENT'S OWN resolved home (session-db derived), not ambient HERMES_HOME — build threads
+    the AGENT'S OWN resolved home (session-db derived), not ambient JARVIS_HOME — build threads
     can lose the ContextVar override and the env var would then name the wrong profile."""
     resolved = str(_resolve_home(home))
     with _lock:
@@ -328,19 +328,19 @@ def capability_fingerprint(home: str | os.PathLike | None = None) -> str:
     import json
 
     resolved = _resolve_home(home)
-    root = _hermes_root(resolved)
+    root = _jarvis_root(resolved)
     surface: dict = {}
     try:
         # Canonical loader (managed overlay + env expansion + normalization),
         # scoped to the bot's home via the override the loaders already honor.
-        from hermes_cli.config import load_config_readonly
-        from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+        from jarvis_cli.config import load_config_readonly
+        from jarvis_constants import reset_jarvis_home_override, set_jarvis_home_override
 
-        token = set_hermes_home_override(str(resolved))
+        token = set_jarvis_home_override(str(resolved))
         try:
             cfg = load_config_readonly() or {}
         finally:
-            reset_hermes_home_override(token)
+            reset_jarvis_home_override(token)
         skills_cfg = cfg.get("skills") if isinstance(cfg.get("skills"), dict) else {}
         tools_cfg = cfg.get("tools") if isinstance(cfg.get("tools"), dict) else {}
         surface["disabled_skills"] = sorted(str(s).lower() for s in (skills_cfg.get("disabled") or []))
