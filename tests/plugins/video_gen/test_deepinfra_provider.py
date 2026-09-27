@@ -20,8 +20,8 @@ import plugins.video_gen.deepinfra as deepinfra_plugin
 
 @pytest.fixture(autouse=True)
 def _isolation(tmp_path, monkeypatch):
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    import hermes_cli.models as _models_mod
+    monkeypatch.setenv("JARVIS_HOME", str(tmp_path))
+    import jarvis_cli.models as _models_mod
     monkeypatch.setattr(_models_mod, "_deepinfra_catalog_cache", {})
     monkeypatch.setenv("DEEPINFRA_API_KEY", "test-key")
     yield
@@ -39,7 +39,7 @@ def test_identity_and_availability(monkeypatch):
 
 def test_list_models_filters_by_video_gen_tag(monkeypatch):
     """list_models() returns only ``video-gen``-tagged catalog entries."""
-    import hermes_cli.models as _models_mod
+    import jarvis_cli.models as _models_mod
 
     def _fake_by_tag(tag, **kw):
         assert tag == "video-gen"
@@ -102,14 +102,14 @@ def _mock_url_download(captured: dict, raise_exc: Exception | None = None):
         captured["url"] = url
         if raise_exc:
             raise raise_exc
-        return Path(f"/home/x/.hermes/cache/videos/{prefix}_test.mp4")
+        return Path(f"/home/x/.jarvis/cache/videos/{prefix}_test.mp4")
 
     with patch.object(base, "save_url_video", _fake_save_url_video):
         yield
 
 
 def test_generate_uses_env_only_proxy_http_client(monkeypatch):
-    """The SDK client is built on Hermes' env-only-proxy httpx client: a macOS system proxy (seen by
+    """The SDK client is built on Jarvis' env-only-proxy httpx client: a macOS system proxy (seen by
     httpx via ``getproxies()``, ExceptionsList dropped) must not be mounted for a custom endpoint
     (#64888), unlike a plain ``httpx.Client()`` under the same conditions (control)."""
     import httpx
