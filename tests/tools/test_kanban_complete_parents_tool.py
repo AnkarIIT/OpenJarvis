@@ -15,16 +15,16 @@ import pytest
 @pytest.fixture
 def running_child_with_parent(monkeypatch, tmp_path):
     """A claimed (running) child whose parent is NOT done. Returns ids."""
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".jarvis"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
-    monkeypatch.setenv("HERMES_PROFILE", "test-worker")
-    monkeypatch.delenv("HERMES_SESSION_ID", raising=False)
+    monkeypatch.setenv("JARVIS_HOME", str(home))
+    monkeypatch.setenv("JARVIS_PROFILE", "test-worker")
+    monkeypatch.delenv("JARVIS_SESSION_ID", raising=False)
     from pathlib import Path as _Path
     monkeypatch.setattr(_Path, "home", lambda: tmp_path)
 
-    from hermes_cli import kanban_db as kb
-    from hermes_cli import kanban_db_connect as kbc
+    from jarvis_cli import kanban_db as kb
+    from jarvis_cli import kanban_db_connect as kbc
     kb._INITIALIZED_PATHS.clear()
     kb.init_db()
     conn = kbc.connect()
@@ -42,14 +42,14 @@ def running_child_with_parent(monkeypatch, tmp_path):
             )
     finally:
         conn.close()
-    monkeypatch.setenv("HERMES_KANBAN_TASK", child_id)
+    monkeypatch.setenv("JARVIS_KANBAN_TASK", child_id)
     return parent_id, child_id
 
 
 def test_complete_names_unsatisfied_parent(running_child_with_parent):
     """The refusal names the blocking parent instead of crying stale run."""
-    from hermes_cli import kanban_db as kb
-    from hermes_cli import kanban_db_connect as kbc
+    from jarvis_cli import kanban_db as kb
+    from jarvis_cli import kanban_db_connect as kbc
     from tools import kanban_tools as kt
 
     parent_id, child_id = running_child_with_parent
@@ -71,13 +71,13 @@ def test_complete_names_unsatisfied_parent(running_child_with_parent):
 
 
 def test_cli_complete_names_unsatisfied_parent(running_child_with_parent, monkeypatch, capsys):
-    """`hermes kanban complete` (operator, --force) reports the same blockers."""
+    """`jarvis kanban complete` (operator, --force) reports the same blockers."""
     import argparse
 
-    from hermes_cli import kanban as kc
+    from jarvis_cli import kanban as kc
 
     parent_id, child_id = running_child_with_parent
-    monkeypatch.delenv("HERMES_KANBAN_TASK", raising=False)
+    monkeypatch.delenv("JARVIS_KANBAN_TASK", raising=False)
     rc = kc._cmd_complete(argparse.Namespace(
         task_ids=[child_id], result=None, summary=None, metadata=None, force=True))
     out = capsys.readouterr()
