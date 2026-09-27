@@ -36,7 +36,7 @@ class TestSessionAiPeerPrefixConfigParsing:
             "aiPeer": "ivy",
             "sessionAiPeerPrefix": True,
         }))
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / "isolated"))
+        monkeypatch.setenv("JARVIS_HOME", str(tmp_path / "isolated"))
 
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.session_ai_peer_prefix is True
@@ -48,10 +48,10 @@ class TestSessionAiPeerPrefixConfigParsing:
             "apiKey": "k",
             "peerName": "eli",
             "hosts": {
-                "hermes": {"aiPeer": "ivy", "sessionAiPeerPrefix": True},
+                "jarvis": {"aiPeer": "ivy", "sessionAiPeerPrefix": True},
             },
         }))
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / "isolated"))
+        monkeypatch.setenv("JARVIS_HOME", str(tmp_path / "isolated"))
 
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.session_ai_peer_prefix is True
@@ -64,10 +64,10 @@ class TestSessionAiPeerPrefixConfigParsing:
             "peerName": "eli",
             "sessionAiPeerPrefix": True,
             "hosts": {
-                "hermes": {"sessionAiPeerPrefix": False},
+                "jarvis": {"sessionAiPeerPrefix": False},
             },
         }))
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / "isolated"))
+        monkeypatch.setenv("JARVIS_HOME", str(tmp_path / "isolated"))
 
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.session_ai_peer_prefix is False
