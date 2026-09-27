@@ -20,19 +20,19 @@ import pytest
 
 
 @pytest.fixture
-def hermes_env(tmp_path, monkeypatch):
-    """Isolate HERMES_HOME for each test so jobs/scripts don't leak."""
-    home = tmp_path / ".hermes"
+def jarvis_env(tmp_path, monkeypatch):
+    """Isolate JARVIS_HOME for each test so jobs/scripts don't leak."""
+    home = tmp_path / ".jarvis"
     home.mkdir()
     (home / "scripts").mkdir()
     (home / "cron").mkdir()
 
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("JARVIS_HOME", str(home))
 
-    # Reload modules that cache get_hermes_home() at import time.
+    # Reload modules that cache get_jarvis_home() at import time.
     import importlib
-    import hermes_constants
-    importlib.reload(hermes_constants)
+    import jarvis_constants
+    importlib.reload(jarvis_constants)
     import cron.jobs
     importlib.reload(cron.jobs)
     import cron.scheduler
@@ -46,17 +46,17 @@ def hermes_env(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_create_job_no_agent_requires_script(hermes_env):
+def test_create_job_no_agent_requires_script(jarvis_env):
     from cron.jobs import create_job
 
     with pytest.raises(ValueError, match="no_agent=True requires a script"):
         create_job(prompt=None, schedule="every 5m", no_agent=True)
 
 
-def test_update_job_roundtrips_no_agent_flag(hermes_env):
+def test_update_job_roundtrips_no_agent_flag(jarvis_env):
     from cron.jobs import create_job, update_job, get_job
 
-    script_path = hermes_env / "scripts" / "w.sh"
+    script_path = jarvis_env / "scripts" / "w.sh"
     script_path.write_text("echo hi\n")
     job = create_job(prompt=None, schedule="every 5m", script="w.sh", no_agent=True, deliver="local")
 
@@ -74,7 +74,7 @@ def test_update_job_roundtrips_no_agent_flag(hermes_env):
 # ---------------------------------------------------------------------------
 
 
-def test_cronjob_tool_create_no_agent_without_script_errors(hermes_env):
+def test_cronjob_tool_create_no_agent_without_script_errors(jarvis_env):
     from tools.cronjob_tools import cronjob
 
     result = json.loads(
@@ -89,12 +89,12 @@ def test_cronjob_tool_create_no_agent_without_script_errors(hermes_env):
 # ---------------------------------------------------------------------------
 
 
-def test_run_job_no_agent_success_returns_script_stdout(hermes_env):
+def test_run_job_no_agent_success_returns_script_stdout(jarvis_env):
     """Happy path: script exits 0 with output, delivered verbatim."""
     from cron.jobs import create_job
     from cron.scheduler import run_job
 
-    script_path = hermes_env / "scripts" / "alert.sh"
+    script_path = jarvis_env / "scripts" / "alert.sh"
     script_path.write_text("#!/bin/bash\necho 'RAM 92% on host'\n")
 
     job = create_job(
@@ -107,24 +107,24 @@ def test_run_job_no_agent_success_returns_script_stdout(hermes_env):
     assert "RAM 92% on host" in doc
 
 
-def test_run_job_no_agent_reloads_dotenv_before_script(hermes_env, monkeypatch):
+def test_run_job_no_agent_reloads_dotenv_before_script(jarvis_env, monkeypatch):
     """Regression: a standalone cron tick process starts without home-channel
     vars in its environment, and the agent path's per-run dotenv reload never
     executes for no_agent jobs — delivery home channels stayed unresolved.
     run_job must load .env at the top of the no_agent branch."""
-    import hermes_cli.env_loader as env_loader
+    import jarvis_cli.env_loader as env_loader
     from cron.jobs import create_job
     from cron.scheduler import run_job
 
     loaded_homes: list = []
 
-    def fake_load(*, hermes_home=None, project_env=None):
-        loaded_homes.append(hermes_home)
+    def fake_load(*, jarvis_home=None, project_env=None):
+        loaded_homes.append(jarvis_home)
         return []
 
-    monkeypatch.setattr(env_loader, "load_hermes_dotenv", fake_load)
+    monkeypatch.setattr(env_loader, "load_jarvis_dotenv", fake_load)
 
-    script_path = hermes_env / "scripts" / "probe.sh"
+    script_path = jarvis_env / "scripts" / "probe.sh"
     script_path.write_text('#!/bin/bash\necho "ok"\n')
 
     job = create_job(
@@ -133,8 +133,8 @@ def test_run_job_no_agent_reloads_dotenv_before_script(hermes_env, monkeypatch):
     success, doc, final_response, error = run_job(job)
     assert success is True
     assert error is None
-    assert loaded_homes, "load_hermes_dotenv was not called on the no_agent path"
-    assert str(loaded_homes[0]) == str(hermes_env)
+    assert loaded_homes, "load_jarvis_dotenv was not called on the no_agent path"
+    assert str(loaded_homes[0]) == str(jarvis_env)
 
 
 _PRESENCE_PROBE = (
@@ -144,7 +144,7 @@ _PRESENCE_PROBE = (
 
 
 def test_no_agent_script_gets_owning_profiles_declared_secret_never_launch_residue(
-    hermes_env, monkeypatch, tmp_path,
+    jarvis_env, monkeypatch, tmp_path,
 ):
     """Routed profile B declares JOB_SVC_TOKEN in terminal.env_passthrough and defines it only in
     its own .env (never in the process env); the launch profile A's .env credential is in the
@@ -152,10 +152,10 @@ def test_no_agent_script_gets_owning_profiles_declared_secret_never_launch_resid
     from agent.secret_scope import (
         build_profile_secret_scope, reset_secret_scope, set_multiplex_active, set_secret_scope)
     from cron.scheduler_script import _run_job_script
-    from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+    from jarvis_constants import reset_jarvis_home_override, set_jarvis_home_override
 
-    (hermes_env / ".env").write_text("LAUNCH_ONLY_TOKEN=launch-secret\n", encoding="utf-8")
-    monkeypatch.setenv("LAUNCH_ONLY_TOKEN", "launch-secret")  # what load_hermes_dotenv() did at startup
+    (jarvis_env / ".env").write_text("LAUNCH_ONLY_TOKEN=launch-secret\n", encoding="utf-8")
+    monkeypatch.setenv("LAUNCH_ONLY_TOKEN", "launch-secret")  # what load_jarvis_dotenv() did at startup
     monkeypatch.delenv("JOB_SVC_TOKEN", raising=False)
     routed = tmp_path / "routed"
     (routed / "scripts").mkdir(parents=True)
@@ -164,28 +164,28 @@ def test_no_agent_script_gets_owning_profiles_declared_secret_never_launch_resid
     (routed / "scripts" / "probe.sh").write_text(_PRESENCE_PROBE, encoding="utf-8")
 
     set_multiplex_active(True)
-    home_token = set_hermes_home_override(str(routed))
+    home_token = set_jarvis_home_override(str(routed))
     scope_token = set_secret_scope(build_profile_secret_scope(routed))
     try:
         ok, output = _run_job_script("probe.sh")
     finally:
         reset_secret_scope(scope_token)
-        reset_hermes_home_override(home_token)
+        reset_jarvis_home_override(home_token)
         set_multiplex_active(False)
 
     assert ok is True
     assert output.splitlines() == ["JOB_SVC_TOKEN=set", "LAUNCH_ONLY_TOKEN=MISSING"]
 
 
-def test_no_agent_script_of_launch_profile_keeps_its_own_env_credential(hermes_env, monkeypatch):
+def test_no_agent_script_of_launch_profile_keeps_its_own_env_credential(jarvis_env, monkeypatch):
     """Single-profile documented flow: the launch profile's own script still inherits the
     credential its .env put in the process env — nothing is stripped for a non-routed job."""
     from cron.scheduler_script import _run_job_script
 
-    (hermes_env / ".env").write_text("LAUNCH_ONLY_TOKEN=launch-secret\n", encoding="utf-8")
+    (jarvis_env / ".env").write_text("LAUNCH_ONLY_TOKEN=launch-secret\n", encoding="utf-8")
     monkeypatch.setenv("LAUNCH_ONLY_TOKEN", "launch-secret")
     monkeypatch.delenv("JOB_SVC_TOKEN", raising=False)
-    (hermes_env / "scripts" / "probe.sh").write_text(_PRESENCE_PROBE, encoding="utf-8")
+    (jarvis_env / "scripts" / "probe.sh").write_text(_PRESENCE_PROBE, encoding="utf-8")
 
     ok, output = _run_job_script("probe.sh")
 
@@ -194,7 +194,7 @@ def test_no_agent_script_of_launch_profile_keeps_its_own_env_credential(hermes_e
 
 
 def test_timed_out_no_agent_script_delivery_is_not_mislabeled_as_provider_failure(
-    hermes_env, monkeypatch,
+    jarvis_env, monkeypatch,
 ):
     """A watchdog timeout happens before any LLM/provider call.
 
@@ -205,7 +205,7 @@ def test_timed_out_no_agent_script_delivery_is_not_mislabeled_as_provider_failur
     import cron.scheduler as scheduler
     from cron import scheduler_script as sched_script
 
-    (hermes_env / "scripts" / "slow.py").write_text("import time; time.sleep(999)\n")
+    (jarvis_env / "scripts" / "slow.py").write_text("import time; time.sleep(999)\n")
     job = create_job(
         prompt=None,
         schedule="every 5m",
@@ -258,7 +258,7 @@ def test_timed_out_no_agent_script_delivery_is_not_mislabeled_as_provider_failur
     assert "fallback" not in delivered[0].lower()
 
 
-def test_agent_provider_timeout_delivery_keeps_fallback_guidance(hermes_env, monkeypatch):
+def test_agent_provider_timeout_delivery_keeps_fallback_guidance(jarvis_env, monkeypatch):
     """Provider timeout classification remains available to agent-backed jobs."""
     from cron.jobs import create_job
     import cron.scheduler as scheduler
@@ -301,7 +301,7 @@ def test_agent_provider_timeout_delivery_keeps_fallback_guidance(hermes_env, mon
 # ---------------------------------------------------------------------------
 
 
-def test_run_job_script_path_traversal_still_blocked(hermes_env):
+def test_run_job_script_path_traversal_still_blocked(jarvis_env):
     """Security regression: shell-script support must NOT loosen containment."""
     from cron.scheduler_script import _run_job_script
 
@@ -311,7 +311,7 @@ def test_run_job_script_path_traversal_still_blocked(hermes_env):
     assert "Blocked" in output or "outside" in output
 
 
-def test_run_job_script_nul_path_fails_cleanly(hermes_env):
+def test_run_job_script_nul_path_fails_cleanly(jarvis_env):
     """Sibling of the lifecycle-guard ingestion fix: a NUL-bearing script
     value can survive to fire time (the creation-time guard treats it as
     "nothing to scan"), and ``Path.expanduser()`` raises ValueError — not
@@ -331,7 +331,7 @@ def test_run_job_script_nul_path_fails_cleanly(hermes_env):
     assert "NUL byte" in output
 
 
-def test_run_job_script_nul_rejected_before_any_path_call(hermes_env, monkeypatch):
+def test_run_job_script_nul_rejected_before_any_path_call(jarvis_env, monkeypatch):
     """The eager NUL check must run before ``Path(...)`` is ever constructed.
 
     On Windows ``expanduser()`` never expands ``~user`` and never raises,
@@ -352,7 +352,7 @@ def test_run_job_script_nul_rejected_before_any_path_call(hermes_env, monkeypatc
     assert "NUL byte" in output
 
 
-def test_run_job_script_accepts_pathlike_script_path(hermes_env):
+def test_run_job_script_accepts_pathlike_script_path(jarvis_env):
     """The eager NUL guard must not crash on a non-str script_path.
 
     ``"\x00" in script_path`` raises TypeError for a pathlib.Path (not
@@ -362,7 +362,7 @@ def test_run_job_script_accepts_pathlike_script_path(hermes_env):
     the #86832 review point)."""
     from cron.scheduler_script import _run_job_script
 
-    script = hermes_env / "scripts" / "probe.py"
+    script = jarvis_env / "scripts" / "probe.py"
     script.write_text('print("pathlike ok")\n', encoding="utf-8")
 
     ok, output = _run_job_script(pathlib.Path(script))
@@ -391,7 +391,7 @@ def test_run_job_script_accepts_pathlike_script_path(hermes_env):
 @pytest.mark.parametrize(
     "error",
     [
-        "Script timed out after 900s: /home/u/.hermes/scripts/nightly.sh",
+        "Script timed out after 900s: /home/u/.jarvis/scripts/nightly.sh",
         "Script failed: curl returned 429 from api.example.com",
         "Script failed: gpg authentication failed for key",
         "Script failed: ReadTimeout contacting localhost",
