@@ -7,7 +7,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from hermes_state import SessionDB
+from jarvis_state import SessionDB
 from gateway.config import Platform, HomeChannel, GatewayConfig, PlatformConfig
 from gateway.platforms.event import MessageEvent
 from gateway.session import (
@@ -259,7 +259,7 @@ class TestBuildSessionContextPrompt:
         assert "current turn's sender prefix" not in prompt
 
 
-    def test_local_delivery_path_uses_display_hermes_home(self):
+    def test_local_delivery_path_uses_display_jarvis_home(self):
         config = GatewayConfig()
         source = SessionSource(
             platform=Platform.LOCAL, chat_id="cli",
@@ -267,10 +267,10 @@ class TestBuildSessionContextPrompt:
         )
         ctx = build_session_context(source, config)
 
-        with patch("hermes_constants.display_hermes_home", return_value="~/.hermes/profiles/coder"):
+        with patch("jarvis_constants.display_jarvis_home", return_value="~/.jarvis/profiles/coder"):
             prompt = build_session_context_prompt(ctx)
 
-        assert "~/.hermes/profiles/coder/cron/output/" in prompt
+        assert "~/.jarvis/profiles/coder/cron/output/" in prompt
 
 
     def test_prompt_quotes_untrusted_metadata_labels(self):
@@ -406,8 +406,8 @@ class TestSessionStoreRewriteTranscript:
 
     @pytest.fixture()
     def store(self, tmp_path, monkeypatch):
-        import hermes_state
-        monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
+        import jarvis_state
+        monkeypatch.setattr(jarvis_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
         config = GatewayConfig()
         s = SessionStore(sessions_dir=tmp_path, config=config)
         return s
@@ -441,8 +441,8 @@ class TestLoadTranscriptDBOnly:
 
 
     def test_db_only_returns_messages(self, tmp_path, monkeypatch):
-        import hermes_state
-        monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
+        import jarvis_state
+        monkeypatch.setattr(jarvis_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
         config = GatewayConfig()
         store = SessionStore(sessions_dir=tmp_path, config=config)
         sid = "db_only_session"
@@ -460,7 +460,7 @@ class TestSessionStoreSwitchSession:
     """Regression coverage for gateway /resume session switching semantics."""
 
     def test_switch_session_reopens_target_session_in_db(self, tmp_path):
-        from hermes_state import SessionDB
+        from jarvis_state import SessionDB
 
         config = GatewayConfig()
         with patch("gateway.session.SessionStore._ensure_loaded"):
@@ -510,7 +510,7 @@ class TestSessionStoreSwitchSession:
         assert switched is not None and switched.session_id == "target"
 
     def test_switch_session_rebinds_full_compression_lineage(self, tmp_path):
-        from hermes_state import SessionDB
+        from jarvis_state import SessionDB
 
         config = GatewayConfig()
         with patch("gateway.session.SessionStore._ensure_loaded"):
@@ -664,14 +664,14 @@ class TestWhatsAppSessionKeyConsistency:
         """With group_sessions_per_user, the same human flipping between
         phone-JID and LID inside a group must not produce two isolated
         per-user sessions."""
-        tmp_home = tmp_path / "hermes-home"
+        tmp_home = tmp_path / "jarvis-home"
         mapping_dir = tmp_home / "whatsapp" / "session"
         mapping_dir.mkdir(parents=True, exist_ok=True)
         (mapping_dir / "lid-mapping-999999999999999.json").write_text(
             json.dumps("15551234567@s.whatsapp.net"),
             encoding="utf-8",
         )
-        monkeypatch.setenv("HERMES_HOME", str(tmp_home))
+        monkeypatch.setenv("JARVIS_HOME", str(tmp_home))
 
         lid_source = SessionSource(
             platform=Platform.WHATSAPP,
@@ -926,9 +926,9 @@ class TestSlackWorkspaceSessionKeys:
         self, tmp_path, monkeypatch
     ):
         # Given
-        import hermes_state
+        import jarvis_state
 
-        monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
+        monkeypatch.setattr(jarvis_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
         legacy_source = SessionSource(
             platform=Platform.SLACK,
             chat_id="C123",
@@ -971,9 +971,9 @@ class TestSlackWorkspaceSessionKeys:
         self, tmp_path, monkeypatch
     ):
         # Given
-        import hermes_state
+        import jarvis_state
 
-        monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
+        monkeypatch.setattr(jarvis_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
         source = SessionSource(
             platform=Platform.SLACK,
             chat_id="C123",
@@ -1043,7 +1043,7 @@ class TestWhatsAppIdentifierPublicHelpers:
             json.dumps("15551234567@s.whatsapp.net"),
             encoding="utf-8",
         )
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("JARVIS_HOME", str(tmp_path))
 
         canonical = canonical_whatsapp_identifier("999999999999999@lid")
         assert canonical == "15551234567"
@@ -1342,7 +1342,7 @@ class TestRewriteTranscriptPreservesReasoning:
     """rewrite_transcript must not drop reasoning fields from SQLite."""
 
     def test_reasoning_survives_rewrite(self, tmp_path):
-        from hermes_state import SessionDB
+        from jarvis_state import SessionDB
 
         db = SessionDB(db_path=tmp_path / "test.db")
         session_id = "reasoning-test"
@@ -1492,7 +1492,7 @@ class TestGatewaySessionDbRecovery:
     def test_transcript_reroute_migrates_remaining_backlog_to_child(self):
         import threading
         from types import SimpleNamespace
-        from hermes_state_errors import CompressionSessionClosedError
+        from jarvis_state_errors import CompressionSessionClosedError
 
         class FakeDb:
             def get_compression_tip(self, session_id):
@@ -1647,10 +1647,10 @@ class TestGatewaySessionDbRecovery:
         to disk (long before the 200-message cap) and replayed in order on recovery."""
         import threading
         from types import SimpleNamespace
-        import hermes_constants
+        import jarvis_constants
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        monkeypatch.setattr(hermes_constants, "get_hermes_home", lambda: tmp_path)
+        monkeypatch.setenv("JARVIS_HOME", str(tmp_path))
+        monkeypatch.setattr(jarvis_constants, "get_jarvis_home", lambda: tmp_path)
         store = object.__new__(SessionStore)
         store._db = None
         store._transcript_retry_lock = threading.Lock()
@@ -1680,10 +1680,10 @@ class TestGatewaySessionDbRecovery:
         per-append ERROR escalation already covers the outage. Recovery still replays in order."""
         import threading
         from types import SimpleNamespace
-        import hermes_constants
+        import jarvis_constants
 
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        monkeypatch.setattr(hermes_constants, "get_hermes_home", lambda: tmp_path)
+        monkeypatch.setenv("JARVIS_HOME", str(tmp_path))
+        monkeypatch.setattr(jarvis_constants, "get_jarvis_home", lambda: tmp_path)
 
         def _fail(**kwargs):
             raise RuntimeError("disk I/O error")
@@ -1749,8 +1749,8 @@ class TestGatewayRoutingTable:
         # Each test gets its own state.db — DEFAULT_DB_PATH is module-level
         # and would otherwise be shared by every SessionDB() in this file's
         # subprocess, leaking gateway_routing rows between tests.
-        import hermes_state
-        monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
+        import jarvis_state
+        monkeypatch.setattr(jarvis_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
 
     def _source(self, chat_id="chat-1", user_id="user-1"):
         return SessionSource(
