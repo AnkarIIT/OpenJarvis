@@ -10,7 +10,7 @@ from aiohttp.test_utils import TestClient, TestServer
 
 from gateway.config import PlatformConfig
 from gateway.platforms.api_server import APIServerAdapter
-from hermes_state import SessionDB
+from jarvis_state import SessionDB
 
 
 @pytest.fixture
@@ -201,7 +201,7 @@ async def test_session_model_lock_persists_off_the_event_loop(adapter, session_d
 @pytest.mark.asyncio
 async def test_run_agent_binds_api_session_context_for_tool_env(adapter, monkeypatch):
     """API-server request sessions should reach tools and terminal subprocess env."""
-    monkeypatch.setenv("HERMES_SESSION_ID", "stale-session")
+    monkeypatch.setenv("JARVIS_SESSION_ID", "stale-session")
     observed = {}
 
     class FakeAgent:
@@ -217,10 +217,10 @@ async def test_run_agent_binds_api_session_context_for_tool_env(adapter, monkeyp
             from tools.environments.local import _make_run_env
 
             observed["task_id"] = task_id
-            observed["context_session_id"] = get_session_env("HERMES_SESSION_ID")
-            observed["context_platform"] = get_session_env("HERMES_SESSION_PLATFORM")
-            observed["context_session_key"] = get_session_env("HERMES_SESSION_KEY")
-            observed["child_session_id"] = _make_run_env({}).get("HERMES_SESSION_ID")
+            observed["context_session_id"] = get_session_env("JARVIS_SESSION_ID")
+            observed["context_platform"] = get_session_env("JARVIS_SESSION_PLATFORM")
+            observed["context_session_key"] = get_session_env("JARVIS_SESSION_KEY")
+            observed["child_session_id"] = _make_run_env({}).get("JARVIS_SESSION_ID")
             return {"final_response": "ok"}
 
     def fake_create_agent(**kwargs):
@@ -520,7 +520,7 @@ async def test_session_chat_resolves_stored_model_route_alias(session_db, monkey
 @pytest.mark.asyncio
 async def test_session_chat_treats_pre_existing_poisoned_row_as_no_model(session_db):
     """A session row created before the alias-leak fix may still have the
-    virtual model alias (e.g. "hermes-agent") persisted literally as its
+    virtual model alias (e.g. "jarvis-agent") persisted literally as its
     model. Reading that back must NOT thread it through as a raw
     session_model override — it must fall through to the global default,
     exactly like a row that never had a model at all (#session-model-
@@ -600,7 +600,7 @@ def _patch_api_server_runtime(monkeypatch):
         staticmethod(lambda: None),
     )
     monkeypatch.setattr("gateway.run._current_max_iterations", lambda: 90)
-    monkeypatch.setattr("hermes_cli.tools_config._get_platform_tools", lambda *_: set())
+    monkeypatch.setattr("jarvis_cli.tools_config._get_platform_tools", lambda *_: set())
     monkeypatch.setattr(
         "gateway.run._resolve_runtime_agent_kwargs_for_provider",
         lambda provider, target_model=None: {
@@ -620,7 +620,7 @@ async def test_create_session_respects_browser_source_and_model_lock(adapter, se
             "/api/sessions",
             json={
                 "id": "browser-lock-session",
-                "source": "hermes_browser",
+                "source": "jarvis_browser",
                 "provider": "nous",
                 "model": "x-ai/grok-4.5",
                 "require_model_lock": True,
@@ -631,10 +631,10 @@ async def test_create_session_respects_browser_source_and_model_lock(adapter, se
         assert resp.status == 201, await resp.text()
         payload = await resp.json()
 
-    assert payload["session"]["source"] == "hermes_browser"
+    assert payload["session"]["source"] == "jarvis_browser"
     assert payload["session"]["model"] == "x-ai/grok-4.5"
     row = session_db.get_session("browser-lock-session")
-    assert row["source"] == "hermes_browser"
+    assert row["source"] == "jarvis_browser"
     assert row["model"] == "x-ai/grok-4.5"
     import json as _json
     model_config = row.get("model_config")
@@ -797,7 +797,7 @@ async def test_run_agent_reports_actual_agent_runtime_not_requested_metadata(ada
             self.session_id = "runtime-session"
             self.provider = "actual-provider"
             self.model = "actual-model"
-            self._hermes_api_runtime = {
+            self._jarvis_api_runtime = {
                 "provider": "requested-provider",
                 "model": "requested-model",
                 "route_source": "raw_request",
@@ -1185,7 +1185,7 @@ async def test_interim_commentary_reaches_session_sse_and_responses_stream(adapt
         async with TestClient(TestServer(app)) as cli:
             sse = await (await cli.post(f"/api/sessions/{session_id}/chat/stream", json={"message": "go"})).text()
             responses = await (await cli.post(
-                "/v1/responses", json={"model": "hermes-agent", "input": "go", "stream": True})).text()
+                "/v1/responses", json={"model": "jarvis-agent", "input": "go", "stream": True})).text()
 
     def _events(body):
         out = []
