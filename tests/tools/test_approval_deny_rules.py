@@ -31,9 +31,9 @@ def deny_config(monkeypatch):
 @pytest.fixture
 def clean_env(monkeypatch):
     """Non-interactive, non-gateway, non-cron, non-yolo baseline."""
-    for var in ("HERMES_YOLO_MODE", "HERMES_GATEWAY_SESSION",
-                "HERMES_CRON_SESSION", "HERMES_INTERACTIVE",
-                "HERMES_EXEC_ASK"):
+    for var in ("JARVIS_YOLO_MODE", "JARVIS_GATEWAY_SESSION",
+                "JARVIS_CRON_SESSION", "JARVIS_INTERACTIVE",
+                "JARVIS_EXEC_ASK"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setattr(mod, "_YOLO_MODE_FROZEN", False)
 
@@ -238,7 +238,7 @@ class TestDenyOrdering:
         deny_config(["*chmod*"], mode="off")
         monkeypatch.setattr(mod, "_YOLO_MODE_FROZEN", True)
 
-        result = guard("chmod 600 /tmp/hermes-approval-deny-test", env_type)
+        result = guard("chmod 600 /tmp/jarvis-approval-deny-test", env_type)
 
         assert result["approved"] is False
         assert result.get("user_deny") is True
