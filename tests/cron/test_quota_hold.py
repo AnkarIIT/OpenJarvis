@@ -17,16 +17,16 @@ from cron import quota_hold as qh
 from cron.jobs import (
     _job_is_stale_error_recurring, create_job, get_due_jobs, get_job, mark_job_run, update_job,
 )
-from hermes_cli.auth import CODEX_RATE_LIMITED_CODE, AuthError
+from jarvis_cli.auth import CODEX_RATE_LIMITED_CODE, AuthError
 
 QUOTA_MSG = "Codex provider quota exhausted (429); retry after 123518s. Credentials are still valid."
 
 
 @pytest.fixture
 def tmp_cron_home(tmp_path, monkeypatch):
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".jarvis"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("JARVIS_HOME", str(home))
     return home
 
 
@@ -57,13 +57,13 @@ def _raise_quota(**_kw):
 
 def _tick(job, home, deliveries, resolve):
     """One real scheduler tick (preflight ON) with the provider resolver replaced by *resolve*."""
-    with patch("cron.scheduler._hermes_home", home), \
+    with patch("cron.scheduler._jarvis_home", home), \
          patch("cron.scheduler_delivery._resolve_origin", return_value=None), \
-         patch("hermes_cli.env_loader.load_hermes_dotenv"), \
-         patch("hermes_cli.env_loader.reset_secret_source_cache"), \
-         patch("hermes_state_registry.acquire", return_value=MagicMock()), \
+         patch("jarvis_cli.env_loader.load_jarvis_dotenv"), \
+         patch("jarvis_cli.env_loader.reset_secret_source_cache"), \
+         patch("jarvis_state_registry.acquire", return_value=MagicMock()), \
          patch("tools.mcp_tool_discovery.discover_mcp_tools", return_value=[]), \
-         patch("hermes_cli.runtime_provider.resolve_runtime_provider", side_effect=resolve), \
+         patch("jarvis_cli.runtime_provider.resolve_runtime_provider", side_effect=resolve), \
          patch.object(sched, "_deliver_result",
                       side_effect=lambda jb, content, **kw: deliveries.append(content)), \
          patch("run_agent.AIAgent") as agent_cls:
