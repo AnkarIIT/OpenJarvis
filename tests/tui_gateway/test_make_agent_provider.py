@@ -36,7 +36,7 @@ def test_make_agent_passes_resolved_provider():
         patch("tui_gateway.server._load_service_tier", return_value=None),
         patch("tui_gateway.server._load_enabled_toolsets", return_value=None),
         patch(
-            "hermes_cli.runtime_provider.resolve_runtime_provider",
+            "jarvis_cli.runtime_provider.resolve_runtime_provider",
             return_value=fake_runtime,
         ) as mock_resolve,
         patch("run_agent.AIAgent") as mock_agent,
@@ -103,25 +103,25 @@ def test_apply_model_switch_does_not_leak_process_env():
             self.provider = kw["new_provider"]
 
     env_keys = (
-        "HERMES_MODEL",
-        "HERMES_INFERENCE_MODEL",
-        "HERMES_TUI_PROVIDER",
-        "HERMES_INFERENCE_PROVIDER",
+        "JARVIS_MODEL",
+        "JARVIS_INFERENCE_MODEL",
+        "JARVIS_TUI_PROVIDER",
+        "JARVIS_INFERENCE_PROVIDER",
     )
 
     sess_b = {"agent": _FakeAgent(), "session_key": "k-B", "model_override": None}
     sess_a = {"agent": _FakeAgent(), "session_key": "k-A", "model_override": None}
 
     with (
-        patch("hermes_cli.model_switch.parse_model_flags",
+        patch("jarvis_cli.model_switch.parse_model_flags",
               return_value=("glm-5.1", None, False, False, True)),
-        patch("hermes_cli.model_switch.resolve_persist_behavior",
+        patch("jarvis_cli.model_switch.resolve_persist_behavior",
               return_value=False),
-        patch("hermes_cli.model_switch.switch_model", return_value=_FakeResult()),
+        patch("jarvis_cli.model_switch.switch_model", return_value=_FakeResult()),
         patch("tui_gateway.server._emit"),
         patch("tui_gateway.server._restart_slash_worker"),
         patch("tui_gateway.server._session_info", return_value={}),
-        patch("hermes_cli.model_switch.persist_model_selection") as mock_persist,
+        patch("jarvis_cli.model_switch.persist_model_selection") as mock_persist,
     ):
         before = {k: os.environ.get(k) for k in env_keys}
         result = server._apply_model_switch("sidB", sess_b, "glm-5.1")
@@ -155,7 +155,7 @@ def test_resumed_row_cannot_pin_stale_wire_onto_per_model_provider():
         return {"provider": provider, "requested_provider": provider, "api_mode": fresh[0], "base_url": fresh[1],
                 "api_key": "k", "source": "config"}
 
-    with patch("hermes_cli.runtime_provider.resolve_runtime_provider", side_effect=fake_resolve):
+    with patch("jarvis_cli.runtime_provider.resolve_runtime_provider", side_effect=fake_resolve):
         for stale_url in ("https://opencode.ai/zen/go", "https://opencode.ai/zen/v1"):
             _, runtime = server._resolve_agent_model_runtime(
                 {"model": "deepseek-v4-flash-vision-exp", "provider": "opencode-go",
