@@ -81,6 +81,9 @@ def _check_auth_providers(should_fix: bool, f: Finding) -> None:
     with warn_on_error(""):  # xAI OAuth separately, so an import failure cannot disrupt the rows already printed
         from jarvis_cli.auth import get_xai_oauth_auth_status
         _login_row("xAI OAuth", get_xai_oauth_auth_status() or {}, show_error=True)
+    with warn_on_error(""):  # Anthropic OAuth separately
+        from jarvis_cli.auth import get_anthropic_auth_status
+        _login_row("Anthropic OAuth", get_anthropic_auth_status(), show_error=True)
 
 
 def _login_row(label: str, status: dict, ok_detail: str = "(logged in)", show_error: bool = False) -> bool:

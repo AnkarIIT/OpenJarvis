@@ -7,7 +7,8 @@
 - ``resolve_provider()`` picks the active provider via the documented priority chain.
 - ``OAUTH_PROVIDER_FLOWS`` maps each OAuth provider to its resolver/status builder; the flows live in
   ``auth_nous``/``auth_codex``/``auth_xai``/``auth_qwen``/``auth_minimax``/``auth_spotify``/``auth_openrouter`` and are
-  re-imported here so ``jarvis_cli.auth.<name>`` stays the public/patchable surface."""
+  re-imported here so ``jarvis_cli.auth.<name>`` stays the public/patchable surface. Anthropic OAuth
+  resolves via ``agent/anthropic_credentials.py`` (PKCE + credential pool)."""
 
 from __future__ import annotations
 
@@ -1687,7 +1688,117 @@ _OAUTH_GRANT_DEAD_CODES = frozenset({"invalid_grant", "invalid_token", "refresh_
 _NOUS_AUTH_MISSING_CODES = frozenset({
     "nous_auth_missing", "nous_auth_missing_access_token", "nous_auth_missing_refresh_token"})
 
+def _anthropic_base_url() -> str:
+    """Anthropic base URL from env override or registry default."""
+    return (_provider_env_base_url(PROVIDER_REGISTRY["anthropic"]) or "https://api.anthropic.com").rstrip("/")
+
+
+def _anthropic_pool_is_token_expired(entry: Any) -> bool:
+    """True when a pool entry's ``expires_at_ms`` has passed (no skew)."""
+    expires_at_ms = getattr(entry, "expires_at_ms", None)
+    if expires_at_ms is None:
+        return False
+    return int(expires_at_ms) <= int(time.time() * 1000)
+
+
+def resolve_anthropic_runtime_credentials(
+    *, force_refresh: bool = False, refresh_if_expiring: bool = True,
+) -> Dict[str, Any]:
+    """Resolve Anthropic runtime credentials from the credential pool or env vars.
+
+    Pool first (with refresh-on-expiry via ``select()``), then env vars
+    (``ANTHROPIC_TOKEN`` / ``CLAUDE_CODE_OAUTH_TOKEN`` / ``ANTHROPIC_API_KEY``).
+    """
+    from agent.anthropic_credentials import _is_oauth_token
+    from agent.credential_pool import load_pool, AUTH_TYPE_OAUTH
+
+    # 1. Credential pool (handles refresh via select())
+    try:
+        pool = load_pool("anthropic")
+        if pool and pool.has_credentials():
+            entry = pool.select() if (force_refresh or refresh_if_expiring) else pool.peek()
+            if entry is not None:
+                api_key = getattr(entry, "runtime_api_key", None) or getattr(entry, "access_token", "")
+                if api_key and api_key.strip():
+                    is_oauth = getattr(entry, "auth_type", None) == AUTH_TYPE_OAUTH
+                    return {
+                        "provider": "anthropic",
+                        "base_url": _anthropic_base_url(),
+                        "api_key": api_key,
+                        "source": f"pool:{getattr(entry, 'label', 'unknown')}",
+                        "last_refresh": getattr(entry, "last_refresh", None),
+                        "auth_mode": "oauth" if is_oauth else "api_key",
+                    }
+    except Exception:
+        pass
+
+    # 2. Env vars (API key or OAuth token)
+    env_key = get_anthropic_key()
+    if env_key:
+        return {
+            "provider": "anthropic",
+            "base_url": _anthropic_base_url(),
+            "api_key": env_key,
+            "source": "env",
+            "last_refresh": None,
+            "auth_mode": "oauth" if _is_oauth_token(env_key) else "api_key",
+        }
+
+    raise AuthError(
+        "No Anthropic credentials found. Run 'jarvis auth add anthropic' for OAuth, "
+        "or set ANTHROPIC_API_KEY.",
+        provider="anthropic", code="no_credentials")
+
+
+def get_anthropic_auth_status() -> Dict[str, Any]:
+    """Status snapshot for Anthropic auth (env vars first, then credential pool).
+
+    Read-only by contract: status/doctor must never adopt, refresh or persist a credential (#68004).
+    Pool peek never mutates auth.json or hits the network; refresh-on-expiry belongs to the
+    API-call path's pool recovery (``resolve_anthropic_runtime_credentials``).
+    """
+    # 1. Env vars (API key or OAuth token)
+    env_key = get_anthropic_key()
+    if env_key:
+        from agent.anthropic_credentials import _is_oauth_token
+        return {
+            "logged_in": True, "auth_store": str(_auth_file_path()),
+            "auth_mode": "oauth" if _is_oauth_token(env_key) else "api_key",
+            "source": "env", "api_key": env_key,
+            "base_url": _anthropic_base_url(),
+        }
+
+    # 2. Credential pool (read-only peek, no refresh)
+    try:
+        from agent.credential_pool import load_pool, AUTH_TYPE_OAUTH
+        pool = load_pool("anthropic")
+        if pool and pool.has_credentials():
+            entry = pool.peek()
+            if entry is not None and entry.auth_type == AUTH_TYPE_OAUTH:
+                if _anthropic_pool_is_token_expired(entry):
+                    return {"logged_in": False, "auth_store": str(_auth_file_path()),
+                            "error": "OAuth token expired; run 'jarvis auth add anthropic' to refresh"}
+                api_key = getattr(entry, "runtime_api_key", None) or getattr(entry, "access_token", "")
+                if api_key and api_key.strip():
+                    return {
+                        "logged_in": True, "auth_store": str(_auth_file_path()),
+                        "auth_mode": "oauth",
+                        "source": f"pool:{getattr(entry, 'label', 'unknown')}",
+                        "api_key": api_key,
+                        "last_refresh": getattr(entry, "last_refresh", None),
+                        "base_url": _anthropic_base_url(),
+                    }
+    except Exception:
+        pass
+
+    return {"logged_in": False, "auth_store": str(_auth_file_path())}
+
+
 OAUTH_PROVIDER_FLOWS: Dict[str, OAuthProviderFlow] = {
+    "anthropic": OAuthProviderFlow(
+        "anthropic", "resolve_anthropic_runtime_credentials", "get_anthropic_auth_status",
+        terminal_refresh_codes=_OAUTH_GRANT_DEAD_CODES | {"anthropic_refresh_failed"},
+        logout_from_config=True),
     "nous": OAuthProviderFlow(
         "nous", "resolve_nous_runtime_credentials", "get_nous_auth_status",
         terminal_refresh_codes=_OAUTH_GRANT_DEAD_CODES | _NOUS_AUTH_MISSING_CODES, logout_from_config=True),
@@ -1712,6 +1823,7 @@ def _is_terminal_refresh_error(exc: Exception, provider: str) -> bool:
 
 
 _is_terminal_nous_refresh_error = partial(_is_terminal_refresh_error, provider="nous")
+_is_terminal_anthropic_oauth_refresh_error = partial(_is_terminal_refresh_error, provider="anthropic")
 _is_terminal_xai_oauth_refresh_error = partial(_is_terminal_refresh_error, provider="xai-oauth")
 _is_terminal_codex_oauth_refresh_error = partial(
     _is_terminal_refresh_error, provider="openai-codex")

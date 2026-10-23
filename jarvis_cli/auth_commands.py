@@ -404,6 +404,26 @@ def auth_add_command(args) -> None:
         _report_priority(provider, placed_pool, moved, int(wanted_priority), "Placed", "at")
 
 
+def _suggest_oauth_alternative(provider: str, requested_type: str) -> None:
+    """Print a helpful hint when a user tries OAuth for a provider that only has API keys."""
+    if provider == "openai-api":
+        print()
+        print("  OpenAI API uses API keys, not OAuth. To sign in with OAuth:")
+        print("    jarvis auth add openai-codex   # ChatGPT/Codex subscription OAuth")
+        print("  Or paste an API key directly:")
+        print("    jarvis auth add openai-api --type api-key")
+    elif provider == "gemini":
+        print()
+        print("  Google AI Studio uses API keys, not OAuth. To sign in:")
+        print("    jarvis auth add gemini --type api-key   # paste your GOOGLE_API_KEY")
+        print("  Or use Google Vertex AI (OAuth2 via service account):")
+        print("    jarvis auth add vertex")
+    else:
+        print()
+        print(f"  OAuth login is not available for '{provider}'.")
+        print(f"  Try: jarvis auth add {provider} --type api-key")
+
+
 def _add_credential(args, provider: str, pool, requested_type: str) -> PooledCredential:
     if requested_type == AUTH_TYPE_API_KEY:
         return _add_api_key_credential(args, provider, pool)
@@ -412,6 +432,7 @@ def _add_credential(args, provider: str, pool, requested_type: str) -> PooledCre
 
     spec = _OAUTH_ADD_SPECS.get(provider)
     if spec is None:
+        _suggest_oauth_alternative(provider, requested_type)
         raise SystemExit(f"`jarvis auth add {provider}` is not implemented for auth type {requested_type} yet.")
 
     creds = spec.login(args)

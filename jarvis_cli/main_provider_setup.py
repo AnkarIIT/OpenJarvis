@@ -742,6 +742,51 @@ def _stepfun_base_url_for_region(region: str) -> str:
     return STEPFUN_STEP_PLAN_CN_BASE_URL if region == "china" else STEPFUN_STEP_PLAN_INTL_BASE_URL
 
 
+def _run_anthropic_pkce_oauth_flow() -> bool:
+    """Run the Jarvis-native PKCE OAuth flow for Anthropic/Claude.
+
+    This is the native flow that doesn't require the Claude CLI — it opens a
+    browser to claude.ai/oauth/authorize, exchanges the code, and saves the
+    credential to the credential pool (same path as ``jarvis auth add anthropic``).
+    Returns True if credentials were saved.
+    """
+    import uuid
+    from agent import anthropic_credentials as anthropic_mod
+    from agent.credential_pool import load_pool, PooledCredential, AUTH_TYPE_OAUTH, SOURCE_MANUAL, label_from_token
+    import jarvis_cli.auth as auth_mod
+    from jarvis_cli.auth_commands import _provider_base_url
+
+    _say("", "  Starting Jarvis-native OAuth PKCE flow for Claude...",
+         "  A browser window will open for you to authorize Jarvis.", "")
+    creds = anthropic_mod.run_jarvis_oauth_login_pure()
+    if not creds:
+        _say("", "  OAuth login did not return credentials.", "  Cancelled.")
+        return False
+
+    access_token = creds.get("access_token", "")
+    if not access_token:
+        _say("", "  No access token returned from OAuth flow.", "  Cancelled.")
+        return False
+
+    pool = load_pool("anthropic")
+    label = label_from_token(access_token, f"anthropic-oauth-{len(pool.entries()) + 1}")
+    entry = PooledCredential(
+        provider="anthropic", id=uuid.uuid4().hex[:6], label=label,
+        auth_type=AUTH_TYPE_OAUTH, priority=0,
+        source=f"{SOURCE_MANUAL}:jarvis_pkce",
+        access_token=access_token,
+        refresh_token=creds.get("refresh_token"),
+        expires_at_ms=creds.get("expires_at_ms"),
+        base_url=_provider_base_url("anthropic"))
+    pool.add_entry(entry)
+    auth_mod.mark_provider_active_if_unset("anthropic")
+
+    _say("", "  ✓ OAuth credentials saved to credential pool.")
+    print(f"    Source: {entry.source}")
+    print(f"    Label:  {entry.label}")
+    return True
+
+
 def _run_anthropic_oauth_flow(save_env_value):
     """Run the Claude OAuth setup-token flow. Returns True if credentials were saved."""
     from agent.anthropic_credentials import run_oauth_setup_token, read_claude_code_credentials, is_claude_code_token_valid

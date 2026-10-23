@@ -967,16 +967,18 @@ def _model_flow_api_key_provider(config, provider_id, current_model=""):
 
 def _anthropic_authenticate() -> bool:
     """Interactive Anthropic auth (OAuth subscription or API key). False = flow must stop."""
-    from jarvis_cli.main_provider_setup import _run_anthropic_oauth_flow
+    from jarvis_cli.main_provider_setup import _run_anthropic_oauth_flow, _run_anthropic_pkce_oauth_flow
     from jarvis_cli.config import save_env_value, save_anthropic_api_key
     _say("", "  Choose authentication method:", "", "    1. Claude Pro/Max subscription (OAuth login)",
-         "    2. Anthropic API key (pay-per-token)", "    3. Cancel", "")
-    choice = _ask("  Choice [1/2/3]: ", raw=True, cancel_msg="")
+         "    2. Claude Code CLI (claude setup-token, requires Claude Code install)", "    3. Anthropic API key (pay-per-token)", "    4. Cancel", "")
+    choice = _ask("  Choice [1/2/3/4]: ", raw=True, cancel_msg="")
     if choice is None:
         return False
     if choice == "1":
-        return _run_anthropic_oauth_flow(save_env_value)
+        return _run_anthropic_pkce_oauth_flow()
     if choice == "2":
+        return _run_anthropic_oauth_flow(save_env_value)
+    if choice == "3":
         _say("", "  Get an API key at: https://platform.claude.com/settings/keys", "")
         api_key = _ask("  API key (sk-ant-...): ", secret=True, cancel_msg="")
         if api_key is None:

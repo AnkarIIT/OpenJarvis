@@ -25,7 +25,7 @@ from agent.secret_scope import build_profile_secret_scope, reset_secret_scope, s
 from jarvis_constants import (
     get_jarvis_home, get_jarvis_home_override, get_process_hermes_home, profile_name_for_home,
     reset_jarvis_home_override, set_jarvis_home_override)
-from jarvis_cli.env_loader import load_hermes_dotenv
+from jarvis_cli.env_loader import load_jarvis_dotenv
 from utils import file_signature, is_truthy_value
 from jarvis_state_ids import new_session_id
 from tools.environments.local import hermes_subprocess_env
@@ -48,7 +48,7 @@ from tui_gateway.transport import (FanoutTransport, StdioTransport, Transport, b
 logger = logging.getLogger(__name__)
 
 _jarvis_home = _HERMES_HOME_AT_IMPORT = get_jarvis_home()
-load_jarvis_dotenv(hermes_home=_jarvis_home, project_env=Path(__file__).parent.parent / ".env")
+load_jarvis_dotenv(jarvis_home=_jarvis_home, project_env=Path(__file__).parent.parent / ".env")
 
 
 # ── Panic logger: crashes otherwise leave no forensics (stdout is the JSON-RPC pipe, stderr doesn't

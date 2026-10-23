@@ -1,3 +1,4 @@
+_test_jarvis_ping
 acp_adapter
 agent
 batch_runner
@@ -38,6 +39,7 @@ jarvis_state_usage
 jarvis_state_user_copy
 jarvis_state_wal
 jarvis_time
+martian_device
 mcp_serve
 mini_swe_runner
 model_tools

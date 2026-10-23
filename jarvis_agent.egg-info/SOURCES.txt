@@ -1,5 +1,6 @@
 LICENSE
 README.md
+_test_jarvis_ping.py
 batch_runner.py
 cli.py
 jarvis_bootstrap.py
@@ -35,6 +36,7 @@ jarvis_state_usage.py
 jarvis_state_user_copy.py
 jarvis_state_wal.py
 jarvis_time.py
+martian_device.py
 mcp_serve.py
 mini_swe_runner.py
 model_tools.py
@@ -1751,6 +1753,7 @@ tools/xai_video_tools.py
 tools/yuanbao_tools.py
 tools/computer_use/__init__.py
 tools/computer_use/backend.py
+tools/computer_use/cua_auto_install.py
 tools/computer_use/cua_backend.py
 tools/computer_use/cua_backend_capture.py
 tools/computer_use/cua_backend_daemon.py
