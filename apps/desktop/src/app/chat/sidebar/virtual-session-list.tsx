@@ -2,7 +2,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useStore } from '@nanostores/react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type * as React from 'react'
+import * as React from 'react'
 import { type FC, useEffect, useRef } from 'react'
 
 import type { SessionInfo } from '@/hermes'
