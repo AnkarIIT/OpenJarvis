@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react'
-import type * as React from 'react'
+import * as React from 'react'
 import { useState } from 'react'
 
 import { type NewSessionPlacement, type NewSessionSplitHandler, startNewSessionDrag } from '@/app/chat/new-session-drag'
