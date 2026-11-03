@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react'
 import { useQueryClient } from '@tanstack/react-query'
-import type * as React from 'react'
+import * as React from 'react'
 import { type ReactNode, useEffect, useId } from 'react'
 
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
