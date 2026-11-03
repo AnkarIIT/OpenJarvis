@@ -1,4 +1,4 @@
-import type * as React from 'react'
+import * as React from 'react'
 
 import type { ChatMessage } from '@/lib/chat-messages'
 import type { SessionMessage, UsageStats } from '@/types/hermes'
