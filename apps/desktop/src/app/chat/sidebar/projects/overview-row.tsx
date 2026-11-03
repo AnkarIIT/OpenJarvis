@@ -1,7 +1,7 @@
-import { useStore } from '@nanostores/react'
-import type * as React from 'react'
-import { useRef, useState } from 'react'
 
+import { useStore } from '@nanostores/react'
+import * as React from 'react';
+import { useRef, useState, type Ref } from 'react'
 import { type NewSessionSplitHandler, startNewSessionDrag } from '@/app/chat/new-session-drag'
 import { Codicon } from '@/components/ui/codicon'
 import { Tip } from '@/components/ui/tooltip'
@@ -91,7 +91,7 @@ interface ProjectOverviewRowProps {
   reorderable?: boolean
   dragging?: boolean
   dragHandleProps?: React.HTMLAttributes<HTMLElement>
-  ref?: React.Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement>
   style?: React.CSSProperties
 }
 
