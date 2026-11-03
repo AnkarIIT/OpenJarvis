@@ -1,6 +1,6 @@
 import type { useSensors } from '@dnd-kit/core'
 import { useStore } from '@nanostores/react'
-import type * as React from 'react'
+import * as React from 'react'
 import { useCallback, useEffect, useMemo } from 'react'
 
 import { type NewSessionSplitHandler, startNewSessionDrag } from '@/app/chat/new-session-drag'
