@@ -27,5 +27,5 @@
     }
   },
   "include": ["src", "../shared/src"],
-  "exclude": ["e2e", "electron", "playwright.config.ts"]
+  "exclude": ["e2e", "electron", "playwright.config.ts", "src/app/jarvis", "../shared/src/**/*.test.ts", "../shared/src/**/*.test.tsx"]
 }
