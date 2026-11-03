@@ -17,6 +17,11 @@ import type { QuickEntryStatePush, QuickEntryStatus, QuickEntrySubmitPayload } f
 export {}
 
 declare global {
+  // setImmediate is a Node.js global not included in @types/node by default
+  var setImmediate: (callback: (...args: unknown[]) => void, ...args: unknown[]) => Immediate;
+  var clearImmediate: (handle: Immediate) => void;
+  interface Immediate extends Number {}
+
   interface Window {
     hermesDesktop: {
       // Resolve a backend connection. Omit `profile` (or pass the primary) for
