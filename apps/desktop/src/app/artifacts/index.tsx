@@ -1,4 +1,4 @@
-import type * as React from 'react'
+import * as React from 'react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 
