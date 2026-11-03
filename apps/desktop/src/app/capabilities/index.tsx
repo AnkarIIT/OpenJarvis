@@ -1,4 +1,4 @@
-import type * as React from 'react'
+import * as React from 'react'
 import { useCallback, useMemo, useState } from 'react'
 
 import { PageLoader } from '@/components/page-loader'
