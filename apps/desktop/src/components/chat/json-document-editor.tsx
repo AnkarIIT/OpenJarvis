@@ -1,4 +1,4 @@
-import type * as React from 'react'
+import * as React from 'react'
 import { type RefObject, useRef } from 'react'
 
 import { CodeEditor, type CodeEditorApi } from '@/components/chat/code-editor'
