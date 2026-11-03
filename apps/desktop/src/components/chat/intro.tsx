@@ -19,28 +19,28 @@ export type IntroProps = {
   seed?: number
 }
 
-const NEUTRAL_PERSONALITIES = new Set(['', 'default', 'none', 'neutral'])
+const NEUTRAL_PERSONALITIES = new Set(['', 'default', 'none', 'neutral', 'jarvis'])
 
 const FALLBACK_COPY: IntroCopy[] = [
   {
-    headline: 'What are we moving today?',
-    body: "Send a bug, branch, plan, or rough idea. I'll inspect the repo and turn it into the next concrete step."
+    headline: 'Good morning. What shall we tackle today?',
+    body: "Send a task, question, or rough idea. I'll inspect the context and turn it into the next concrete step."
   },
   {
-    headline: "What's on your mind?",
-    body: "Bring the code, question, or stuck part. I'll read the room before making changes."
+    headline: "Jarvis online. How can I help?",
+    body: "Bring the code, problem, or plan. I'll read the room before making changes."
   },
   {
-    headline: 'What should Hermes look at?',
-    body: "Send the task, failing path, or half-formed plan. I'll help turn it into action."
+    headline: 'Systems ready. Awaiting input.',
+    body: "Point me at a repo, paste an error, or describe the goal. I'll handle the mechanical parts."
   },
   {
-    headline: 'Where should we start?',
-    body: "Bring the problem, goal, or file. I'll inspect first and keep the next step concrete."
+    headline: 'At your service.',
+    body: "Share a file path, a failing test, or a half-formed plan. I'll break it down and ship clean diffs."
   },
   {
-    headline: 'What needs attention?',
-    body: "Send the context you have. I'll help sort it into a plan or a fix."
+    headline: 'Good afternoon. Ready when you are.',
+    body: "Describe the task in your own words. I'll pick the right tools, explain my plan, and check in before risky steps."
   }
 ]
 
@@ -145,7 +145,7 @@ function pickCopy(copies: IntroCopy[], seed = 0): IntroCopy {
   return copies[Math.abs(seed) % copies.length] || FALLBACK_COPY[0]
 }
 
-const WORDMARK = 'HERMES AGENT'
+const WORDMARK = 'JARVIS'
 
 function resolveCopy(personality?: string, seed?: number): IntroCopy {
   const personalityKey = normalizeKey(personality)
