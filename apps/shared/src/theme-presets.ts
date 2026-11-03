@@ -549,6 +549,36 @@ export const THEME_PRESET_PALETTES = {
       userBubble: '#1e2a38',
       userBubbleBorder: '#2e4060'
     }
+  },
+  jarvis: {
+    colors: {
+      background: '#0a0c10',
+      foreground: '#e8eaed',
+      card: '#111418',
+      cardForeground: '#e8eaed',
+      muted: '#181c22',
+      mutedForeground: '#7d8590',
+      popover: '#14181e',
+      popoverForeground: '#e8eaed',
+      primary: '#00d4aa',
+      primaryForeground: '#0a0c10',
+      secondary: '#1a2228',
+      secondaryForeground: '#e8eaed',
+      accent: '#142028',
+      accentForeground: '#00ffcc',
+      border: '#2a3038',
+      input: '#1a1e24',
+      ring: '#00d4aa',
+      midground: '#00d4aa',
+      midgroundForeground: '#0a0c10',
+      composerRing: '#00d4aa',
+      destructive: '#f85149',
+      destructiveForeground: '#ffffff',
+      sidebarBackground: '#080a0e',
+      sidebarBorder: '#222830',
+      userBubble: '#0a1814',
+      userBubbleBorder: '#1a2a28'
+    }
   }
 } satisfies Record<string, ThemePresetPalette>
 
