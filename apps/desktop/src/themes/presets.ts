@@ -387,7 +387,62 @@ export const slateTheme: DesktopTheme = {
   }
 }
 
+/**
+ * Jarvis — the canonical Jarvis desktop identity.
+ * Deep charcoal with electric cyan accent — calm, focused, powerful.
+ */
+export const jarvisTheme: DesktopTheme = {
+  name: 'jarvis',
+  label: 'Jarvis',
+  description: 'Deep charcoal with electric cyan — the Jarvis signature theme',
+  ...THEME_PRESET_PALETTES.nous,
+  typography: {
+    fontSans: SYSTEM_SANS,
+    fontMono: SYSTEM_MONO,
+    fontUrl: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap'
+  },
+  terminal: {
+    foreground: '#e8eaed',
+    black: '#1a1d21',
+    red: '#f28b82',
+    green: '#81c995',
+    yellow: '#fdd663',
+    blue: '#66b2ff',
+    magenta: '#d7aefb',
+    cyan: '#00d4aa',  // Jarvis accent
+    white: '#e8eaed',
+    brightBlack: '#5c6370',
+    brightRed: '#ff6b6b',
+    brightGreen: '#69db7c',
+    brightYellow: '#ffe066',
+    brightBlue: '#82c8ff',
+    brightMagenta: '#e8c0ff',
+    brightCyan: '#00ffcc',
+    brightWhite: '#ffffff'
+  },
+  darkTerminal: {
+    foreground: '#e8eaed',
+    black: '#1a1d21',
+    red: '#f28b82',
+    green: '#81c995',
+    yellow: '#fdd663',
+    blue: '#66b2ff',
+    magenta: '#d7aefb',
+    cyan: '#00d4aa',  // Jarvis accent
+    white: '#e8eaed',
+    brightBlack: '#5c6370',
+    brightRed: '#ff6b6b',
+    brightGreen: '#69db7c',
+    brightYellow: '#ffe066',
+    brightBlue: '#82c8ff',
+    brightMagenta: '#e8c0ff',
+    brightCyan: '#00ffcc',
+    brightWhite: '#ffffff'
+  }
+}
+
 export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
+  jarvis: jarvisTheme,
   nous: nousTheme,
   github: githubTheme,
   catppuccin: catppuccinTheme,
@@ -404,4 +459,4 @@ export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
 export const BUILTIN_THEME_LIST = Object.values(BUILTIN_THEMES)
 
 /** Skin used when nothing is persisted or the persisted name is retired. */
-export const DEFAULT_SKIN_NAME = 'nous'
+export const DEFAULT_SKIN_NAME = 'jarvis'
