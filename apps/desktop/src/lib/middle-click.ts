@@ -1,4 +1,4 @@
-import type * as React from 'react'
+import * as React from 'react'
 
 /** `MouseEvent.button` for the middle (wheel) button. */
 const MIDDLE_BUTTON = 1
