@@ -1,13 +1,13 @@
 {
-  "name": "hermes",
-  "productName": "Hermes",
+  "name": "jarvis",
+  "productName": "Jarvis",
   "private": true,
-  "version": "0.17.6",
-  "description": "Native desktop shell for Hermes Agent.",
-  "author": "Nous Research",
+  "version": "0.1.0",
+  "description": "Native desktop shell for Jarvis AI Agent.",
+  "author": "Your Name",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NousResearch/hermes-agent.git"
+    "url": "https://github.com/yourusername/jarvis"
   },
   "type": "module",
   "main": "dist/electron-main.mjs",
@@ -136,7 +136,8 @@
     "react-arborist": "3.13.2",
     "react-dnd-html5-backend": "14.1.0",
     "react-dom": "19.2.7",
-    "react-router": "8.3.0",
+    "react-router": "7.18.4",
+    "react-router-dom": "7.18.4",
     "react-shiki": "0.9.3",
     "remark-math": "6.0.0",
     "remend": "1.3.0",
@@ -183,24 +184,24 @@
     "rcedit": "5.0.2",
     "tsx": "4.23.1",
     "typescript": "6.0.3",
-    "vite": "8.2.0",
+    "vite": "^8.2.0",
     "vitest": "4.1.10",
     "wait-on": "9.0.10"
   },
   "build": {
     "electronVersion": "40.10.2",
-    "appId": "com.nousresearch.hermes",
-    "productName": "Hermes",
-    "executableName": "Hermes",
+    "appId": "com.yourcompany.jarvis",
+    "productName": "Jarvis",
+    "executableName": "Jarvis",
     "protocols": [
       {
-        "name": "Hermes Protocol",
+        "name": "Jarvis Protocol",
         "schemes": [
-          "hermes"
+          "jarvis"
         ]
       }
     ],
-    "artifactName": "Hermes-${version}-${os}-${arch}.${ext}",
+    "artifactName": "Jarvis-${version}-${os}-${arch}.${ext}",
     "icon": "assets/icon",
     "directories": {
       "output": "release"
@@ -236,19 +237,19 @@
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.inherit.plist",
       "extendInfo": {
-        "CFBundleDisplayName": "Hermes",
-        "CFBundleExecutable": "Hermes",
-        "CFBundleName": "Hermes",
-        "NSAudioCaptureUsageDescription": "Hermes uses audio capture for voice conversations.",
-        "NSCameraUsageDescription": "Hermes uses the camera when a plugin or feature you enable requests it.",
-        "NSMicrophoneUsageDescription": "Hermes uses the microphone for voice input and voice conversations.",
-        "NSCalendarsUsageDescription": "Hermes needs access to Calendar to provide requested meeting and scheduling support.",
-        "NSCalendarsFullAccessUsageDescription": "Hermes needs full access to Calendar to read and manage events when explicitly requested.",
-        "NSRemindersUsageDescription": "Hermes needs access to Reminders to provide requested personal-assistant and scheduling support.",
-        "NSRemindersFullAccessUsageDescription": "Hermes needs full access to Reminders to read and manage reminders when explicitly requested.",
-        "NSScreenCaptureUsageDescription": "Hermes captures the screen when you ask the agent to screenshot or record it.",
-        "NSLocalNetworkUsageDescription": "Hermes connects to devices on your local network when a plugin or feature you enable requests it.",
-        "NSAppleMusicUsageDescription": "Hermes accesses your music library when a plugin or feature you enable requests it."
+        "CFBundleDisplayName": "Jarvis",
+        "CFBundleExecutable": "Jarvis",
+        "CFBundleName": "Jarvis",
+        "NSAudioCaptureUsageDescription": "Jarvis uses audio capture for voice conversations.",
+        "NSCameraUsageDescription": "Jarvis uses the camera when a plugin or feature you enable requests it.",
+        "NSMicrophoneUsageDescription": "Jarvis uses the microphone for voice input and voice conversations.",
+        "NSCalendarsUsageDescription": "Jarvis needs access to Calendar to provide requested meeting and scheduling support.",
+        "NSCalendarsFullAccessUsageDescription": "Jarvis needs full access to Calendar to read and manage events when explicitly requested.",
+        "NSRemindersUsageDescription": "Jarvis needs access to Reminders to provide requested personal-assistant and scheduling support.",
+        "NSRemindersFullAccessUsageDescription": "Jarvis needs full access to Reminders to read and manage reminders when explicitly requested.",
+        "NSScreenCaptureUsageDescription": "Jarvis captures the screen when you ask the agent to screenshot or record it.",
+        "NSLocalNetworkUsageDescription": "Jarvis connects to devices on your local network when a plugin or feature you enable requests it.",
+        "NSAppleMusicUsageDescription": "Jarvis accesses your music library when a plugin or feature you enable requests it."
       },
       "gatekeeperAssess": false,
       "hardenedRuntime": true,
@@ -258,7 +259,7 @@
       ]
     },
     "dmg": {
-      "title": "Install Hermes",
+      "title": "Install Jarvis",
       "backgroundColor": "#f5f5f7",
       "iconSize": 96,
       "window": {
@@ -280,7 +281,7 @@
       ]
     },
     "win": {
-      "legalTrademarks": "Hermes",
+      "legalTrademarks": "Jarvis",
       "target": [
         "nsis",
         "msi"
@@ -289,8 +290,8 @@
     },
     "linux": {
       "category": "Development",
-      "maintainer": "Nous Research <support@nousresearch.com>",
-      "synopsis": "Native desktop shell for Hermes Agent.",
+      "maintainer": "Your Name <your@email.com>",
+      "synopsis": "Native desktop shell for Jarvis AI Agent.",
       "target": [
         "AppImage",
         "deb",
@@ -301,9 +302,15 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
-      "shortcutName": "Hermes",
-      "uninstallDisplayName": "Hermes",
+      "shortcutName": "Jarvis",
+      "uninstallDisplayName": "Jarvis",
       "warningsAsErrors": false
     }
-  }
+  },
+  "keywords": [],
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NousResearch/hermes-agent/issues"
+  },
+  "homepage": "https://github.com/NousResearch/hermes-agent#readme"
 }
