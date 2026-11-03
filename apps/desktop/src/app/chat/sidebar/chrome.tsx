@@ -1,6 +1,6 @@
 import { compactNumber } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
-import type * as React from 'react'
+import * as React from 'react'
 
 import { type NewSessionSplitHandler, startNewProjectDrag, startNewSessionDrag } from '@/app/chat/new-session-drag'
 import { Button } from '@/components/ui/button'
